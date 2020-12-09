@@ -2,9 +2,11 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	log "github.com/sirupsen/logrus"
 	"os"
+	"strings"
 
 	Lib "./lib"
 )
@@ -28,8 +30,16 @@ func main() {
 	const(
 		Separator = string(os.PathSeparator)
 	)
+	var configFile string
+
+	if(len(os.Args) < 1 || len(os.Args) > 2){
+		fmt.Println("You must pass the config-file=xxx parameter ONLY")
+		os.Exit(1)
+	}
+	configFile = strings.ReplaceAll(string(os.Args[1]),"config-file=","")
+
 	var currPath, err = os.Getwd()
-	var config = Lib.GetConfig(currPath + Separator +  "config" + Separator +"config.toml")
+	var config = Lib.GetConfig(currPath + Separator + "config"+ Separator +configFile)
 
 	config.Pxcluster.ActiveFailover = 2
 	log.SetOutput(os.Stdout)

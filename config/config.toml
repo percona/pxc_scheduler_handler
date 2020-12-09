@@ -1,0 +1,23 @@
+
+[pxccluster]
+activeFailover = 1
+checkTimeOut = 600
+debug = 1
+development = false
+developmentTime = 2000
+logDir = "/opt/results/logs"
+logLevel = "info"
+mainSegment = 1
+maxNumWriters = 1
+OS = "na"
+retryDown = 2
+retryUp = 1
+singlePrimary = true
+writerIsReader = 1
+
+[proxysql]
+port = 6033
+host = "192.168.4.191"
+user = "clusteruser1"
+password = "clusterpass"
+clustered = false

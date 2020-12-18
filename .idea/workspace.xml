@@ -2,12 +2,6 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="c603b4de-b46a-45fd-bef4-8d20deb405fc" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/lib/Sql/Proxy/sqlobjects.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/config.toml" beforeDir="false" afterPath="$PROJECT_DIR$/config/config.toml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/ProxySQL.go" beforeDir="false" afterPath="$PROJECT_DIR$/lib/proxySQLObjects.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/configuration.go" beforeDir="false" afterPath="$PROJECT_DIR$/lib/configuration.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/proxy_scheduler.go" beforeDir="false" afterPath="$PROJECT_DIR$/proxy_scheduler.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/.travis.yml" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/.travis.yml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/COMPATIBLE" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/COMPATIBLE" afterDir="false" />

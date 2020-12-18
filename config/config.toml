@@ -21,3 +21,12 @@ host = "192.168.4.191"
 user = "clusteruser1"
 password = "clusterpass"
 clustered = false
+
+[global]
+debug = false
+logLevel = "info"
+logTarget = "stdout" #stdout | file
+logFile = "/tmp/pscheduler"
+development = true
+devInterval = 2000
+

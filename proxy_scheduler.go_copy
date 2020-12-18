@@ -2,6 +2,7 @@ package main
 
 import (
 	Lib "./lib"
+	"database/sql"
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	log "github.com/sirupsen/logrus"
@@ -40,25 +41,11 @@ func main() {
 		os.Exit(1)
 	}
 	configFile = strings.ReplaceAll(string(os.Args[1]),"config-file=","")
-	log.SetOutput(os.Stdout)
-	log.SetLevel(log.InfoLevel)
-	//log.SetFormatter(&log.JSONFormatter{})
-
-	log.Info("Testing the log")
-	log.Error("testing log errors")
-
-
-
 
 	var currPath, err = os.Getwd()
 	var config = Lib.GetConfig(currPath + Separator + "config"+ Separator +configFile)
 	var proxysql_cluster Lib.ProxySQLCluster
-	proxysqlNode := new(Lib.ProxySQLNode)
-
-	if err != nil {
-		panic(err.Error())
-		os.Exit(1)
-	}
+	var proxysqlNode Lib.ProxySQLNode
 
 	if(config.Proxysql.Clustered){
 		proxysql_cluster.Active = true
@@ -70,24 +57,7 @@ func main() {
 	} else {
 		proxysqlNode.User= config.Proxysql.User
 		proxysqlNode.Password = config.Proxysql.Password
-		if( proxysqlNode.GetConnection()){
 
-		}else{
-			os.Exit(1)
-		}
-
-	}
-
-
-
-
-	/*
-	Final cleanup
-	 */
-	if proxysqlNode != nil {
-		if proxysqlNode.CloseConnection(){
-			log.Info("Connection close")
-		}
 	}
 
 
@@ -95,9 +65,15 @@ func main() {
 	datanode.DataNodeBase.Comment="aa"
 
 	config.Pxcluster.ActiveFailover = 2
+	log.SetOutput(os.Stdout)
+	log.SetLevel(log.InfoLevel)
+	//log.SetFormatter(&log.JSONFormatter{})
+
+	log.Info("Testing the log")
+	log.Error("testing log errors")
 
 	//my map with records
-	//allWm := make(map[int32]Windmill)
+	allWm := make(map[int32]Windmill)
 
 	//// Open up our database connection.
 	//// I've set up a database on my local machine using phpmyadmin.
@@ -114,33 +90,33 @@ func main() {
 	//defer db.Close()
 
 
-	//recordset, err  := db.Query("SELECT * from windmills_s.windmills1 limit 10")
-	//for recordset.Next(){
-	//	var wm Windmill
-	//	err = recordset.Scan(
-	//		&wm.id,
-	//		&wm.uuid,
-	//		&wm.millid,
-	//		&wm.kwatts_s,
-	//		&wm.date,
-	//		&wm.location,
-	//		&wm.active,
-	//		&wm.time,
-	//		&wm.strrecordtype)
-	//
-	//	allWm[wm.id] = wm
-	//
-	//}
-	//if err != nil {
-	//	panic(err.Error()) // proper error handling instead of panic in your app
-	//}
-	//for key, wm := range allWm {
-	//	log.WithFields(log.Fields{"key": key,
-	//		"windmill id": wm.id,
-	//		"KW": wm.kwatts_s,
-	//		"uuid": wm.uuid,
-	//		"time": wm.time}).Info()
-	//	//fmt.Printf(  "%d Windmills id  %d KW = %d  uuid = %s  time = %s \n",
-	//	//	key,wm.id,wm.kwatts_s,wm.uuid, wm.time )
-	//}
+	recordset, err  := db.Query("SELECT * from windmills_s.windmills1 limit 10")
+	for recordset.Next(){
+		var wm Windmill
+		err = recordset.Scan(
+			&wm.id,
+			&wm.uuid,
+			&wm.millid,
+			&wm.kwatts_s,
+			&wm.date,
+			&wm.location,
+			&wm.active,
+			&wm.time,
+			&wm.strrecordtype)
+
+		allWm[wm.id] = wm
+
+	}
+	if err != nil {
+		panic(err.Error()) // proper error handling instead of panic in your app
+	}
+	for key, wm := range allWm {
+		log.WithFields(log.Fields{"key": key,
+			"windmill id": wm.id,
+			"KW": wm.kwatts_s,
+			"uuid": wm.uuid,
+			"time": wm.time}).Info()
+		//fmt.Printf(  "%d Windmills id  %d KW = %d  uuid = %s  time = %s \n",
+		//	key,wm.id,wm.kwatts_s,wm.uuid, wm.time )
+	}
 }

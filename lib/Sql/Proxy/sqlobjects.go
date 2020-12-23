@@ -10,7 +10,8 @@ const(
 	/*
 	Table used as backup / point in time recovery before scheduler start to take control
 	 */
-	Ddl_Create_mysal_server_original = "CREATE TABLE mysql_servers_original (" +
+
+	Ddl_Create_mysal_server_original = "CREATE TABLE disk.pxc_servers_original (" +
 		"hostgroup_id INT CHECK (hostgroup_id>=0) NOT NULL DEFAULT 0, " +
 		"hostname VARCHAR NOT NULL, " +
 		"port INT CHECK (port >= 0 AND port <= 65535) NOT NULL DEFAULT 3306, " +
@@ -27,7 +28,7 @@ const(
 	/*
 	This table is the working area for the scheduler to deal with the nodes while processing
 	 */
-	Ddl_create_mysql_servers_scheduler = "CREATE TABLE mysql_servers_scheduler (" +
+	Ddl_create_mysql_servers_scheduler = "CREATE TABLE disk.pxc_servers_scheduler (" +
 		"hostgroup_id INT CHECK (hostgroup_id>=0) NOT NULL DEFAULT 0, " +
 		"hostname VARCHAR NOT NULL,    port INT CHECK (port >= 0 AND port <= 65535) NOT NULL DEFAULT 3306, " +
 		"status VARCHAR CHECK (UPPER(status) IN ('ONLINE','SHUNNED','OFFLINE_SOFT', 'OFFLINE_HARD')) NOT NULL DEFAULT 'ONLINE',  " +
@@ -40,7 +41,7 @@ const(
 	/*
 	Configuration table for pxc
 	 */
-	Ddl_create_pxc_clusters = "CREATE TABLE pxc_clusters (cluster_id INTEGER PRIMARY KEY AUTOINCREMENT," +
+	Ddl_create_pxc_clusters = "CREATE TABLE disk.pxc_clusters (cluster_id INTEGER PRIMARY KEY AUTOINCREMENT," +
 		"hg_w INT," +
 		"hg_r INT," +
 		"bck_hg_w INT," +
@@ -54,19 +55,22 @@ const(
 	/*
 	cleanup of tables
 	 */
-	Ddl_drop_mysql_server_original = "DROP TABLE IF EXISTS mysql_servers_original"
-	Ddl_drop_mysql_server_scheduler = "DROP TABLE IF EXISTS mysql_servers_scheduler"
-	Ddl_drop_pxc_cluster = "DROP TABLE IF EXISTS pxc_clusters"
+	Ddl_drop_mysql_server_original = "DROP TABLE IF EXISTS disk.mysql_servers_original"
+	Ddl_drop_mysql_server_scheduler = "DROP TABLE IF EXISTS disk.mysql_servers_scheduler"
+	Ddl_drop_pxc_cluster = "DROP TABLE IF EXISTS disk.pxc_clusters"
 
 	Ddl_Truncate_mysql_nodes = "truncate table from mysql_servers"
+	Ddl_drop_table_generic = "DROP TABLE IF EXISTS  disk.#table-name#"
 
 	/*
 	Information retrieval
  	*/
+	Info_Check_table ="show tables from disk"
 
-
+	//get MySQL nodes to process based on the HG
 	Dml_Select_mysql_nodes = "select hostgroup_id, hostname,port, status,weight, max_connections, max_replication_lag  from mysql_servers where hostgroup_id = ?"
 
-
+    // Get the information to deal with the cluster from pxc_cluster (ID is coming from settings cluster_id)
+    Dml_get_mysql_cluster_to_manage = "select cluster_id, hg_w, hg_r, bck_hg_w, bck_hg_r, single_writer, max_writers, writer_is_also_reader, retry_up, retry_down from disk.pxc_clusters where cluster_id = ?"
 
 )

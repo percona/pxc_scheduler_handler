@@ -1,4 +1,4 @@
-package lib
+package DataObjects
 
 type DataNodePxc struct{
 	DataNodeBase DataNode
@@ -15,4 +15,3 @@ type DataNodePxc struct{
 	Wsrep_segment int
 	Wsrep_status int
 }
-

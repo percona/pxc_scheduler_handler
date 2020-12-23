@@ -1,7 +1,8 @@
 package main
 
 import (
-	Lib "./lib"
+	DO "./lib/DataObjects"
+	Global "./lib/Global"
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	log "github.com/sirupsen/logrus"
@@ -9,76 +10,65 @@ import (
 	"strings"
 )
 
-/*
-Testing structure must disappear
- */
-type Windmill struct {
-	id int32
-	uuid string
-	millid int
-	kwatts_s int
-	date string
-	location string
-	active int
-	time string
-	strrecordtype string
-}
 
 /*
 Main function must contains only initial parameter, log system init and main object init
  */
 func main() {
-	//fmt.Println("Go MySQL Tutorial")
-	//var log = logrus.New()
-	const(
+//global setup of basic parameters
+	const (
 		Separator = string(os.PathSeparator)
 	)
-	var configFile string
 
-	if(len(os.Args) < 2 || len(os.Args) > 2){
+	var configFile string
+    Global.Performance = false
+
+	if len(os.Args) < 2 || len(os.Args) > 2 {
 		fmt.Println("You must pass the config-file=xxx parameter ONLY")
 		os.Exit(1)
 	}
-	configFile = strings.ReplaceAll(string(os.Args[1]),"config-file=","")
-	log.SetOutput(os.Stdout)
-	log.SetLevel(log.InfoLevel)
-	//log.SetFormatter(&log.JSONFormatter{})
-
-	log.Info("Testing the log")
-	log.Error("testing log errors")
-
-
-
-
+	//read config and return a config object
+	configFile = strings.ReplaceAll(string(os.Args[1]), "config-file=", "")
 	var currPath, err = os.Getwd()
-	var config = Lib.GetConfig(currPath + Separator + "config"+ Separator +configFile)
-	var proxysql_cluster Lib.ProxySQLCluster
-	proxysqlNode := new(Lib.ProxySQLNode)
+	var config = Global.GetConfig(currPath + Separator + "config" + Separator + configFile)
+
+	//initialize the log system
+	Global.InitLog(config)
+	//should we track performance or not
+	Global.Performance = config.Global.Performance
+
+	/*
+	main game start here defining the Proxy Objects
+	*/
+
+	//initialize performance collection if requested
+	if Global.Performance {
+		Global.PerformanceMap = make(map[string][2]int64)
+		Global.SetPerformanceValue("main",true)
+	}
+	proxysqlCluster := new(DO.ProxySQLCluster)
+	proxysqlNode := new(DO.ProxySQLNode)
 
 	if err != nil {
 		panic(err.Error())
 		os.Exit(1)
 	}
 
-	if(config.Proxysql.Clustered){
-		proxysql_cluster.Active = true
-		proxysql_cluster.User = config.Proxysql.User
-		proxysql_cluster.Password = config.Proxysql.Password
-		nodes:= proxysql_cluster.GetProxySQLnodes()
+	if config.Proxysql.Clustered {
+		proxysqlCluster.Active = true
+		proxysqlCluster.User = config.Proxysql.User
+		proxysqlCluster.Password = config.Proxysql.Password
+
+		nodes:= proxysqlCluster.GetProxySQLnodes()
 
 		log.Info(" Number of ProxySQL cluster nodes: " , len(nodes))
 	} else {
-		proxysqlNode.User= config.Proxysql.User
-		proxysqlNode.Password = config.Proxysql.Password
-		if( proxysqlNode.GetConnection()){
-
-		}else{
-			os.Exit(1)
+		if proxysqlNode.Init(config) {
+			if log.GetLevel() == log.DebugLevel {
+				log.Debug("ProxySQL node initialized ",proxysqlNode)
+			}
 		}
-
 	}
-
-
 
 
 	/*
@@ -86,12 +76,19 @@ func main() {
 	 */
 	if proxysqlNode != nil {
 		if proxysqlNode.CloseConnection(){
-			log.Info("Connection close")
+			if log.GetLevel() == log.DebugLevel {
+				log.Info("Connection close")
+			}
 		}
 	}
 
+	if Global.Performance{
+		Global.SetPerformanceValue("main",false)
+		Global.ReportPerformance()
+	}
 
-    var datanode Lib.DataNodePxc
+
+    var datanode DO.DataNodePxc
 	datanode.DataNodeBase.Comment="aa"
 
 	config.Pxcluster.ActiveFailover = 2

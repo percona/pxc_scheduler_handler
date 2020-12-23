@@ -1,4 +1,4 @@
-package lib
+package DataObjects
 
 
 type DataNode struct{
@@ -30,7 +30,7 @@ type DataCluster struct{
 	BackupReaders []int
 	BackupWriters []int
 	CheckTimeout  int32
-	ClusterIdentifier string //uuid
+	ClusterIdentifier int //cluster_id
 	Cluster_size int
 	Cluster_status int
 	Clustername string

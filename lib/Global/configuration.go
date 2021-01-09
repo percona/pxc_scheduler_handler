@@ -4,7 +4,10 @@ import (
 	"fmt"
 	toml "github.com/Tusamarco/toml"
 	log "github.com/sirupsen/logrus"
+	"golang.org/x/text/language"
+	"golang.org/x/text/message"
 	"os"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -27,10 +30,12 @@ func SetPerformanceValue(key string, start bool){
 }
 
 func ReportPerformance(){
+	formatter := message.NewPrinter(language.English)
+
 	log.Info("======== Reporting execution times (nanosec/ms)by phase ============")
 	for key, wm := range PerformanceMap {
-
-		log.Info("Phase: ", key, " = ", wm[1] - wm[0]," us ", (wm[1] - wm[0])/1000000, " ms" )
+		value := formatter.Sprintf("%d",  wm[1] - wm[0])
+		log.Info("Phase: ", key, " = ", value," us ",strconv.FormatInt( (wm[1] - wm[0])/1000000, 10)," ms" )
 	}
 
 }
@@ -61,22 +66,27 @@ type Configuration struct {
 //Pxc configuration class
 type pxcCluster struct {
 	ActiveFailover int
-	CheckTimeOut int32
+	CheckTimeOut int
+	ClusterId int
 	Debug int
 	Development bool
 	DevelopmentTime int32
-	Host string `toml:"proxysql"`
+	Host string
 	LogDir string
 	LogLevel string
 	MainSegment int
 	MaxNumWriters int
 	OS string
-	Password string `toml:"proxysql"`
-	Port int  `toml:"proxysql"`
+	Password string
+	Port int
 	RetryDown int
 	RetryUp int
 	SinglePrimary bool
-	User string `toml:"proxysql"`
+	SslClient string
+	SslKey string
+	SslCa string
+	SslCertificate_path string
+	User string
 	WriterIsReader int
 
 

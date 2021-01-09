@@ -3,20 +3,12 @@
 activeFailover = 1
 checkTimeOut = 600
 debug = 1
-development = false
-developmentTime = 2000
-logDir = "/opt/results/logs"
-logLevel = "info"
 mainSegment = 1
-maxNumWriters = 1
-OS = "na"
-retryDown = 2
-retryUp = 1
-singlePrimary = true
-writerIsReader = 1
-cluster_id=1
-
-
+clusterId=1
+sslClient = "client-cert.pem"
+sslKey = "client-key.pem"
+sslCa = "ca.pem"
+sslCertificate_path = "/Users/marcotusa/work/temp/ssl_test"
 
 [proxysql]
 port = 6032
@@ -35,3 +27,4 @@ logFile = "/Users/marcotusa/work/temp/pscheduler.log"
 development = true
 devInterval = 2000
 performance = true
+OS = "na"

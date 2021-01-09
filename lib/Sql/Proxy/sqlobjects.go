@@ -68,9 +68,13 @@ const(
 	Info_Check_table ="show tables from disk"
 
 	//get MySQL nodes to process based on the HG
-	Dml_Select_mysql_nodes = "select hostgroup_id, hostname,port, status,weight, max_connections, max_replication_lag  from mysql_servers where hostgroup_id = ?"
+	//+--------------+---------------+------+-----------+--------------+---------+-------------+-----------------+---------------------+---------+----------------+-------------------------------------------------------------+
+	//| hostgroup_id | hostname      | port | gtid_port | status       | weight  | compression | max_connections | max_replication_lag | use_ssl | max_latency_ms | comment                                                     |
+	Dml_Select_mysql_nodes = "select hostgroup_id, hostname,port,gtid_port, status,weight, compression,max_connections, max_replication_lag,use_ssl,max_latency_ms,comment  from mysql_servers where hostgroup_id in ( ?)"
 
     // Get the information to deal with the cluster from pxc_cluster (ID is coming from settings cluster_id)
     Dml_get_mysql_cluster_to_manage = "select cluster_id, hg_w, hg_r, bck_hg_w, bck_hg_r, single_writer, max_writers, writer_is_also_reader, retry_up, retry_down from disk.pxc_clusters where cluster_id = ?"
 
+    //get Variables
+    Dml_show_variables="SHOW GLOBAL VARIABLES"
 )

@@ -1,5 +1,7 @@
 package DataObjects
 
+import log "github.com/sirupsen/logrus"
+
 type DataNodePxc struct{
 	DataNodeBase DataNode
 	Pxc_maint_mode string
@@ -14,4 +16,23 @@ type DataNodePxc struct{
 	Wsrep_rejectqueries bool
 	Wsrep_segment int
 	Wsrep_status int
+	PxcView PxcClusterView
 }
+
+func (node *DataNodePxc) getPxcView(dml string) PxcClusterView{
+	recordset, err  := node.DataNodeBase.Connection.Query(dml)
+	if err != nil{
+		log.Error(err.Error())
+	}
+		var pxcView PxcClusterView
+		for recordset.Next() {
+			recordset.Scan(&pxcView.HostName,
+				&pxcView.Uuid,
+				&pxcView.Status,
+				&pxcView.LocalIndex,
+				&pxcView.Segment)
+		}
+	return pxcView
+
+}
+

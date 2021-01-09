@@ -15,6 +15,9 @@ import (
 Init the proxySQL node
  */
 func (node *ProxySQLNode) Init(config Global.Configuration) bool{
+	if Global.Performance {
+		Global.SetPerformanceValue("proxysql_init",true)
+	}
 	node.User= config.Proxysql.User
 	node.Password = config.Proxysql.Password
 	node.Dns = config.Proxysql.Host
@@ -26,9 +29,20 @@ func (node *ProxySQLNode) Init(config Global.Configuration) bool{
 		log.Info( "Host: " + config.Proxysql.Host," Port: ", config.Proxysql.Port," User: " +config.Proxysql.User )
 		os.Exit(1)
 	}
+	if ! node.getVariables(){
+		log.Error("Cannot load variables from Proxy.\n")
+		return false
+	}
+
+	if ! node.GetDataCluster(config){
+		log.Error("Cannot load Data cluster from Proxy.\n")
+		return false
+	}
 
 
-
+	if Global.Performance {
+		Global.SetPerformanceValue("proxysql_init",false)
+	}
 
 	if node.Connection != nil {
 		return true
@@ -38,8 +52,37 @@ func (node *ProxySQLNode) Init(config Global.Configuration) bool{
 
 }
 
+func (node *ProxySQLNode) getVariables() bool{
+	variables := make(map[string]string)
+
+	recordset, err  := node.Connection.Query(SQL.Dml_show_variables)
+	if err != nil{
+		log.Error(err.Error())
+		os.Exit(1)
+	}
+
+	for recordset.Next() {
+		var name string
+		var value string
+		recordset.Scan(&name,&value)
+		variables[name] = value
+	}
+	node.Variables = variables
+	if node.Variables["mysql-monitor_username"] != "" && node.Variables["mysql-monitor_password"] != ""{
+		node.MonitorUser = node.Variables["mysql-monitor_username"]
+		node.MonitorPassword =  node.Variables["mysql-monitor_password"]
+	}else{
+		log.Error("ProxySQL Monitor user not declared correctly please check variables mysql-monitor_username|mysql-monitor_password")
+		os.Exit(1)
+	}
+	return true
+}
+
 /*this method is used to assign a connection to a proxySQL node
 return true if successful in any other case false
+
+Note ?timeout=1s is HARDCODED on purpose. This is a check that MUST execute in less than a second.
+Having a connection taking longer than that is outrageous. Period!
 */
 func (node *ProxySQLNode) GetConnection() bool{
 	if Global.Performance {
@@ -48,7 +91,7 @@ func (node *ProxySQLNode) GetConnection() bool{
 	//dns := node.User + ":" + node.Password + "@tcp(" + node.Dns + ":"+ strconv.Itoa(node.Port) +")/admin" //
 	//if log.GetLevel() == log.DebugLevel {log.Debug(dns)}
 
-	db, err := sql.Open("mysql", node.User + ":" + node.Password + "@tcp(" + node.Dns + ":"+ strconv.Itoa(node.Port) +")/main")
+	db, err := sql.Open("mysql", node.User + ":" + node.Password + "@tcp(" + node.Dns + ":"+ strconv.Itoa(node.Port) +")/main?timeout=1s")
 
 	//defer db.Close()
 	node.Connection = db
@@ -101,6 +144,11 @@ func (node *ProxySQLNode) CheckTables(initTables bool) bool {
 	executionCheck = false
 	recordset, err  := node.Connection.Query(SQL.Info_Check_table)
 
+	if err != nil{
+		log.Error(err.Error())
+		os.Exit(1)
+	}
+
 	if recordset != nil {
 		var sb bytes.Buffer
 
@@ -131,10 +179,7 @@ func (node *ProxySQLNode) CheckTables(initTables bool) bool {
 		}
     } else {return false}
 
-	if err != nil{
-		log.Error(err.Error())
-		os.Exit(1)
-	}
+
 	return executionCheck
 }
 /*
@@ -166,7 +211,17 @@ ProxySQLNode
 					|
 				Pxc | GR
  */
-func (node *ProxySQLNode) GetDataCluster() bool{
+func (node *ProxySQLNode) GetDataCluster(config Global.Configuration) bool{
+	//Init the data cluster
+	dataClusterPxc := new(DataCluster)
+	dataClusterPxc.MonitorPassword = node.MonitorPassword
+	dataClusterPxc.MonitorUser = node.MonitorUser
 
-	return false
+	if ! dataClusterPxc.init(config, node.Connection){
+		log.Error("Cannot initialize the data cluster id ", config.Pxcluster.ClusterId)
+		return false
+	}
+
+	node.MySQLCluster = dataClusterPxc
+	return true
 }

@@ -37,7 +37,8 @@ type ProxySQLNode struct{
 	Port int
 	User string
 	Connection *sql.DB
-	MySQLCluster ProxySQLCluster
+	MySQLCluster *DataCluster
+	Variables map[string]string
 
 }
 
@@ -52,3 +53,4 @@ const(
 	PxcTables = "pxc_servers_original,pxc_servers_scheduler,pxc_clusters"
 
 )
+

@@ -1,35 +1,46 @@
 package DataObjects
 
+import (
+	"database/sql"
+	"sync"
+)
 
 type DataNode struct{
 	Comment string
-	Compression string
-	Connections int
+	Compression int
+	Connection *sql.DB
 	Debug bool
 	Dns string
 	Gtid_port int
+	HostgroupId int
 	Hostgroups []Hostgroup
 	Ip string
-	Max_latency int
-	Max_replication_lag int
+	MaxConnection int
+	MaxLatency int
+	MaxReplication_lag int
 	Name string
+	NodeTCPDown bool
 	Password string
 	Port int
-	Process_status int
-	Proxy_status int
-	Read_only bool
-	Retry_down_saved int
-	Retry_up_saved int
-	Use_ssl bool
+	Processed bool
+	ProcessStatus int
+	ProxyStatus string
+	ReadOnly bool
+	Ssl *SslCertificates
+	Status map[string]string
+	UseSsl bool
 	User string
+	Variables map[string]string
 	Weight int
 }
 
 
 type DataCluster struct{
-	BackupReaders []int
-	BackupWriters []int
-	CheckTimeout  int32
+	BackupReaders map[string]DataNode
+	BackupWriters map[string]DataNode
+	BackupHgReaderId int
+	BakcupHgWriterId int
+	CheckTimeout  int
 	ClusterIdentifier int //cluster_id
 	Cluster_size int
 	Cluster_status int
@@ -46,16 +57,46 @@ type DataCluster struct{
 	MonitorPassword string
 	MonitorUser string
 	Name string
-	Nodes map [string] DataNode // <ip_hg,datanode>
-	NodesMaint []DataNode
-	NumWriters int
-	ReaderNodes []DataNode
+	NodesPxc *ProxySyncMap //[string] DataNodePxc // <ip:port,datanode>
+	NodesPxcMaint []DataNodePxc
+	MaxNumWriters int
+	ReaderNodes map[string]DataNodePxc
 	RequireFailover bool
+	RetryDown int
+	RetryUp int
 	Singlenode bool
 	SinglePrimary bool
 	Size int
+	Ssl *SslCertificates
 	Status  int
 	WriterIsReader int
-	WriterNodes []DataNode
+	WriterNodes map[string]DataNodePxc
 
+}
+
+type ProxySyncMap struct {
+	sync.RWMutex
+	internal map[string]DataNodePxc
+}
+
+type SslCertificates struct {
+	sslClient string
+	sslKey string
+	sslCa string
+	sslCertificatePath string
+}
+
+type PxcClusterView struct {
+	//'HOST_NAME', 'UUID','STATUS','LOCAL_INDEX','SEGMENT'
+	HostName string
+	Uuid string
+	Status string
+	LocalIndex int
+	Segment int
+}
+
+
+type VariableStatus struct{
+	VarName string `db:"VARIABLE_NAME"`
+	VarValue string `db:"VARIABLE_VALUE"`
 }

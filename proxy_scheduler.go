@@ -53,7 +53,10 @@ func main() {
 		panic(err.Error())
 		os.Exit(1)
 	}
-
+	/*
+	TODO the check against a cluster require a PRE-phase to align the nodes and an AFTER to be sure nodes settings are distributed.
+	Not yet implemented
+	 */
 	if config.Proxysql.Clustered {
 		proxysqlCluster.Active = true
 		proxysqlCluster.User = config.Proxysql.User
@@ -65,10 +68,21 @@ func main() {
 	} else {
 		if proxysqlNode.Init(config) {
 			if log.GetLevel() == log.DebugLevel {
-				log.Debug("ProxySQL node initialized ",proxysqlNode)
+				log.Debug("ProxySQL node initialized ")
 			}
 		}
 	}
+
+	/*
+	If we are here all the init phase is over and nodes should be containing the current status.
+	Is it now time to evaluate what needs to be done.
+	Priority is given to ANY service interruption as if Writer does not exists
+	We will have 2 moments:
+		- identify any anomalies
+		- modify the nodes settings in mysql_servers
+			- Fail-over will take action immediately, evaluating which is the best candidate.
+			- others will require another loop given we will NOT do fail-over and nodes modification all in one shot.
+	 */
 
 
 	/*
@@ -88,10 +102,6 @@ func main() {
 	}
 
 
-    var datanode DO.DataNodePxc
-	datanode.DataNodeBase.Comment="aa"
-
-	config.Pxcluster.ActiveFailover = 2
 
 	//my map with records
 	//allWm := make(map[int32]Windmill)

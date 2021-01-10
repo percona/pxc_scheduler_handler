@@ -70,6 +70,9 @@ func main() {
 			if log.GetLevel() == log.DebugLevel {
 				log.Debug("ProxySQL node initialized ")
 			}
+		}else {
+			log.Error("Initialization failed")
+			os.Exit(1)
 		}
 	}
 
@@ -84,6 +87,17 @@ func main() {
 			- others will require another loop given we will NOT do fail-over and nodes modification all in one shot.
 	 */
 
+	/*
+	TODO process status of nodes create list of actions
+	 */
+
+	/*
+	TODO Do failover if needed
+	 */
+
+	/*
+	TODO change servers as list of actions
+	 */
 
 	/*
 	Final cleanup

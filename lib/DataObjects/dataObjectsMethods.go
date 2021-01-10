@@ -2,8 +2,8 @@ package DataObjects
 
 import (
 	"../Global"
-	SQLProxy "../Sql/Proxy"
 	SQLPxc "../Sql/Pcx"
+	SQLProxy "../Sql/Proxy"
 	"crypto/tls"
 	"crypto/x509"
 	"database/sql"

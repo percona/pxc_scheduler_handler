@@ -11,6 +11,6 @@
 
 ![overview](./docs/flow-overall.png "overview")
 
-![function flow] (./docs/flow-Funtions-calls-flow.png "Function flow")
+![function flow](./docs/flow-Funtions-calls-flow.png "Function flow")
 
-![nodes check] (./docs/flow-check_nodes.png "Nodes check")
+![nodes check](./docs/flow-check_nodes.png "Nodes check")

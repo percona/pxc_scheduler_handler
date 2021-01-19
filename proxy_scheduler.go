@@ -8,6 +8,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"os"
 	"strings"
+	"time"
 )
 
 
@@ -61,7 +62,7 @@ func main() {
 		proxysqlCluster.Active = true
 		proxysqlCluster.User = config.Proxysql.User
 		proxysqlCluster.Password = config.Proxysql.Password
-
+		time.Now().UnixNano()
 		nodes:= proxysqlCluster.GetProxySQLnodes()
 
 		log.Info(" Number of ProxySQL cluster nodes: " , len(nodes))

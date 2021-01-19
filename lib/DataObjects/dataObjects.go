@@ -9,6 +9,7 @@ type DataNode struct{
 	Comment string
 	Compression int
 	Connection *sql.DB
+	ConnUsed int
 	Debug bool
 	Dns string
 	Gtid_port int
@@ -36,6 +37,7 @@ type DataNode struct{
 
 
 type DataCluster struct{
+	ActionNodes map[string]DataNode
 	BackupReaders map[string]DataNode
 	BackupWriters map[string]DataNode
 	BackupHgReaderId int
@@ -60,6 +62,10 @@ type DataCluster struct{
 	NodesPxc *ProxySyncMap //[string] DataNodePxc // <ip:port,datanode>
 	NodesPxcMaint []DataNodePxc
 	MaxNumWriters int
+	OffLineReaders map[string]DataNode
+	OffLineWriters map[string]DataNode
+	OffLineHgReaderID int
+	OffLineHgWriterId int
 	ReaderNodes map[string]DataNodePxc
 	RequireFailover bool
 	RetryDown int

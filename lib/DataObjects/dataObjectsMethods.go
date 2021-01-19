@@ -180,12 +180,17 @@ func (cluster *DataCluster) loadNodes(connectionProxy *sql.DB) bool{
 	sb.WriteString("," +strconv.Itoa(cluster.HgReaderId) )
 	sb.WriteString("," +strconv.Itoa(cluster.BakcupHgWriterId) )
 	sb.WriteString("," +strconv.Itoa(cluster.BackupHgReaderId) )
+	sb.WriteString("," +strconv.Itoa(cluster.OffLineHgWriterId) )
+	sb.WriteString("," +strconv.Itoa(cluster.OffLineHgReaderID) )
 
+	cluster.ActionNodes = make(map[string]DataNode)
 	cluster.NodesPxc = NewRegularIntMap()//make(map[string]DataNodePxc)
 	cluster.BackupWriters = make(map[string]DataNode)
 	cluster.BackupReaders = make(map[string]DataNode)
 	cluster.WriterNodes = make(map[string]DataNodePxc)
 	cluster.ReaderNodes = make(map[string]DataNodePxc)
+	cluster.OffLineWriters = make(map[string]DataNode)
+	cluster.OffLineReaders = make(map[string]DataNode)
 
 	sqlCommand := strings.ReplaceAll(SQLProxy.Dml_Select_mysql_nodes,"?",sb.String())
 	recordset, err  := connectionProxy.Query(sqlCommand)
@@ -209,7 +214,8 @@ func (cluster *DataCluster) loadNodes(connectionProxy *sql.DB) bool{
 			&myNode.DataNodeBase.MaxReplication_lag,
 			&myNode.DataNodeBase.UseSsl,
 			&myNode.DataNodeBase.MaxLatency,
-			&myNode.DataNodeBase.Comment )
+			&myNode.DataNodeBase.Comment,
+			&myNode.DataNodeBase.ConnUsed)
 		myNode.DataNodeBase.User = cluster.MonitorUser
 		myNode.DataNodeBase.Password = cluster.MonitorPassword
 		myNode.DataNodeBase.Dns = myNode.DataNodeBase.Ip + ":" + strconv.Itoa(myNode.DataNodeBase.Port)
@@ -219,15 +225,31 @@ func (cluster *DataCluster) loadNodes(connectionProxy *sql.DB) bool{
 			myNode.DataNodeBase.Ssl=cluster.Ssl
 		}
 
-		if myNode.DataNodeBase.HostgroupId == cluster.HgWriterId  {
-			cluster.WriterNodes[ myNode.DataNodeBase.Dns ]=myNode
-		}else if myNode.DataNodeBase.HostgroupId == cluster.HgReaderId{
-			cluster.ReaderNodes[ myNode.DataNodeBase.Dns ]=myNode
-		} else if myNode.DataNodeBase.HostgroupId == cluster.BakcupHgWriterId {
-			cluster.BackupWriters[myNode.DataNodeBase.Dns ]=myNode.DataNodeBase
-		}else if myNode.DataNodeBase.HostgroupId == cluster.BackupHgReaderId {
-			cluster.BackupReaders[myNode.DataNodeBase.Dns ]=myNode.DataNodeBase
+		//if myNode.DataNodeBase.HostgroupId == cluster.HgWriterId  {
+		//	cluster.WriterNodes[ myNode.DataNodeBase.Dns ]=myNode
+		//}else if myNode.DataNodeBase.HostgroupId == cluster.HgReaderId{
+		//	cluster.ReaderNodes[ myNode.DataNodeBase.Dns ]=myNode
+		//} else if myNode.DataNodeBase.HostgroupId == cluster.BakcupHgWriterId {
+		//	cluster.BackupWriters[myNode.DataNodeBase.Dns ]=myNode.DataNodeBase
+		//}else if myNode.DataNodeBase.HostgroupId == cluster.BackupHgReaderId {
+		//	cluster.BackupReaders[myNode.DataNodeBase.Dns ]=myNode.DataNodeBase
+		//}
+
+		switch myNode.DataNodeBase.HostgroupId {
+		case cluster.HgWriterId:
+				cluster.WriterNodes[ myNode.DataNodeBase.Dns ]=myNode
+		case cluster.HgReaderId:
+				cluster.ReaderNodes[ myNode.DataNodeBase.Dns ]=myNode
+		case cluster.BakcupHgWriterId:
+			    cluster.BackupWriters[myNode.DataNodeBase.Dns ]=myNode.DataNodeBase
+		case cluster.BackupHgReaderId:
+				cluster.BackupReaders[myNode.DataNodeBase.Dns ]=myNode.DataNodeBase
+		case cluster.OffLineHgWriterId:
+				cluster.OffLineWriters[myNode.DataNodeBase.Dns ]=myNode.DataNodeBase
+		case cluster.OffLineHgReaderID:
+				cluster.OffLineReaders[myNode.DataNodeBase.Dns ]=myNode.DataNodeBase
 		}
+
 		if _, ok := cluster.NodesPxc.ExposeMap()[myNode.DataNodeBase.Dns] ; !ok{
 			cluster.NodesPxc.Store(myNode.DataNodeBase.Dns,myNode)
 		}
@@ -276,6 +298,8 @@ func (cluster *DataCluster) getParametersFromProxySQL(connectionProxy *sql.DB ) 
 				" check_timeout:",cluster.CheckTimeout,
 				" main_segment:",cluster.MainSegment)
 		}
+		cluster.OffLineHgReaderID = 9000 + cluster.HgReaderId
+		cluster.OffLineHgWriterId = 9000 + cluster.HgWriterId
 		return true
 	}
 

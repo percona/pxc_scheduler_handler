@@ -50,7 +50,9 @@ const(
 		"max_writers INT DEFAULT 1," +
 		"writer_is_also_reader INT DEFAULT 1, " +
 		"retry_up INT DEFAULT 0, " +
-		"retry_down INT DEFAULT 0)"
+		"retry_down INT DEFAULT 0," +
+		"locked INT DEFAULT 0" +
+		"lock_timestamp )"
 
 	/*
 	cleanup of tables
@@ -68,9 +70,9 @@ const(
 	Info_Check_table ="show tables from disk"
 
 	//get MySQL nodes to process based on the HG
-	//+--------------+---------------+------+-----------+--------------+---------+-------------+-----------------+---------------------+---------+----------------+-------------------------------------------------------------+
-	//| hostgroup_id | hostname      | port | gtid_port | status       | weight  | compression | max_connections | max_replication_lag | use_ssl | max_latency_ms | comment                                                     |
-	Dml_Select_mysql_nodes = "select hostgroup_id, hostname,port,gtid_port, status,weight, compression,max_connections, max_replication_lag,use_ssl,max_latency_ms,comment  from mysql_servers where hostgroup_id in ( ?)"
+	//+--------------+---------------+------+-----------+--------------+---------+-------------+-----------------+---------------------+---------+----------------+-------------------------------------------------------------|---------+
+	//| hostgroup_id | hostname      | port | gtid_port | status       | weight  | compression | max_connections | max_replication_lag | use_ssl | max_latency_ms | comment                                                     |ConnUsed|
+	Dml_Select_mysql_nodes = " select b.*, c.ConnUsed from stats_mysql_connection_pool c left JOIN runtime_mysql_servers b ON  c.hostgroup=b.hostgroup_id and c.srv_host=b.hostname and c.srv_port = b.port where hostgroup_id in (?)  order by hostgroup,srv_host desc;"
 
     // Get the information to deal with the cluster from pxc_cluster (ID is coming from settings cluster_id)
     Dml_get_mysql_cluster_to_manage = "select cluster_id, hg_w, hg_r, bck_hg_w, bck_hg_r, single_writer, max_writers, writer_is_also_reader, retry_up, retry_down from disk.pxc_clusters where cluster_id = ?"

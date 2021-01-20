@@ -394,7 +394,12 @@ func (cluster *DataCluster) getPrimaryWriter() bool{
 
 func (cluster *DataCluster) evaluateNode(node DataNodePxc) DataNodePxc{
 	if node.DataNodeBase.Processed  {
-
+		if node.DataNodeBase.HostgroupId == cluster.HgWriterId ||
+			node.DataNodeBase.HostgroupId == cluster.HgReaderId ||
+			node.DataNodeBase.HostgroupId == cluster.OffLineHgWriterId ||
+			node.DataNodeBase.HostgroupId == cluster.OffLineHgReaderID {
+			
+		}
 	}
 	return node
 }

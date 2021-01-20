@@ -62,7 +62,9 @@ func main() {
 		proxysqlCluster.Active = true
 		proxysqlCluster.User = config.Proxysql.User
 		proxysqlCluster.Password = config.Proxysql.Password
-		time.Now().UnixNano()
+		lockTime  := time.Now().UnixNano()
+		log.Debug("Lock time ", lockTime )
+
 		nodes:= proxysqlCluster.GetProxySQLnodes()
 
 		log.Info(" Number of ProxySQL cluster nodes: " , len(nodes))
@@ -91,6 +93,7 @@ func main() {
 	/*
 	TODO process status of nodes create list of actions
 	 */
+	proxysqlNode.ActionNodeList = proxysqlNode.MySQLCluster.GetActionList()
 
 	/*
 	TODO Do failover if needed

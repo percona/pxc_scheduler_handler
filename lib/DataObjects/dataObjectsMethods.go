@@ -11,6 +11,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -183,14 +184,14 @@ func (cluster *DataCluster) loadNodes(connectionProxy *sql.DB) bool{
 	sb.WriteString("," +strconv.Itoa(cluster.OffLineHgWriterId) )
 	sb.WriteString("," +strconv.Itoa(cluster.OffLineHgReaderID) )
 
-	cluster.ActionNodes = make(map[string]DataNode)
+	cluster.ActionNodes = make(map[string]DataNodePxc)
 	cluster.NodesPxc = NewRegularIntMap()//make(map[string]DataNodePxc)
-	cluster.BackupWriters = make(map[string]DataNode)
-	cluster.BackupReaders = make(map[string]DataNode)
+	cluster.BackupWriters = make(map[string]DataNodePxc)
+	cluster.BackupReaders = make(map[string]DataNodePxc)
 	cluster.WriterNodes = make(map[string]DataNodePxc)
 	cluster.ReaderNodes = make(map[string]DataNodePxc)
-	cluster.OffLineWriters = make(map[string]DataNode)
-	cluster.OffLineReaders = make(map[string]DataNode)
+	cluster.OffLineWriters = make(map[string]DataNodePxc)
+	cluster.OffLineReaders = make(map[string]DataNodePxc)
 
 	sqlCommand := strings.ReplaceAll(SQLProxy.Dml_Select_mysql_nodes,"?",sb.String())
 	recordset, err  := connectionProxy.Query(sqlCommand)
@@ -219,21 +220,14 @@ func (cluster *DataCluster) loadNodes(connectionProxy *sql.DB) bool{
 		myNode.DataNodeBase.User = cluster.MonitorUser
 		myNode.DataNodeBase.Password = cluster.MonitorPassword
 		myNode.DataNodeBase.Dns = myNode.DataNodeBase.Ip + ":" + strconv.Itoa(myNode.DataNodeBase.Port)
+		if len(myNode.DataNodeBase.Comment) >0 {
+			myNode.DataNodeBase.getRetry(cluster.HgWriterId ,cluster.HgReaderId)
+		}
 
 		//Load ssl object to node if present in cluster/config
 		if cluster.Ssl != nil {
 			myNode.DataNodeBase.Ssl=cluster.Ssl
 		}
-
-		//if myNode.DataNodeBase.HostgroupId == cluster.HgWriterId  {
-		//	cluster.WriterNodes[ myNode.DataNodeBase.Dns ]=myNode
-		//}else if myNode.DataNodeBase.HostgroupId == cluster.HgReaderId{
-		//	cluster.ReaderNodes[ myNode.DataNodeBase.Dns ]=myNode
-		//} else if myNode.DataNodeBase.HostgroupId == cluster.BakcupHgWriterId {
-		//	cluster.BackupWriters[myNode.DataNodeBase.Dns ]=myNode.DataNodeBase
-		//}else if myNode.DataNodeBase.HostgroupId == cluster.BackupHgReaderId {
-		//	cluster.BackupReaders[myNode.DataNodeBase.Dns ]=myNode.DataNodeBase
-		//}
 
 		switch myNode.DataNodeBase.HostgroupId {
 		case cluster.HgWriterId:
@@ -241,17 +235,26 @@ func (cluster *DataCluster) loadNodes(connectionProxy *sql.DB) bool{
 		case cluster.HgReaderId:
 				cluster.ReaderNodes[ myNode.DataNodeBase.Dns ]=myNode
 		case cluster.BakcupHgWriterId:
-			    cluster.BackupWriters[myNode.DataNodeBase.Dns ]=myNode.DataNodeBase
+			    cluster.BackupWriters[myNode.DataNodeBase.Dns ]=myNode
 		case cluster.BackupHgReaderId:
-				cluster.BackupReaders[myNode.DataNodeBase.Dns ]=myNode.DataNodeBase
+				cluster.BackupReaders[myNode.DataNodeBase.Dns ]=myNode
 		case cluster.OffLineHgWriterId:
-				cluster.OffLineWriters[myNode.DataNodeBase.Dns ]=myNode.DataNodeBase
+				cluster.OffLineWriters[myNode.DataNodeBase.Dns ]=myNode
 		case cluster.OffLineHgReaderID:
-				cluster.OffLineReaders[myNode.DataNodeBase.Dns ]=myNode.DataNodeBase
+				cluster.OffLineReaders[myNode.DataNodeBase.Dns ]=myNode
 		}
 
-		if _, ok := cluster.NodesPxc.ExposeMap()[myNode.DataNodeBase.Dns] ; !ok{
-			cluster.NodesPxc.Store(myNode.DataNodeBase.Dns,myNode)
+		/*
+		We add only the real servers in the list to check with DB access
+		we include all the HG operating like Write/Read and relevant OFFLINE special HG
+		 */
+		if _, ok := cluster.NodesPxc.ExposeMap()[myNode.DataNodeBase.Dns ] ; !ok{
+			if myNode.DataNodeBase.HostgroupId == cluster.HgWriterId ||
+							myNode.DataNodeBase.HostgroupId == cluster.HgReaderId ||
+							myNode.DataNodeBase.HostgroupId == cluster.OffLineHgWriterId ||
+							myNode.DataNodeBase.HostgroupId == cluster.OffLineHgReaderID {
+				cluster.NodesPxc.Store(myNode.DataNodeBase.Dns , myNode)
+			}
 		}
 
 
@@ -307,27 +310,93 @@ func (cluster *DataCluster) getParametersFromProxySQL(connectionProxy *sql.DB ) 
 }
 
 /*
-This method is responsible to be sure that each node liste Writer/read/backups are aligned with the status just Identified from the nodes
+This method is responsible to be sure that each node list Writer/read/backups/offline are aligned with the status just Identified from the live nodes
+Here we align the physical server status with the role of each server.
+Given a physical node is present in more then a list we need to evaluate all of them for each physical server
+this is not huge as work because the loop will normally have a max of 5 physical nodes for PXC and 9 for GR
  */
 func (cluster *DataCluster) consolidateNodes() bool {
 
-	//simple loop on the nodes and overwrite the ones in the lists
+	/*
+	simple loop on the nodes and overwrite only some values of the ones in the lists
+	*/
 	for key, node := range cluster.NodesPxc.internal {
 		if _, ok := cluster.WriterNodes[key]; ok {
-			cluster.WriterNodes[key] = node
+			cluster.WriterNodes[key]=cluster.alignNodeValues(cluster.WriterNodes[key],node)
 		}
 		if _, ok := cluster.ReaderNodes[key]; ok {
-			cluster.ReaderNodes[key] = node
+			cluster.ReaderNodes[key] = cluster.alignNodeValues(cluster.ReaderNodes[key],node)
 		}
 		if _, ok := cluster.BackupWriters[key]; ok {
-			cluster.BackupWriters[key] = node.DataNodeBase
+			cluster.BackupWriters[key] = cluster.alignNodeValues(cluster.BackupWriters[key],node)
+
 		}
 		if _, ok := cluster.BackupReaders[key]; ok {
-			cluster.BackupReaders[key] = node.DataNodeBase
+			cluster.BackupReaders[key] = cluster.alignNodeValues(cluster.BackupReaders[key] ,node)
 		}
+		if _, ok := cluster.OffLineWriters[key]; ok {
+			cluster.OffLineWriters[key] = cluster.alignNodeValues(cluster.OffLineWriters[key] ,node)
+		}
+		if _, ok := cluster.OffLineReaders[key]; ok {
+			cluster.OffLineReaders[key] = cluster.alignNodeValues(cluster.OffLineReaders[key] ,node)
+		}
+
+
 	}
 
 	return true
+}
+// We align only the relevant information, not all the node
+func (cluster *DataCluster) alignNodeValues(nodeA DataNodePxc, nodeB DataNodePxc)  DataNodePxc{
+	nodeA.DataNodeBase.Variables = nodeB.DataNodeBase.Variables
+	nodeA.DataNodeBase.Status = nodeB.DataNodeBase.Status
+	nodeA.Pxc_maint_mode = nodeB.Pxc_maint_mode
+	nodeA.PxcView = nodeB.PxcView
+	nodeA.DataNodeBase.RetryUp = nodeB.DataNodeBase.RetryUp
+	nodeA.DataNodeBase.RetryDown = nodeB.DataNodeBase.RetryDown
+	nodeA.DataNodeBase.Processed = nodeB.DataNodeBase.Processed
+	nodeA.setParameters()
+	return nodeA
+}
+
+/*
+This method is where we initiate the analysis of the nodes an the starting point of the population of the actionList
+The actionList is the object returning the list of nodes that require modification
+Any modification at their status in ProxySQL is done by the ProxySQLNode object
+ */
+func (cluster *DataCluster) GetActionList() map[string]DataNode {
+
+	/*
+	TODO:
+		steps:
+		1 check if we have a Primary writer
+		2 check if we have a Primary state
+		3 check if anything prevent the writer to remain such
+
+		4 check for readers state
+	 */
+
+	cluster.Haswriter = cluster.getPrimaryWriter()
+
+	return nil
+}
+
+func (cluster *DataCluster) getPrimaryWriter() bool{
+	if len(cluster.WriterNodes) > 0 {
+		for key, node := range cluster.WriterNodes {
+			log.Debug("Evaluating writer node ", key )
+			cluster.evaluateNode(node)
+		}
+	}
+
+	return false
+}
+
+func (cluster *DataCluster) evaluateNode(node DataNodePxc) DataNodePxc{
+	if node.DataNodeBase.Processed  {
+
+	}
+	return node
 }
 
 // *** DATA NODE SECTION =============================================
@@ -524,4 +593,75 @@ func (rm *ProxySyncMap) Store(key string, value DataNodePxc) {
 
 func (rm *ProxySyncMap) ExposeMap() map[string]DataNodePxc{
 	return rm.internal
+}
+
+func (node *DataNode) getRetry(writeHG int, readHG int ) {
+	 //var valueUp string
+	 comment := node.Comment
+     hgRetry := strconv.Itoa(writeHG) + "_W_" + strconv.Itoa(readHG) + "_R_retry_"
+     regEUp := regexp.MustCompile( hgRetry + "up=\\d;")
+	 regEDw := regexp.MustCompile( hgRetry + "down=\\d;")
+	 up := regEUp.FindAllString(comment, -1)
+	 down := regEDw.FindAllString(comment,-1)
+	 if len(up) > 0 {
+	 	comment = strings.ReplaceAll(comment, up[0],"")
+	 	value, err :=  strconv.Atoi(up[0][strings.Index(up[0],"=")+1:len(up[0])-1])
+	 	if err == nil {
+			log.Debug(" Retry up = ", value)
+			node.RetryUp = value
+		}
+	 }
+	if len(down) > 0 {
+		comment = strings.ReplaceAll(comment, down[0],"")
+		value, err :=  strconv.Atoi(down[0][strings.Index(down[0],"=")+1:len(down[0])-1])
+		if err == nil {
+			log.Debug(" Retry up = ", value)
+			node.RetryDown = value
+		}
+	}
+	node.Comment = comment
+}
+
+/*
+NODE CONSTANT declaration by methods
+ */
+func (node *DataNode) NOTHING_TO_DO () int{
+	return 0 // move a node from OFFLINE_SOFT
+}
+func (node *DataNode) MOVE_UP_OFFLINE () int{
+	return 1000 // move a node from OFFLINE_SOFT
+}
+func (node *DataNode) MOVE_UP_HG_CHANGE () int{
+	return 1010 // move a node from HG 9000 (plus hg id) to reader HG
+}
+func (node *DataNode) MOVE_DOWN_HG_CHANGE () int{
+	return 3001 // move a node from original HG to maintenance HG (HG 9000 (plus hg id) ) kill all existing connections
+}
+
+func (node *DataNode) MOVE_DOWN_OFFLINE () int{
+	return 3010 // move node to OFFLINE_soft keep existing connections, no new connections.
+}
+func (node *DataNode) MOVE_TO_MAINTENANCE () int{
+	return 3020 // move node to OFFLINE_soft keep existing connections, no new connections because maintenance.
+}
+func (node *DataNode) MOVE_OUT_MAINTENANCE () int{
+	return 3030 // move node to OFFLINE_soft keep existing connections, no new connections because maintenance.
+}
+func (node *DataNode) INSERT_READ () int{
+	return 4010 // Insert a node in the reader host group
+}
+func (node *DataNode) INSERT_WRITE () int{
+	return 4020 // Insert a node in the writer host group
+}
+func (node *DataNode) DELETE_NODE () int{
+	return 5000 // this remove the node from the hostgroup
+}
+func (node *DataNode) MOVE_SWAP_READER_TO_WRITER () int{
+	return 5001 // remove a node from HG reader group and add it to HG writer group
+}
+func (node *DataNode) MOVE_SWAP_WRITER_TO_READER () int{
+	return 5001 // remove a node from HG writer group and add it to HG reader group
+}
+func (node *DataNode) SAVE_RETRY () int{
+	return 9999 // this remove the node from the hostgroup
 }

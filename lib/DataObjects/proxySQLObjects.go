@@ -28,6 +28,7 @@ ProxySQL Node
  */
 
 type ProxySQLNode struct{
+	ActionNodeList map[string]DataNode
 	Dns string
 	Hostgoups map[int]Hostgroup
 	Ip string

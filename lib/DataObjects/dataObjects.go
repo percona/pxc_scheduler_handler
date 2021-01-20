@@ -5,7 +5,12 @@ import (
 	"sync"
 )
 
+
+
 type DataNode struct{
+	ActionType int
+	RetryUp int
+	RetryDown int
 	Comment string
 	Compression int
 	Connection *sql.DB
@@ -37,9 +42,9 @@ type DataNode struct{
 
 
 type DataCluster struct{
-	ActionNodes map[string]DataNode
-	BackupReaders map[string]DataNode
-	BackupWriters map[string]DataNode
+	ActionNodes map[string]DataNodePxc
+	BackupReaders map[string]DataNodePxc
+	BackupWriters map[string]DataNodePxc
 	BackupHgReaderId int
 	BakcupHgWriterId int
 	CheckTimeout  int
@@ -62,8 +67,8 @@ type DataCluster struct{
 	NodesPxc *ProxySyncMap //[string] DataNodePxc // <ip:port,datanode>
 	NodesPxcMaint []DataNodePxc
 	MaxNumWriters int
-	OffLineReaders map[string]DataNode
-	OffLineWriters map[string]DataNode
+	OffLineReaders map[string]DataNodePxc
+	OffLineWriters map[string]DataNodePxc
 	OffLineHgReaderID int
 	OffLineHgWriterId int
 	ReaderNodes map[string]DataNodePxc

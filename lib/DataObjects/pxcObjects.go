@@ -3,20 +3,25 @@ package DataObjects
 import log "github.com/sirupsen/logrus"
 
 type DataNodePxc struct{
-	DataNodeBase DataNode
-	Pxc_maint_mode string
-	Wsrep_connected bool
-	Wsrep_desinccount int
-	Wsrep_donorrejectqueries bool
-	Wsrep_gcomm_uuid string
-	Wsrep_local_index int
-	Wsrep_pc_weight int
-	Wsrep_provider map[string]string
-	Wsrep_ready  bool
-	Wsrep_rejectqueries bool
-	Wsrep_segment int
-	Wsrep_status int
-	PxcView PxcClusterView
+	DataNodeBase            DataNode
+	PxcMaintMode            string
+	WsrepConnected          bool
+	WsrepDesinccount        int
+	WsrepDonorrejectqueries bool
+	WsrepGcommUuid          string
+	WsrepLocalIndex         int
+	WsrepPcWeight           int
+	WsrepProvider           map[string]string
+	WsrepReady              bool
+	WsrepRejectqueries      bool
+	WsrepSegment            int
+	WsrepStatus             int
+	WsrepClusterSize		int
+	WsrepClusterName		string
+	WsrepClusterStatus		string
+	WsrepNodeName			string
+	HasPrimaryState         bool
+	PxcView                 PxcClusterView
 }
 
 func (node *DataNodePxc) getPxcView(dml string) PxcClusterView{

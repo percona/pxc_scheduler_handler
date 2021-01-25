@@ -23,7 +23,8 @@ func (node *ProxySQLNode) Init(config Global.Configuration) bool{
 	node.Dns = config.Proxysql.Host
 	node.Port = config.Proxysql.Port
 	if node.GetConnection() {
-		node.CheckTables(config.Proxysql.Initialize)
+		// I have moved out this to config file no need to add a DB connection also if local
+		//node.CheckTables(config.Proxysql.Initialize)
 	}else{
 		log.Error("Cannot connect to indicated Proxy.\n")
 		log.Info( "Host: " + config.Proxysql.Host," Port: ", config.Proxysql.Port," User: " +config.Proxysql.User )
@@ -224,4 +225,17 @@ func (node *ProxySQLNode) GetDataCluster(config Global.Configuration) bool{
 
 	node.MySQLCluster = dataClusterPxc
 	return true
+}
+
+
+//============================================
+// HostGroup
+
+func (hgw *Hostgroup) init(id int, hgType string, size int) *Hostgroup{
+	hg := new(Hostgroup)
+	hg.Id = id
+	hg.Type = hgType
+	hg.Size = size
+
+	return hg
 }

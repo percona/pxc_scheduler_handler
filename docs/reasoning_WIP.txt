@@ -1,5 +1,7 @@
 - lista node action e' la lista che contiene i nodi su i quali intervenire
 
+per tutti i processati con successo Processed =1
+
 1) controllo se c'e' un primary cluster
 2) per ogni nodo in nodelist  controllo
 	wsrep status <> 4 
@@ -9,11 +11,20 @@
 	pxc_maint
 	readonly
 	
-3) controllo lista presenti (processed=1) contro pxc view 
+3) controllo pxc view
 	se manca aggiungo alla lista di node-action
 	
-1) controllo se c'e un host in write.
+4) controllo se c'e un host in write.
 	se manca in base al weight prendo un nodo da backup e faccio il match con la lista dei nodi buoni (non in lista action come demote)
+
+
+quindi in short ...
+    definisco se sono in primary
+    vedo tutti nodi -> read prima -> write dopo
+    se write non ha writers allora prendo un read e lo metto
+    se read non ha reders e writerIsAlsoReader <> 1 metto il writer in read
+
+
 
 
 Move to offline_soft  if:

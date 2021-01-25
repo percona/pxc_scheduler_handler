@@ -9,31 +9,31 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 )
-
-
 //perfomance settings and structure
 var Performance bool
-var PerformanceMap map[string][2]int64
+
+var PerformanceMap *StatSyncMap //map[string][2]int64
 
 func SetPerformanceValue(key string, start bool){
 	valStat := [2]int64{0,0}
 	if start {
 		valStat[0] = time.Now().UnixNano()
 	}else{
-		valStat = PerformanceMap[key]
+		valStat = PerformanceMap.get(key)
 		valStat[1]= time.Now().UnixNano()
 	}
-	PerformanceMap[key] = valStat
+	PerformanceMap.Store(key,valStat) //  ExposeMap()[key] = valStat
 }
 
 func ReportPerformance(){
 	formatter := message.NewPrinter(language.English)
 
 	log.Info("======== Reporting execution times (nanosec/ms)by phase ============")
-	for key, wm := range PerformanceMap {
+	for key, wm := range PerformanceMap.internal {
 		value := formatter.Sprintf("%d",  wm[1] - wm[0])
 		log.Info("Phase: ", key, " = ", value," us ",strconv.FormatInt( (wm[1] - wm[0])/1000000, 10)," ms" )
 	}
@@ -77,17 +77,23 @@ type pxcCluster struct {
 	MainSegment int
 	MaxNumWriters int
 	OS string
-	Password string
-	Port int
-	RetryDown int
-	RetryUp int
-	SinglePrimary bool
-	SslClient string
-	SslKey string
-	SslCa string
-	SslCertificate_path string
-	User string
-	WriterIsReader int
+	Password              string
+	Port                  int
+	RetryDown             int
+	RetryUp               int
+	SinglePrimary         bool
+	SslClient             string
+	SslKey                string
+	SslCa                 string
+	SslCertificate_path   string
+	User                  string
+	WriterIsAlsoReader    int
+	HgW                  int
+	HgR                  int
+	BckHgW              int
+	BckHgR              int
+	SingleWriter         int
+	MaxWriters           int
 
 
 }
@@ -166,4 +172,52 @@ func InitLog(config Configuration) {
 		log.Debug("Log initialized")
 	}
 
+}
+
+/* =====================
+STATS
+*/
+
+type StatSyncMap struct {
+	sync.RWMutex
+	internal map[string][2]int64
+}
+
+func NewRegularIntMap() *StatSyncMap {
+	return &StatSyncMap{
+		internal: make(map[string][2]int64),
+	}
+}
+
+func (rm *StatSyncMap) Load(key string) (value [2]int64, ok bool) {
+	rm.RLock()
+	defer rm.RUnlock()
+	result, ok := rm.internal[key]
+
+	return result, ok
+}
+
+func (rm *StatSyncMap) Delete(key string) {
+	rm.Lock()
+	defer rm.Unlock()
+	delete(rm.internal, key)
+
+}
+
+func (rm *StatSyncMap) get(key string) [2]int64 {
+	rm.Lock()
+	defer rm.Unlock()
+	return rm.internal[key]
+
+}
+
+func (rm *StatSyncMap) Store(key string, value [2]int64) {
+	rm.Lock()
+	defer rm.Unlock()
+	rm.internal[key] = value
+
+}
+
+func (rm *StatSyncMap) ExposeMap() map[string][2]int64{
+	return rm.internal
 }

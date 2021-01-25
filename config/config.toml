@@ -4,11 +4,24 @@ activeFailover = 1
 checkTimeOut = 600
 debug = 1
 mainSegment = 1
-clusterId=1
 sslClient = "client-cert.pem"
 sslKey = "client-key.pem"
 sslCa = "ca.pem"
 sslCertificate_path = "/Users/marcotusa/work/temp/ssl_test"
+hgW = 100
+hgR = 101
+bckHgW = 8100
+bckHgR = 8101
+singleWriter = 1
+maxWriters = 1
+writerIsAlsoReader = 1
+retryUp = 0
+retryDown = 2
+clusterId = 10
+
+
+
+
 
 [proxysql]
 port = 6032

@@ -42,29 +42,29 @@ type DataNode struct{
 
 
 type DataCluster struct{
-	ActionNodes map[string]DataNodePxc
-	BackupReaders map[string]DataNodePxc
-	BackupWriters map[string]DataNodePxc
-	BackupHgReaderId int
-	BakcupHgWriterId int
-	CheckTimeout  int
+	ActionNodes       map[string]DataNodePxc
+	BackupReaders     map[string]DataNodePxc
+	BackupWriters     map[string]DataNodePxc
+	BackupHgReaderId  int
+	BakcupHgWriterId  int
+	CheckTimeout      int
 	ClusterIdentifier int //cluster_id
-	Cluster_size int
-	Cluster_status int
-	Clustername string
-	Comment string
-	Debug  bool
-	HasFailoverNode bool
-	Haswriter bool
-	HgReaderId int
-	HgWriterId int
-	Hostgroups map[int]Hostgroup
+	ClusterSize       int
+	HasPrimary        bool
+	ClusterName       string
+	Comment           string
+	Debug             bool
+	HasFailoverNode   bool
+	Haswriter         bool
+	HgReaderId        int
+	HgWriterId        int
+	Hostgroups        map[int]Hostgroup
 	//	Hosts map[string] DataNode
 	MainSegment int
 	MonitorPassword string
 	MonitorUser string
 	Name string
-	NodesPxc *ProxySyncMap //[string] DataNodePxc // <ip:port,datanode>
+	NodesPxc *SyncMap //[string] DataNodePxc // <ip:port,datanode>
 	NodesPxcMaint []DataNodePxc
 	MaxNumWriters int
 	OffLineReaders map[string]DataNodePxc
@@ -85,7 +85,8 @@ type DataCluster struct{
 
 }
 
-type ProxySyncMap struct {
+
+type SyncMap struct {
 	sync.RWMutex
 	internal map[string]DataNodePxc
 }

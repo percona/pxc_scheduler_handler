@@ -114,17 +114,14 @@ func main() {
 		*/
 
 		/*
-			TODO process status of nodes create list of actions
+			Analyse the nodes and identify the list of nodes that we must take action on
 		*/
 		proxysqlNode.ActionNodeList = proxysqlNode.MySQLCluster.GetActionList()
 
 		/*
-			TODO Do failover if needed
+			TODO I am discussing with myself ... if doing failover first or if include it in the standard actions
 		*/
-
-		/*
-			TODO change servers as list of actions
-		*/
+		proxysqlNode.ProcessChanges()
 
 		/*
 			Final cleanup

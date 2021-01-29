@@ -66,6 +66,7 @@ type Configuration struct {
 //Pxc configuration class
 type pxcCluster struct {
 	ActiveFailover int
+	FailBack	bool
 	CheckTimeOut int
 	ClusterId int
 	Debug int

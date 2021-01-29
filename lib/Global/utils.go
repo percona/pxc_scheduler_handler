@@ -3,6 +3,7 @@ package Global
 import (
 	log "github.com/sirupsen/logrus"
 	"os"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -69,14 +70,17 @@ func FromStringToMAp(mystring string, separator string) map[string]string{
 }
 
 func ToInt(myString string) int {
-	i, err := strconv.Atoi(myString)
-	if err != nil {
-		log.Warn(err)
-		return -1
-	} else {
-		return  i
+	if len(myString) > 0 {
+		i, err := strconv.Atoi(myString)
+		if err != nil {
+			pc, fn, line, _ := runtime.Caller(1)
+			log.Error(pc," ",fn," ",line,": ",err)
+			return -1
+		} else {
+			return i
+		}
 	}
-
+	return 0
 }
 
 func ToBool (myString string, boolTrueString string) bool{
@@ -85,4 +89,11 @@ func ToBool (myString string, boolTrueString string) bool{
 	if myString !="" && myString == boolTrueString{
 		return true
 	}else {return false}
+}
+
+func Bool2int(b bool) int {
+	if b {
+		return 1
+	}
+	return 0
 }

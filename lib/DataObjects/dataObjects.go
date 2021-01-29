@@ -42,6 +42,8 @@ type DataNode struct{
 
 
 type DataCluster struct{
+	ActiveFailover int
+	FailBack		bool
 	ActionNodes       map[string]DataNodePxc
 	BackupReaders     map[string]DataNodePxc
 	BackupWriters     map[string]DataNodePxc
@@ -54,6 +56,7 @@ type DataCluster struct{
 	ClusterName       string
 	Comment           string
 	Debug             bool
+	FailOverNode	  DataNodePxc
 	HasFailoverNode   bool
 	Haswriter         bool
 	HgReaderId        int

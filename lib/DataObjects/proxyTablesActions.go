@@ -8,7 +8,7 @@ import (
 /*
 create table
  */
-func (pnode ProxySQLNode) executeProxyCommand(connection *sql.DB, command string) bool{
+func (node ProxySQLNode) executeProxyCommand(connection *sql.DB, command string) bool{
 
 	if connection != nil &&
 			command != "" {

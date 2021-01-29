@@ -1061,7 +1061,7 @@ func (node *DataNode) getRetry(writeHG int, readHG int ) {
 			iValue, err := strconv.Atoi(value)
 			if err == nil {
 				log.Debug(" Retry down = ", value)
-				node.RetryUp = iValue
+				node.RetryDown = iValue
 			} else {
 				iValue = 0
 			}

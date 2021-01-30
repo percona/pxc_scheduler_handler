@@ -378,12 +378,12 @@
         </line-breakpoint>
         <line-breakpoint type="DlvLineBreakpoint">
           <url>file://$PROJECT_DIR$/lib/DataObjects/dataObjectsMethods.go</url>
-          <line>832</line>
+          <line>839</line>
           <option name="timeStamp" value="179" />
         </line-breakpoint>
         <line-breakpoint type="DlvLineBreakpoint">
           <url>file://$PROJECT_DIR$/lib/DataObjects/dataObjectsMethods.go</url>
-          <line>821</line>
+          <line>828</line>
           <option name="timeStamp" value="181" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="DlvLineBreakpoint">
@@ -418,13 +418,13 @@
         </line-breakpoint>
         <line-breakpoint type="DlvLineBreakpoint">
           <url>file://$PROJECT_DIR$/lib/DataObjects/dataObjectsMethods.go</url>
-          <line>740</line>
+          <line>742</line>
           <option name="timeStamp" value="198" />
         </line-breakpoint>
-        <line-breakpoint type="DlvLineBreakpoint">
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
           <url>file://$PROJECT_DIR$/lib/DataObjects/dataObjectsMethods.go</url>
-          <line>778</line>
-          <option name="timeStamp" value="199" />
+          <line>780</line>
+          <option name="timeStamp" value="202" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

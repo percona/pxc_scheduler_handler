@@ -712,6 +712,8 @@ func (cluster *DataCluster) evaluateWriters() bool{
 							cluster.HasFailoverNode = false
 							cluster.HasPrimary = false
 							cluster.Haswriter = false
+							//I remove the node from writers and backup
+							delete(cluster.BackupWriters,node.DataNodeBase.Dns)
 							delete(cluster.WriterNodes, node.DataNodeBase.Dns)
 							log.Warning(fmt.Sprintf("FAILOVER!!! Cluster Needs a new Writer to fail-over last writer is going down %s", key))
 						} else if len(cluster.WriterNodes) > 1 {
@@ -810,13 +812,18 @@ func (cluster *DataCluster) evaluateWriters() bool{
 						node.DataNodeBase.HostgroupId = cluster.HgWriterId
 						cluster.FailOverNode = node
 						cluster.HasFailoverNode = true
-						cluster.ActionNodes[strconv.Itoa(cluster.HgWriterId)  + "_" + node.DataNodeBase.Dns]=node
+
 						log.Warning(fmt.Sprintf("We can try to failover from Backup Writer HG : %s I will try to add it back", key))
 					}
 				}
 			}
 
 		}
+	}
+
+	//only if the failover node is a real node and not the default one HostgroupId = 0 then we add it to action list
+	if cluster.FailOverNode.DataNodeBase.HostgroupId != 0 {
+		cluster.ActionNodes[strconv.Itoa(cluster.HgWriterId)  + "_" + cluster.FailOverNode.DataNodeBase.Dns]=cluster.FailOverNode
 	}
 
 	return true

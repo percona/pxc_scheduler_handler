@@ -450,8 +450,13 @@ func (cluster *DataCluster) GetActionList() map[string]DataNodePxc {
 
 //TODO this is not going to be the first action but after all the nodes tests
 func (cluster *DataCluster) evaluateAllProcessedNodes() bool{
+	var arrayOfMaps = [4]map[string]DataNodePxc{cluster.WriterNodes,cluster.ReaderNodes,cluster.OffLineWriters,cluster.OffLineReaders}
+	evalMap := MergeMaps(arrayOfMaps)
+
+
 	if len(cluster.NodesPxc.internal) > 0 {
-		for key, node := range cluster.NodesPxc.internal {
+		for key, node := range evalMap {
+		//for key, node := range cluster.NodesPxc.internal {
 			log.Debug("Evaluating node ", key )
 			//Only nodes that were successfully processed (got status from query) are evaluated
 			if node.DataNodeBase.Processed && node.DataNodeBase.HostgroupId != (8000 + node.DataNodeBase.HostgroupId){
@@ -1192,4 +1197,20 @@ func (rm *SyncMap) Store(key string, value DataNodePxc) {
 
 func (rm *SyncMap) ExposeMap() map[string]DataNodePxc{
 	return rm.internal
+}
+
+//====================
+//Generic
+func MergeMaps(arrayOfMaps [4]map[string]DataNodePxc) map[string]DataNodePxc{
+	mergedMap := make(map[string]DataNodePxc)
+
+	for i:=0 ; i < len(arrayOfMaps);i++{
+		map1 := arrayOfMaps[i]
+		for k, v := range map1 {
+			hg := strconv.Itoa(v.DataNodeBase.HostgroupId) +"_"
+			mergedMap[hg + k] = v
+		}
+	}
+	return mergedMap
+
 }

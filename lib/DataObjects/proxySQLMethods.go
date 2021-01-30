@@ -290,23 +290,23 @@ func (node *ProxySQLNode) MoveNodeUpFromOfflineSoft(dataNode DataNode,hg int,ip 
 }
 func (node *ProxySQLNode) MoveNodeDownToOfflineSoft(dataNode DataNode,hg int,ip string,port int) string{
 	myString := fmt.Sprintf(" UPDATE mysql_servers SET status='OFFLINE_SOFT' WHERE hostgroup_id=%d AND hostname='%s' AND port=%d",hg,ip,port)
-	log.Debug("Preparing for node  %s:%d HG:%d SQL: %s", ip, port, hg,myString)
+	log.Debug(fmt.Sprintf("Preparing for node  %s:%d HG:%d SQL: %s", ip, port, hg,myString))
 	return myString
 }
 func (node *ProxySQLNode) MoveNodeUpFromHGCange(dataNode DataNode,hg int,ip string,port int) string{
 	myString := fmt.Sprintf(" UPDATE mysql_servers SET hostgroup_id=%d WHERE hostgroup_id=%d AND hostname='%s' AND port=%d", hg - 9000,hg,ip,port)
-	log.Debug("Preparing for node  %s:%d HG:%d SQL: %s", ip, port, hg,myString)
+	log.Debug(fmt.Sprintf("Preparing for node  %s:%d HG:%d SQL: %s", ip, port, hg,myString))
 	return myString
 }
 func (node *ProxySQLNode) MoveNodeDownToHGCange(dataNode DataNode,hg int,ip string,port int) string{
 	myString := fmt.Sprintf(" UPDATE mysql_servers SET hostgroup_id=%d WHERE hostgroup_id=%d AND hostname='%s' AND port=%d", hg + 9000,hg,ip,port)
-	log.Debug("Preparing for node  %s:%d HG:%d SQL: %s", ip, port, hg,myString)
+	log.Debug(fmt.Sprintf("Preparing for node  %s:%d HG:%d SQL: %s", ip, port, hg,myString))
 	return myString
 }
 //TODO verify we are working with Node from 8000 HG range
 func (node *ProxySQLNode) InsertRead(dataNode DataNode,hg int,ip string,port int) string{
 	myString := fmt.Sprintf("INSERT INTO mysql_servers (hostgroup_id, hostname,port,gtid_port,status,weight,compression,max_connections,max_replication_lag,use_ssl,max_latency_ms,comment) " +
-		" VALUES(%d,%s,%d,%d,%s,%d,%d,%d,%d,%d,%d,%s)",
+		" VALUES(%d,'%s',%d,%d,'%s',%d,%d,%d,%d,%d,%d,'%s')",
 		node.MySQLCluster.HgReaderId,
 		ip,
 		port,
@@ -319,13 +319,13 @@ func (node *ProxySQLNode) InsertRead(dataNode DataNode,hg int,ip string,port int
 		Global.Bool2int(dataNode.UseSsl),
 		dataNode.MaxLatency,
 		dataNode.Comment)
-	log.Debug("Preparing for node  %s:%d HG:%d SQL: %s", ip, port, hg,myString)
+	log.Debug(fmt.Sprintf("Preparing for node  %s:%d HG:%d SQL: %s", ip, port, hg,myString))
 	return myString
 }
 //TODO verify we are working with Node from 8000 HG range
 func (node *ProxySQLNode) InsertWrite(dataNode DataNode,hg int,ip string,port int) string{
 	myString := fmt.Sprintf("INSERT INTO mysql_servers (hostgroup_id, hostname,port,gtid_port,status,weight,compression,max_connections,max_replication_lag,use_ssl,max_latency_ms,comment) " +
-				" VALUES(%d,%s,%d,%d,%s,%d,%d,%d,%d,%d,%d,%s)",
+				" VALUES(%d,'%s',%d,%d,'%s',%d,%d,%d,%d,%d,%d,'%s')",
 				node.MySQLCluster.HgWriterId,
 				ip,
 				port,
@@ -338,13 +338,13 @@ func (node *ProxySQLNode) InsertWrite(dataNode DataNode,hg int,ip string,port in
 				Global.Bool2int(dataNode.UseSsl),
 				dataNode.MaxLatency,
 				dataNode.Comment)
-	log.Debug("Preparing for node  %s:%d HG:%d SQL: %s", ip, port, hg,myString)
+	log.Debug(fmt.Sprintf("Preparing for node  %s:%d HG:%d SQL: %s", ip, port, hg,myString))
 	return myString
 }
 func (node *ProxySQLNode) DeleteDataNode(dataNode DataNode,hg int,ip string,port int) string{
 
 	myString := fmt.Sprintf(" Delete from mysql_servers WHERE hostgroup_id=%d AND hostname='%s' AND port=%d",hg,ip,port)
-	log.Debug("Preparing for node  %s:%d HG:%d SQL: %s", ip, port, hg,myString)
+	log.Debug(fmt.Sprintf("Preparing for node  %s:%d HG:%d SQL: %s", ip, port, hg,myString))
 	return myString
 }
 //TODO not implemented yet

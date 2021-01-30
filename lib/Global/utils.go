@@ -97,3 +97,4 @@ func Bool2int(b bool) int {
 	}
 	return 0
 }
+

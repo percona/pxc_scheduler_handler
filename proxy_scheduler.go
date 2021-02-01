@@ -144,7 +144,7 @@ func main() {
 		}else{
 			i++
 		}
-
+		log.Info("")
 	}
 	if !config.Global.Development {
 		removeLockFile(lockId)

@@ -373,7 +373,11 @@ func (node *ProxySQLNode) SaveRetry(dataNode DataNode,hg int,ip string,port int)
 
 
 func (node *ProxySQLNode) executeSQLChanges(SQLActionString []string) bool{
-    //We will execute all the commands inside a transaction if any error we will roll back all
+    //if nothing to execute just return true
+	if len(SQLActionString) <= 0 {
+		return true
+	}
+	//We will execute all the commands inside a transaction if any error we will roll back all
 	ctx := context.Background()
 	tx,err := node.Connection.BeginTx(ctx,nil)
 	if err !=nil {

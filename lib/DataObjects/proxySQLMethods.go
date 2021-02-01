@@ -349,7 +349,7 @@ func (node *ProxySQLNode) DeleteDataNode(dataNode DataNode,hg int,ip string,port
 }
 //TODO not implemented yet
 func (node *ProxySQLNode) SwapReaderToWriter(dataNode DataNode,hg int,ip string,port int) string{
-
+//TODO DAMN tomorrow from here 
 	return ""
 }
 //TODO not implemented yet

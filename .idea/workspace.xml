@@ -2,14 +2,9 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="c603b4de-b46a-45fd-bef4-8d20deb405fc" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/test/test_commands.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/config.toml" beforeDir="false" afterPath="$PROJECT_DIR$/config/config.toml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/tests_definition.txt" beforeDir="false" afterPath="$PROJECT_DIR$/test/tests_definition.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/lib/DataObjects/dataObjectsMethods.go" beforeDir="false" afterPath="$PROJECT_DIR$/lib/DataObjects/dataObjectsMethods.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/lib/DataObjects/proxySQLMethods.go" beforeDir="false" afterPath="$PROJECT_DIR$/lib/DataObjects/proxySQLMethods.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/Global/configuration.go" beforeDir="false" afterPath="$PROJECT_DIR$/lib/Global/configuration.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/proxy_scheduler.go" beforeDir="false" afterPath="$PROJECT_DIR$/proxy_scheduler.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/.travis.yml" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/.travis.yml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/COMPATIBLE" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/COMPATIBLE" afterDir="false" />
@@ -249,6 +244,7 @@
       <change beforePath="$PROJECT_DIR$/src/gopkg.in/yaml.v3/yaml.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/gopkg.in/yaml.v3/yaml.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/gopkg.in/yaml.v3/yamlh.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/gopkg.in/yaml.v3/yamlh.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/gopkg.in/yaml.v3/yamlprivateh.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/gopkg.in/yaml.v3/yamlprivateh.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/test/test_commands.txt" beforeDir="false" afterPath="$PROJECT_DIR$/test/test_commands.txt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -385,22 +381,22 @@
         </line-breakpoint>
         <line-breakpoint type="DlvLineBreakpoint">
           <url>file://$PROJECT_DIR$/lib/DataObjects/dataObjectsMethods.go</url>
-          <line>1016</line>
+          <line>1017</line>
           <option name="timeStamp" value="179" />
         </line-breakpoint>
         <line-breakpoint type="DlvLineBreakpoint">
           <url>file://$PROJECT_DIR$/lib/DataObjects/proxySQLMethods.go</url>
-          <line>339</line>
+          <line>338</line>
           <option name="timeStamp" value="182" />
         </line-breakpoint>
         <line-breakpoint type="DlvLineBreakpoint">
           <url>file://$PROJECT_DIR$/lib/DataObjects/proxySQLMethods.go</url>
-          <line>320</line>
+          <line>319</line>
           <option name="timeStamp" value="183" />
         </line-breakpoint>
         <line-breakpoint type="DlvLineBreakpoint">
           <url>file://$PROJECT_DIR$/lib/DataObjects/proxySQLMethods.go</url>
-          <line>364</line>
+          <line>363</line>
           <option name="timeStamp" value="194" />
         </line-breakpoint>
         <line-breakpoint type="DlvLineBreakpoint">
@@ -430,8 +426,8 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" type="DlvLineBreakpoint">
           <url>file://$PROJECT_DIR$/lib/DataObjects/proxySQLMethods.go</url>
-          <line>383</line>
-          <option name="timeStamp" value="270" />
+          <line>382</line>
+          <option name="timeStamp" value="281" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

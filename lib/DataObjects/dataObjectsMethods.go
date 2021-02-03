@@ -939,10 +939,11 @@ func (cluster *DataCluster) evaluateWriters() bool{
 							cluster.FailOverNode = node
 							log.Warning(fmt.Sprintf("Failover require node identified as candidate: %s I will try to add it back.", key))
 						}
-					}else {
-						log.Warning(fmt.Sprintf("Writer Node may be missing in MySQL Servers table but present in the Backup Writer HG : %s I will try to add it back.", key))
-						cluster.ActionNodes[strconv.Itoa(cluster.HgWriterId)  + "_" + node.DataNodeBase.Dns]=node
 					}
+					//else {
+					//	log.Warning(fmt.Sprintf("Writer Node may be missing in MySQL Servers table but present in the Backup Writer HG : %s I will try to add it back.", key))
+					//	cluster.ActionNodes[strconv.Itoa(cluster.HgWriterId)  + "_" + node.DataNodeBase.Dns]=node
+					//}
 
 				//in case the cluster already has enough nodes but we have failback, we will try to put back an existing node
 				}else if len(cluster.WriterNodes) == cluster.MaxNumWriters &&

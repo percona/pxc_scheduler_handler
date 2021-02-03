@@ -41,3 +41,21 @@ Commands :
  Results: nothing happen
 
  Command on a writer node: set global READ_ONLY = 1;
+ Results: fail-over to the next available backup
+
+ ----------------------------------------------------------
+ Test : wsrep_reject_queries <> none
+ Expectations: node is moved to HG 9000
+
+ Command: on writer: set global wsrep_reject_queries=all;
+ Results: writer goes to 9000 and a new node is elected
+
+ Command: on reader: set global wsrep_reject_queries=all;
+ Results: reader goes to 9000
+
+ ----------------------------------------------------------
+ Test : on SHUNNED
+ Expectations: node is moved to HG 9000 if back online Reader is add back Writer attempt to come back if no writer
+
+ Command 
+

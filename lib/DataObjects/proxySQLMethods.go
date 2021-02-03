@@ -271,15 +271,14 @@ func (node *ProxySQLNode) ProcessChanges() bool{
 		case 5001: if dataNode.RetryDown >= node.MySQLCluster.RetryUp{
 						SQLActionString = append(SQLActionString,node.DeleteDataNode(dataNode, hg,ip,portI))
 						//we need to cleanup also the reader in any case
-						dataNode.HostgroupId = node.MySQLCluster.HgReaderId
-						SQLActionString = append(SQLActionString,node.DeleteDataNode(dataNode, hg,ip,portI))
+						SQLActionString = append(SQLActionString,node.DeleteDataNode(dataNode, node.MySQLCluster.HgWriterId,ip,portI))
 						SQLActionString = append(SQLActionString,node.InsertWrite(dataNode, hg,ip,portI))
 					}else{
 						SQLActionString = append(SQLActionString,node.SaveRetry(dataNode, hg,ip,portI))} // "MOVE_SWAP_READER_TO_WRITER"
 		case 5101: if dataNode.RetryDown >= node.MySQLCluster.RetryDown{
 						SQLActionString = append(SQLActionString,node.DeleteDataNode(dataNode, hg,ip,portI))
 						//we need to cleanup also the writer in any case
-						dataNode.HostgroupId = node.MySQLCluster.HgWriterId
+						SQLActionString = append(SQLActionString,node.DeleteDataNode(dataNode, node.MySQLCluster.HgReaderId,ip,portI))
 						SQLActionString = append(SQLActionString,node.InsertRead(dataNode, hg,ip,portI))
 					}else{
 						SQLActionString = append(SQLActionString,node.SaveRetry(dataNode, hg,ip,portI))} // "MOVE_SWAP_WRITER_TO_READER"
@@ -392,6 +391,7 @@ func (node *ProxySQLNode) executeSQLChanges(SQLActionString []string) bool{
 			if err != nil {
 				tx.Rollback()
 				log.Fatal("Error executing SQL: ", SQLActionString[i], " Rollback and exit")
+				log.Error(err)
 				return false
 			}
 		}

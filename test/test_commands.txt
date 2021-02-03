@@ -1,0 +1,43 @@
+cenario:
+=======================================
+Scenario 1 writer 3 readers
+    writerIsAlsoReader =1
+    FailBack = 0
+    with retry Down = 2
+----------------------------------
+Test : PXC maint
+Expectations:
+    Writer will go in OFFLINE_SOFT
+    Reader will become writer in respect to the weight as declared in the 8000 HG
+    On end of maintenance NO failback is expected
+    If node is reader then OFFLINE_SOFT then failback
+----------------------------------------------------------
+Commands :
+    on writer = set global pxc_maint_mode = maintenance;
+
+ Results: OK
+
+ Command put just selected writer to maintenance: set global pxc_maint_mode = maintenance;
+ Results: OK
+
+ ----------------------------------------------------------
+ Test : wsrep_desync (or any state <> 4)
+ Expectations:
+     Node will go in OFFLINE_SOFT only if HG size > 1
+ Command: on any reader: set global wsrep_desync=1;
+ Results: OK
+
+ Command: on writer: set global wsrep_desync=1;
+ Results:
+    WARN[0000] Node: 192.168.4.22:3306 node4 HG: 100 Type W is in state 2 But I will not move to OFFLINE_SOFT given last node left in the Host group
+    WARN[0000] Node: 192.168.4.22:3306 node4 HG: 101 Type R is in state 2 moving it to OFFLINE_SOFT given we have other nodes in the Host group
+ This is correct given Write HG has 1 node desync should not take place (like if donor).
+ For reader HG we have multiple nodes so all good to be desync
+
+ ----------------------------------------------------------
+ Test : wsrep_reject_queries <> none
+ Expectations: node is moved to HG 9000
+ Command on a Reader node: set global READ_ONLY = 1;
+ Results: nothing happen
+
+ Command on a writer node: set global READ_ONLY = 1;

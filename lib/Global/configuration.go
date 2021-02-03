@@ -132,6 +132,16 @@ func GetConfig(path string) Configuration {
 	return config
 }
 
+func (conf *Configuration) SanityCheck(){
+	if conf.Pxcluster.MaxNumWriters > 1 &&
+		conf.Pxcluster.SinglePrimary{
+		log.Error("Configuration error cannot have SinglePrimary true and MaxNumWriter >1")
+
+		os.Exit(1)
+	}
+}
+
+
 //initialize the log
 func InitLog(config Configuration) {
     //var ilog = logrus.New()

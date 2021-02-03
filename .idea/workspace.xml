@@ -2,10 +2,13 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="c603b4de-b46a-45fd-bef4-8d20deb405fc" name="Default Changelist" comment="">
+      <change afterPath="$PROJECT_DIR$/test/test_commands.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/config/config.toml" beforeDir="false" afterPath="$PROJECT_DIR$/config/config.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/tests_definition.txt" beforeDir="false" afterPath="$PROJECT_DIR$/test/tests_definition.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/lib/DataObjects/dataObjectsMethods.go" beforeDir="false" afterPath="$PROJECT_DIR$/lib/DataObjects/dataObjectsMethods.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/lib/DataObjects/proxySQLMethods.go" beforeDir="false" afterPath="$PROJECT_DIR$/lib/DataObjects/proxySQLMethods.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/Global/configuration.go" beforeDir="false" afterPath="$PROJECT_DIR$/lib/Global/configuration.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/proxy_scheduler.go" beforeDir="false" afterPath="$PROJECT_DIR$/proxy_scheduler.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/.travis.yml" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/.travis.yml" afterDir="false" />
@@ -303,6 +306,7 @@
       <recent name="D:\work\github\pxc_scheduler" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/test" />
       <recent name="$PROJECT_DIR$/lib/Global" />
       <recent name="$PROJECT_DIR$/lib/DataObjects" />
       <recent name="$PROJECT_DIR$/lib/Sql/proxy" />
@@ -376,27 +380,27 @@
         </line-breakpoint>
         <line-breakpoint type="DlvLineBreakpoint">
           <url>file://$PROJECT_DIR$/proxy_scheduler.go</url>
-          <line>118</line>
+          <line>121</line>
           <option name="timeStamp" value="130" />
         </line-breakpoint>
         <line-breakpoint type="DlvLineBreakpoint">
           <url>file://$PROJECT_DIR$/lib/DataObjects/dataObjectsMethods.go</url>
-          <line>917</line>
+          <line>1016</line>
           <option name="timeStamp" value="179" />
         </line-breakpoint>
         <line-breakpoint type="DlvLineBreakpoint">
           <url>file://$PROJECT_DIR$/lib/DataObjects/proxySQLMethods.go</url>
-          <line>326</line>
+          <line>339</line>
           <option name="timeStamp" value="182" />
         </line-breakpoint>
         <line-breakpoint type="DlvLineBreakpoint">
           <url>file://$PROJECT_DIR$/lib/DataObjects/proxySQLMethods.go</url>
-          <line>307</line>
+          <line>320</line>
           <option name="timeStamp" value="183" />
         </line-breakpoint>
         <line-breakpoint type="DlvLineBreakpoint">
           <url>file://$PROJECT_DIR$/lib/DataObjects/proxySQLMethods.go</url>
-          <line>361</line>
+          <line>364</line>
           <option name="timeStamp" value="194" />
         </line-breakpoint>
         <line-breakpoint type="DlvLineBreakpoint">
@@ -406,38 +410,28 @@
         </line-breakpoint>
         <line-breakpoint type="DlvLineBreakpoint">
           <url>file://$PROJECT_DIR$/lib/DataObjects/dataObjectsMethods.go</url>
-          <line>485</line>
-          <option name="timeStamp" value="206" />
-        </line-breakpoint>
-        <line-breakpoint type="DlvLineBreakpoint">
-          <url>file://$PROJECT_DIR$/lib/DataObjects/dataObjectsMethods.go</url>
-          <line>452</line>
+          <line>501</line>
           <option name="timeStamp" value="207" />
         </line-breakpoint>
         <line-breakpoint type="DlvLineBreakpoint">
           <url>file://$PROJECT_DIR$/lib/DataObjects/dataObjectsMethods.go</url>
-          <line>857</line>
-          <option name="timeStamp" value="233" />
-        </line-breakpoint>
-        <line-breakpoint type="DlvLineBreakpoint">
-          <url>file://$PROJECT_DIR$/lib/DataObjects/dataObjectsMethods.go</url>
-          <line>801</line>
+          <line>850</line>
           <option name="timeStamp" value="235" />
         </line-breakpoint>
         <line-breakpoint type="DlvLineBreakpoint">
           <url>file://$PROJECT_DIR$/lib/DataObjects/dataObjectsMethods.go</url>
-          <line>808</line>
+          <line>858</line>
           <option name="timeStamp" value="236" />
         </line-breakpoint>
-        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+        <line-breakpoint type="DlvLineBreakpoint">
           <url>file://$PROJECT_DIR$/lib/DataObjects/dataObjectsMethods.go</url>
-          <line>569</line>
+          <line>619</line>
           <option name="timeStamp" value="238" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="DlvLineBreakpoint">
           <url>file://$PROJECT_DIR$/lib/DataObjects/proxySQLMethods.go</url>
-          <line>380</line>
-          <option name="timeStamp" value="246" />
+          <line>383</line>
+          <option name="timeStamp" value="270" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

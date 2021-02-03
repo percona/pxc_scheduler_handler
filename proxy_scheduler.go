@@ -38,6 +38,9 @@ func main() {
 	var currPath, err = os.Getwd()
 	var config = Global.GetConfig(currPath + Separator + "config" + Separator + configFile)
 
+	//Let us do a sanity check on the configuration to prevent most obvious issues
+	config.SanityCheck()
+
     // Set lock file
     lockId = strconv.Itoa(config.Pxcluster.ClusterId) +
     		"_HG_" + strconv.Itoa(config.Pxcluster.HgW) +

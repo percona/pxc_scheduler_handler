@@ -1,0 +1,147 @@
+Proxysql scheduler tests
+
+Scenario:
+=======================================
+Scenario 1 writer 3 readers 
+    writerIsAlsoReader =1 
+    FailBack = 0
+    with retry Down = 2
+----------------------------------
+Test : PXC maint 
+Expectations: 
+    Writer will go in OFFLINE_SOFT
+    Reader will become writer in respect to the weight as declared in the 8000 HG
+    On end of maintenance NO failback is expected
+    If node is reader then OFFLINE_SOFT then failback
+----------------------------------------------------------    
+Test : wsrep_desync (or any state <> 4)
+Expectations: 
+    Node will go in OFFLINE_SOFT only if HG size > 1
+    
+----------------------------------------------------------       
+Test : wsrep_reject_queries <> none
+Expectations: node is moved to HG 9000
+
+----------------------------------------------------------
+Test : on SHUNNED
+Expectations: node is moved to HG 9000 if back online Reader is add back Writer attempt to come back if no writer
+
+----------------------------------------------------------
+Test : on Crash or network down
+Expectations: node is moved to HG 9000
+
+----------------------------------------------------------
+Test : Add node
+Expectations: when a new node comes online and is declared in the 8000 HG, it is added to the corresponding HG (writer only if it fits)
+
+
+=======================================
+Scenario 1 writer 3 readers
+    writerIsAlsoReader =1
+    FailBack = 1
+    with retry Down = 2
+----------------------------------
+Test : PXC maint
+Expectations:
+    Writer will go in OFFLINE_SOFT
+    Reader will become writer in respect to the weight as declared in the 8000 HG
+    On end of maintenance failback is expected
+    If node is reader then OFFLINE_SOFT then failback
+----------------------------------------------------------
+Test : wsrep_desync (or any state <> 4)
+Expectations:
+    Node will go in OFFLINE_SOFT only if HG size > 1
+    failback is expected
+----------------------------------------------------------
+Test : wsrep_reject_queries <> none
+Expectations: node is moved to HG 9000
+                failback is expected
+----------------------------------------------------------
+Test : on SHUNNED
+Expectations: node is moved to HG 9000 if back online Reader is add back Writer attempt to come back if no writer
+                failback is expected
+----------------------------------------------------------
+Test : on Crash or network down
+Expectations: node is moved to HG 9000
+                failback is expected
+----------------------------------------------------------
+Test : Add node
+Expectations: when a new node comes online and is declared in the 8000 HG, it is added to the corresponding HG (writer only if it fits)
+                failback is expected
+
+
+=======================================
+Scenario 1 writer 3 readers
+    writerIsAlsoReader <>1
+    FailBack = 0
+    with retry Down = 2
+    In all tests Writer is not a reader unless not reader left. This works ONLY if all nodes have wsrep_sync_wait = 3 or >
+----------------------------------
+Test : No readers left
+Expectations: Writer will become also reader
+
+----------------------------------------------------------
+Test : PXC maint
+Expectations:
+    Writer will go in OFFLINE_SOFT
+    Reader will become writer in respect to the weight as declared in the 8000 HG
+    On end of maintenance NO failback is expected
+    If node is reader then OFFLINE_SOFT then failback
+----------------------------------------------------------
+Test : wsrep_desync (or any state <> 4)
+Expectations:
+    Node will go in OFFLINE_SOFT only if HG size > 1
+
+----------------------------------------------------------
+Test : wsrep_reject_queries <> none
+Expectations: node is moved to HG 9000
+
+----------------------------------------------------------
+Test : on SHUNNED
+Expectations: node is moved to HG 9000 if back online Reader is add back Writer attempt to come back if no writer
+
+----------------------------------------------------------
+Test : on Crash or network down
+Expectations: node is moved to HG 9000
+
+----------------------------------------------------------
+Test : Add node
+Expectations: when a new node comes online and is declared in the 8000 HG, it is added to the corresponding HG (writer only if it fits)
+
+
+=======================================
+Scenario 2 writer (or more), 3 readers
+    writerIsAlsoReader =1
+    FailBack = 0
+    with retry Down = 2
+----------------------------------
+Test : PXC maint
+Expectations:
+    Writer will go in OFFLINE_SOFT
+    Reader will become writer in respect to the weight as declared in the 8000 HG
+    On end of maintenance failback is expected
+    If node is reader then OFFLINE_SOFT then failback
+----------------------------------------------------------
+Test : wsrep_desync (or any state <> 4)
+Expectations:
+    Node will go in OFFLINE_SOFT only if HG size > 1
+    On state = 4 failback
+----------------------------------------------------------
+Test : wsrep_reject_queries <> none
+Expectations: node is moved to HG 9000
+              Failback when reject_queries = none
+
+----------------------------------------------------------
+Test : on SHUNNED
+Expectations: node is moved to HG 9000
+                if back online failback
+
+----------------------------------------------------------
+Test : on Crash or network down
+Expectations: node is moved to HG 9000
+                failback on recover
+
+----------------------------------------------------------
+Test : Add node
+Expectations: when a new node comes online and is declared in the 8000 HG, it is added to the corresponding HG (writer only if it fits)
+

@@ -99,6 +99,9 @@ func (cluster *DataCluster) init(config Global.Configuration, connectionProxy *s
 func (cluster *DataCluster) getNodesInfo() bool{
 	var waitingGroup  Global.MyWaitGroup
 
+	//Before getting the information, we check if any node in the 8000 is gone lost and if so we try to add it back
+	cluster.NodesPxc.internal = cluster.checkMissingForNodes(cluster.NodesPxc.internal)
+
 	for key, node := range cluster.NodesPxc.ExposeMap() {
 		waitingGroup.IncreaseCounter()
 		go  node.getInformation(&waitingGroup,cluster)
@@ -337,11 +340,14 @@ func (cluster *DataCluster) consolidateNodes() bool {
 	simple loop on the nodes and overwrite only some values of the ones in the lists
 	*/
 	for key, node := range cluster.NodesPxc.internal {
+		nodeIsIn := false
 		if _, ok := cluster.WriterNodes[key]; ok {
 			cluster.WriterNodes[key]=cluster.alignNodeValues(cluster.WriterNodes[key],node)
+			nodeIsIn = true
 		}
 		if _, ok := cluster.ReaderNodes[key]; ok {
 			cluster.ReaderNodes[key] = cluster.alignNodeValues(cluster.ReaderNodes[key],node)
+			nodeIsIn = true
 		}
 		if _, ok := cluster.BackupWriters[key]; ok {
 			cluster.BackupWriters[key] = cluster.alignNodeValues(cluster.BackupWriters[key],node)
@@ -352,9 +358,11 @@ func (cluster *DataCluster) consolidateNodes() bool {
 		}
 		if _, ok := cluster.OffLineWriters[key]; ok {
 			cluster.OffLineWriters[key] = cluster.alignNodeValues(cluster.OffLineWriters[key] ,node)
+			nodeIsIn = true
 		}
 		if _, ok := cluster.OffLineReaders[key]; ok {
 			cluster.OffLineReaders[key] = cluster.alignNodeValues(cluster.OffLineReaders[key] ,node)
+			nodeIsIn = true
 		}
 
 		//align cluster Parameters
@@ -364,7 +372,11 @@ func (cluster *DataCluster) consolidateNodes() bool {
 			cluster.Name = node.WsrepClusterName
 
 		}
+		if !nodeIsIn {
+			cluster.ReaderNodes[key] = node
+		}
 	}
+
 	return true
 }
 /*
@@ -378,31 +390,40 @@ func (cluster *DataCluster) consolidateHGs() bool{
 			Id: cluster.HgWriterId,
 			Type: "W",
 			Nodes: nil,
-			Size: len(cluster.WriterNodes),
+			Size: cluster.calculateHgOnlineSize(cluster.WriterNodes),
 		},
 		cluster.HgReaderId:{
 			Id: cluster.HgReaderId,
 			Type: "R",
 			Nodes: nil,
-			Size: len(cluster.ReaderNodes),
+			Size: cluster.calculateHgOnlineSize(cluster.ReaderNodes),
 		},
 		specialWrite: {
 			Id: specialWrite,
 			Type: "WREC",
 			Nodes: nil,
-			Size: len(cluster.OffLineWriters),
+			Size: cluster.calculateHgOnlineSize(cluster.OffLineWriters),
 		},
 		specialRead: {
 			Id: specialRead,
 			Type: "RREC",
 			Nodes: nil,
-			Size: len(cluster.OffLineReaders),
+			Size: cluster.calculateHgOnlineSize(cluster.OffLineReaders),
 		},
 	}
 	cluster.Hostgroups = hgM
 
 
 	return true
+}
+func (cluster *DataCluster) calculateHgOnlineSize(myMap map[string]DataNodePxc) int{
+	var i int
+	for _,node := range myMap{
+		if node.DataNodeBase.ProxyStatus == "ONLINE"{
+			i++
+		}
+	}
+	return i
 }
 
 // We align only the relevant information, not all the node
@@ -412,8 +433,8 @@ func (cluster *DataCluster) alignNodeValues(destination DataNodePxc, source Data
 	destination.DataNodeBase.Status = source.DataNodeBase.Status
 	destination.PxcMaintMode = source.PxcMaintMode
 	destination.PxcView = source.PxcView
-	destination.DataNodeBase.RetryUp = source.DataNodeBase.RetryUp
-	destination.DataNodeBase.RetryDown = source.DataNodeBase.RetryDown
+	//destination.DataNodeBase.RetryUp = source.DataNodeBase.RetryUp
+	//destination.DataNodeBase.RetryDown = source.DataNodeBase.RetryDown
 	destination.DataNodeBase.Processed = source.DataNodeBase.Processed
 	destination.setParameters()
 	return destination
@@ -438,6 +459,8 @@ func (cluster *DataCluster) GetActionList() map[string]DataNodePxc {
 			4 check for readers state
 	 */
 	//1-2
+	// first of all clean any refuse and check for possible left over
+	cluster.cleanUpForLeftOver()
 	cluster.evaluateAllProcessedNodes()
 	//3
 	//we cannot just put up or down a writer. We must check if we need to fail over and if we can add another writer
@@ -452,6 +475,32 @@ func (cluster *DataCluster) GetActionList() map[string]DataNodePxc {
 	}
 	//At this point we should be able to do actions in consistent way
 	return cluster.ActionNodes
+}
+
+/*
+We need to check if for any reasons we left some node suspended in the maintenance groups
+this can happen if script is interrupted or maual action
+ */
+func (cluster *DataCluster) cleanUpForLeftOver() bool{
+	//arrayOfMaps := [2]map[string]DataNodePxc{cluster.WriterNodes, cluster.ReaderNodes}
+	for key, node := range cluster.WriterNodes{
+		if _,ok := cluster.OffLineWriters[key]; ok {
+			node.DataNodeBase.HostgroupId = cluster.HgWriterId + 9000
+			node.DataNodeBase.ActionType = node.DataNodeBase.DELETE_NODE()
+			cluster.ActionNodes[strconv.Itoa(node.DataNodeBase.ActionType) + "_" + strconv.Itoa(node.DataNodeBase.HostgroupId) +"_" + node.DataNodeBase.Dns] = node
+			delete(cluster.OffLineWriters, key)
+		}
+	}
+	for key, node := range cluster.ReaderNodes{
+		if _,ok := cluster.OffLineReaders[key]; ok {
+			node.DataNodeBase.HostgroupId = cluster.HgReaderId + 9000
+			node.DataNodeBase.ActionType = node.DataNodeBase.DELETE_NODE()
+			cluster.ActionNodes[strconv.Itoa(node.DataNodeBase.ActionType) + "_" + strconv.Itoa(node.DataNodeBase.HostgroupId) +"_" + node.DataNodeBase.Dns] = node
+			delete(cluster.OffLineReaders, key)
+		}
+	}
+
+	return true
 }
 
 //just check if we have identify failover node if not notify with HUGE alert
@@ -486,11 +535,11 @@ func (cluster *DataCluster) checkMissingForNodes (evalMap map[string]DataNodePxc
 	arrayOfMaps := [2]map[string]DataNodePxc{cluster.BackupReaders, cluster.BackupWriters}
 	for i := 0; i < len(arrayOfMaps); i++ {
 		for _, node := range arrayOfMaps[i] {
-			if _, ok := evalMap[ strconv.Itoa(cluster.HgReaderId) +"_"+ node.DataNodeBase.Dns]; !ok {
-				if _, ok := evalMap[ strconv.Itoa(cluster.HgReaderId + 9000)  +"_"+ node.DataNodeBase.Dns]; !ok {
-					node.DataNodeBase.HostgroupId = cluster.HgReaderId
-					evalMap[node.DataNodeBase.Dns] = node
-				}
+			key1 := node.DataNodeBase.Dns
+			if _, ok := evalMap[ key1]; !ok{
+				node.DataNodeBase.HostgroupId = cluster.HgReaderId
+				node.DataNodeBase.NodeIsNew = true
+				evalMap[node.DataNodeBase.Dns] = node
 			}
 		}
 	}
@@ -501,7 +550,7 @@ func (cluster *DataCluster) checkMissingForNodes (evalMap map[string]DataNodePxc
 func (cluster *DataCluster) evaluateAllProcessedNodes() bool{
 	var arrayOfMaps = [4]map[string]DataNodePxc{cluster.WriterNodes,cluster.ReaderNodes,cluster.OffLineWriters,cluster.OffLineReaders}
 	evalMap := MergeMaps(arrayOfMaps)
-	evalMap = cluster.checkMissingForNodes(evalMap)
+	//evalMap = cluster.checkMissingForNodes(evalMap)
 
 	if len(evalMap) > 0 {
 		for key, node := range evalMap {
@@ -555,129 +604,128 @@ func (cluster *DataCluster) evaluateNode(node DataNodePxc) DataNodePxc{
 			//# 1) wsrep state
 			//# 2) Node is not read only
 			//# 3) at least another node in the HG
-			if node.WsrepStatus == 2 &&
-				!node.DataNodeBase.ReadOnly &&
-				node.DataNodeBase.HostgroupId < 9000 &&
-				node.DataNodeBase.ProxyStatus != "OFFLINE_SOFT"{
-				if currentHg.Size <=1 {
-					log.Warning("Node: ",node.DataNodeBase.Dns," ",node.WsrepNodeName, " HG: ",currentHg.Id ," Type ", currentHg.Type, " is in state ", node.WsrepStatus,
-						" But I will not move to OFFLINE_SOFT given last node left in the Host group")
-					node.DataNodeBase.ActionType = node.DataNodeBase.NOTHING_TO_DO()
-					return node
+			if node.DataNodeBase.HostgroupId < 9000 {
+				if node.WsrepStatus == 2 &&
+					!node.DataNodeBase.ReadOnly &&
+					node.DataNodeBase.ProxyStatus != "OFFLINE_SOFT" {
+					if currentHg.Size <= 1 {
+						log.Warning("Node: ", node.DataNodeBase.Dns, " ", node.WsrepNodeName, " HG: ", currentHg.Id, " Type ", currentHg.Type, " is in state ", node.WsrepStatus,
+							" But I will not move to OFFLINE_SOFT given last node left in the Host group")
+						node.DataNodeBase.ActionType = node.DataNodeBase.NOTHING_TO_DO()
+						//return node
+					}else { //if cluster retry > 0 then we manage the node as well
+						if cluster.RetryDown > 0 {
+							node.DataNodeBase.RetryDown++
+						}
+						node.DataNodeBase.ActionType = node.DataNodeBase.MOVE_DOWN_OFFLINE()
+						cluster.ActionNodes[strconv.Itoa(node.DataNodeBase.HostgroupId)+"_"+node.DataNodeBase.Dns] = node
+						log.Warning("Node: ", node.DataNodeBase.Dns, " ", node.WsrepNodeName, " HG: ", currentHg.Id, " Type ", currentHg.Type, " is in state ", node.WsrepStatus,
+							" moving it to OFFLINE_SOFT given we have other nodes in the Host group")
+					}
+
 				}
-				//if cluster retry > 0 then we manage the node as well
-				if cluster.RetryDown > 0{
-					node.DataNodeBase.RetryDown++
+				/*
+					Node is in unsafe state we will move to maintenance group 9000
+				*/
+				if node.WsrepStatus != 2 &&
+					node.WsrepStatus != 4 {
+					//if cluster retry > 0 then we manage the node as well
+					if cluster.RetryDown > 0 {
+						node.DataNodeBase.RetryDown++
+					}
+					node.DataNodeBase.ActionType = node.DataNodeBase.MOVE_DOWN_HG_CHANGE()
+					cluster.ActionNodes[strconv.Itoa(node.DataNodeBase.HostgroupId)+"_"+node.DataNodeBase.Dns] = node
+					log.Warning("Node: ", node.DataNodeBase.Dns, " ", node.WsrepNodeName, " HG: ", currentHg.Id, " Type ", currentHg.Type, " is in state ", node.WsrepStatus,
+						"moving it to HG ", node.DataNodeBase.HostgroupId+9000, " given unsafe node state")
+
 				}
-				node.DataNodeBase.ActionType= node.DataNodeBase.MOVE_DOWN_OFFLINE()
-				cluster.ActionNodes[strconv.Itoa(node.DataNodeBase.HostgroupId) +"_" + node.DataNodeBase.Dns]= node
-				log.Warning("Node: ",node.DataNodeBase.Dns," ",node.WsrepNodeName, " HG: ",currentHg.Id ," Type ", currentHg.Type, " is in state ", node.WsrepStatus,
-					" moving it to OFFLINE_SOFT given we have other nodes in the Host group")
-
-			}
-			/*
-			Node is in unsafe state we will move to maintenance group 9000
-			 */
-			if node.WsrepStatus != 2 &&
-				node.WsrepStatus != 4 &&
-				node.DataNodeBase.HostgroupId < 9000 {
-				//if cluster retry > 0 then we manage the node as well
-				if cluster.RetryDown > 0{
-					node.DataNodeBase.RetryDown++
+				//#3) Node/cluster in non primary
+				if node.WsrepClusterStatus != "Primary" {
+					if cluster.RetryDown > 0 {
+						node.DataNodeBase.RetryDown++
+					}
+					node.DataNodeBase.ActionType = node.DataNodeBase.MOVE_DOWN_HG_CHANGE()
+					cluster.ActionNodes[strconv.Itoa(node.DataNodeBase.HostgroupId)+"_"+node.DataNodeBase.Dns] = node
+					log.Warning("Node: ", node.DataNodeBase.Dns, " ", node.WsrepNodeName, " HG: ", currentHg.Id, " Type ", currentHg.Type, " is NOT in Primary state ",
+						" moving it to HG ", node.DataNodeBase.HostgroupId+9000, " given unsafe node state")
 				}
-				node.DataNodeBase.ActionType= node.DataNodeBase.MOVE_DOWN_HG_CHANGE()
-				cluster.ActionNodes[strconv.Itoa(node.DataNodeBase.HostgroupId) +"_" + node.DataNodeBase.Dns]= node
-				log.Warning("Node: ",node.DataNodeBase.Dns," ",node.WsrepNodeName, " HG: ",currentHg.Id ," Type ", currentHg.Type, " is in state ", node.WsrepStatus,
-					"moving it to HG ", node.DataNodeBase.HostgroupId + 9000, " given unsafe node state")
 
-			}
-			//#3) Node/cluster in non primary
-			if node.WsrepClusterStatus != "Primary"{
-				if cluster.RetryDown > 0{
-					node.DataNodeBase.RetryDown++
+				//# 4) wsrep_reject_queries=NONE
+				if node.WsrepRejectqueries &&
+					node.DataNodeBase.HostgroupId < 8000 {
+					if cluster.RetryDown > 0 {
+						node.DataNodeBase.RetryDown++
+					}
+					node.DataNodeBase.ActionType = node.DataNodeBase.MOVE_DOWN_HG_CHANGE()
+					cluster.ActionNodes[strconv.Itoa(node.DataNodeBase.HostgroupId)+"_"+node.DataNodeBase.Dns] = node
+					log.Warning("Node: ", node.DataNodeBase.Dns, " ", node.WsrepNodeName, " HG: ", currentHg.Id, " Type ", currentHg.Type, " has WSREP Reject queries active ",
+						"moving it to HG ", node.DataNodeBase.HostgroupId+9000)
 				}
-				node.DataNodeBase.ActionType= node.DataNodeBase.MOVE_DOWN_HG_CHANGE()
-				cluster.ActionNodes[strconv.Itoa(node.DataNodeBase.HostgroupId) +"_" + node.DataNodeBase.Dns]= node
-				log.Warning("Node: ",node.DataNodeBase.Dns," ",node.WsrepNodeName, " HG: ",currentHg.Id ," Type ", currentHg.Type, " is NOT in Primary state ",
-					" moving it to HG ", node.DataNodeBase.HostgroupId + 9000, " given unsafe node state")
-			}
 
-			//# 4) wsrep_reject_queries=NONE
-			if node.WsrepRejectqueries &&
-				node.DataNodeBase.HostgroupId < 8000 {
-				if cluster.RetryDown > 0{
-					node.DataNodeBase.RetryDown++
+				//#5) Donor, node donot reject queries =1 size of cluster > 2 of nodes in the same segments
+				if node.WsrepDonorrejectqueries &&
+					node.WsrepStatus == 2 &&
+					cluster.Hostgroups[node.DataNodeBase.HostgroupId].Size > 1 &&
+					node.DataNodeBase.HostgroupId < 8000 {
+					if cluster.RetryDown > 0 {
+						node.DataNodeBase.RetryDown++
+					}
+					node.DataNodeBase.ActionType = node.DataNodeBase.MOVE_DOWN_HG_CHANGE()
+					cluster.ActionNodes[strconv.Itoa(node.DataNodeBase.HostgroupId)+"_"+node.DataNodeBase.Dns] = node
+					log.Warning("Node: ", node.DataNodeBase.Dns, " ", node.WsrepNodeName, " HG: ", currentHg.Id, " Type ", currentHg.Type, " has WSREP Reject queries active ",
+						"moving it to HG ", node.DataNodeBase.HostgroupId+9000)
+
 				}
-				node.DataNodeBase.ActionType= node.DataNodeBase.MOVE_DOWN_HG_CHANGE()
-				cluster.ActionNodes[strconv.Itoa(node.DataNodeBase.HostgroupId) +"_" + node.DataNodeBase.Dns]= node
-				log.Warning("Node: ",node.DataNodeBase.Dns," ",node.WsrepNodeName, " HG: ",currentHg.Id ," Type ", currentHg.Type, " has WSREP Reject queries active ",
-					"moving it to HG ", node.DataNodeBase.HostgroupId + 9000)
-			}
 
-			//#5) Donor, node donot reject queries =1 size of cluster > 2 of nodes in the same segments
-			if node.WsrepDonorrejectqueries &&
-				node.WsrepStatus == 2 &&
-				cluster.Hostgroups[node.DataNodeBase.HostgroupId].Size > 1 &&
-				node.DataNodeBase.HostgroupId < 8000 {
-				if cluster.RetryDown > 0{
-					node.DataNodeBase.RetryDown++
+				//#6) Node had pxc_maint_mode set to anything except DISABLED, not matter what it will go in OFFLINE_SOFT
+				if node.PxcMaintMode != "DISABLED" &&
+					node.DataNodeBase.ProxyStatus != "OFFLINE_SOFT" &&
+					node.DataNodeBase.HostgroupId < 8000 {
+					node.DataNodeBase.ActionType = node.DataNodeBase.MOVE_DOWN_OFFLINE()
+					//when we do not increment retry is because we want an immediate action like in this case. So let us set the retry to max.
+					node.DataNodeBase.RetryDown = cluster.RetryDown + 1
+					cluster.ActionNodes[strconv.Itoa(node.DataNodeBase.HostgroupId)+"_"+node.DataNodeBase.Dns] = node
+					log.Warning("Node: ", node.DataNodeBase.Dns, " ", node.WsrepNodeName, " HG: ", currentHg.Id, " Type ", currentHg.Type, " has PXC_maint_mode as ", node.PxcMaintMode,
+						" moving it to OFFLINE_SOFT ")
 				}
-				node.DataNodeBase.ActionType= node.DataNodeBase.MOVE_DOWN_HG_CHANGE()
-				cluster.ActionNodes[strconv.Itoa(node.DataNodeBase.HostgroupId) +"_" + node.DataNodeBase.Dns]= node
-				log.Warning("Node: ",node.DataNodeBase.Dns," ",node.WsrepNodeName, " HG: ",currentHg.Id ," Type ", currentHg.Type, " has WSREP Reject queries active ",
-					"moving it to HG ", node.DataNodeBase.HostgroupId + 9000)
 
-			}
+				//7 Writer is READ_ONLY
+				if node.DataNodeBase.HostgroupId == cluster.HgWriterId &&
+					node.DataNodeBase.ReadOnly {
+					if cluster.RetryDown > 0 {
+						node.DataNodeBase.RetryDown++
+					}
+					node.DataNodeBase.ActionType = node.DataNodeBase.MOVE_SWAP_WRITER_TO_READER()
+					cluster.ActionNodes[strconv.Itoa(node.DataNodeBase.HostgroupId)+"_"+node.DataNodeBase.Dns] = node
+					log.Warning("Node: ", node.DataNodeBase.Dns, " ", node.WsrepNodeName, " HG: ", currentHg.Id, " Type ", currentHg.Type, " has READ_ONLY ",
+						"moving it to Reader HG ")
 
-
-			//#6) Node had pxc_maint_mode set to anything except DISABLED, not matter what it will go in OFFLINE_SOFT
-			if node.PxcMaintMode != "DISABLED" &&
-				node.DataNodeBase.ProxyStatus != "OFFLINE_SOFT" &&
-				node.DataNodeBase.HostgroupId < 8000 {
-				node.DataNodeBase.ActionType= node.DataNodeBase.MOVE_DOWN_OFFLINE()
-				//when we do not increment retry is because we want an immediate action like in this case. So let us set the retry to max.
-				node.DataNodeBase.RetryDown = cluster.RetryDown +1
-				cluster.ActionNodes[strconv.Itoa(node.DataNodeBase.HostgroupId) +"_" + node.DataNodeBase.Dns]= node
-				log.Warning("Node: ",node.DataNodeBase.Dns," ",node.WsrepNodeName, " HG: ",currentHg.Id ," Type ", currentHg.Type, " has PXC_maint_mode as ",node.PxcMaintMode,
-					" moving it to OFFLINE_SOFT ")
-			}
-
-			//7 Writer is READ_ONLY
-			if node.DataNodeBase.HostgroupId == cluster.HgWriterId &&
-				node.DataNodeBase.ReadOnly {
-				if cluster.RetryDown > 0{
-					node.DataNodeBase.RetryDown++
 				}
-				node.DataNodeBase.ActionType= node.DataNodeBase.MOVE_SWAP_WRITER_TO_READER()
-				cluster.ActionNodes[strconv.Itoa(node.DataNodeBase.HostgroupId) +"_" + node.DataNodeBase.Dns]= node
-				log.Warning("Node: ",node.DataNodeBase.Dns," ",node.WsrepNodeName, " HG: ",currentHg.Id ," Type ", currentHg.Type, " has READ_ONLY ",
-					"moving it to Reader HG ")
-
-			}
-			//# Node must be removed if writer is reader is disable and node is in writer group
-			//if($nodes->{$key}->wsrep_status eq 4
-			//&& $nodes->{$key}->wsrep_rejectqueries eq "NONE"
-			//&& $nodes->{$key}->read_only eq "OFF"
-			//&& $nodes->{$key}->cluster_status eq "Primary"
-			//&& $nodes->{$key}->hostgroups == $proxynode->{_hg_reader_id}
-			//&& $GGalera_cluster->{_writer_is_reader} < 1
-			//&& $nodes->{$key}->proxy_status eq "ONLINE"
-			// and HG reader size is > 1
-			//){
-			if node.DataNodeBase.HostgroupId == cluster.HgWriterId &&
-				cluster.WriterIsReader != 1 &&
-				!node.WsrepRejectqueries &&
-				!node.DataNodeBase.ReadOnly &&
-				node.DataNodeBase.ProxyStatus == "ONLINE" &&
-				node.WsrepClusterStatus == "Primary" &&
-				node.DataNodeBase.Hostgroups[cluster.HgReaderId].Size > 1{
-				if cluster.RetryDown > 0{
-					node.DataNodeBase.RetryDown++
-				}
-				node.DataNodeBase.ActionType= node.DataNodeBase.DELETE_NODE()
-				cluster.ActionNodes[strconv.Itoa(cluster.HgReaderId) +"_" + node.DataNodeBase.Dns]= node
-				log.Warning("Node: ",node.DataNodeBase.Dns," ",node.WsrepNodeName, " HG: ",currentHg.Id ," Type ", currentHg.Type, " WriterIsAlsoReader <>1 removing node from READER Group ")
-
+				//# Node must be removed if writer is reader is disable and node is in writer group
+				//if($nodes->{$key}->wsrep_status eq 4
+				//&& $nodes->{$key}->wsrep_rejectqueries eq "NONE"
+				//&& $nodes->{$key}->read_only eq "OFF"
+				//&& $nodes->{$key}->cluster_status eq "Primary"
+				//&& $nodes->{$key}->hostgroups == $proxynode->{_hg_reader_id}
+				//&& $GGalera_cluster->{_writer_is_reader} < 1
+				//&& $nodes->{$key}->proxy_status eq "ONLINE"
+				// and HG reader size is > 1
+				//){
+				//if node.DataNodeBase.HostgroupId == cluster.HgWriterId &&
+				//	cluster.WriterIsReader != 1 &&
+				//	!node.WsrepRejectqueries &&
+				//	!node.DataNodeBase.ReadOnly &&
+				//	node.DataNodeBase.ProxyStatus == "ONLINE" &&
+				//	node.WsrepClusterStatus == "Primary" &&
+				//	len(cluster.ReaderNodes) > 1  {
+				//	if cluster.RetryDown > 0 {
+				//		node.DataNodeBase.RetryDown++
+				//	}
+				//	node.DataNodeBase.ActionType = node.DataNodeBase.DELETE_NODE()
+				//	cluster.ActionNodes[strconv.Itoa(cluster.HgReaderId)+"_"+node.DataNodeBase.Dns] = node
+				//	log.Warning("Node: ", node.DataNodeBase.Dns, " ", node.WsrepNodeName, " HG: ", currentHg.Id, " Type ", currentHg.Type, " WriterIsAlsoReader <>1 removing node from READER Group ")
+				//
+				//}
 			}
 
 
@@ -737,6 +785,20 @@ func (cluster *DataCluster) evaluateNode(node DataNodePxc) DataNodePxc{
 					node.DataNodeBase.HostgroupId )
 			}
 
+			/*
+			When a new node is coming in we do not put it online directly, but instead we will insert it in the special group 9000
+			this will allow us to process it correctly and validate the state.
+			Then we will put online
+			*/
+			if node.DataNodeBase.NodeIsNew &&
+				node.DataNodeBase.HostgroupId < 9000{
+				node.DataNodeBase.HostgroupId = node.DataNodeBase.HostgroupId + 9000
+				node.DataNodeBase.ActionType= node.DataNodeBase.INSERT_READ()
+				cluster.ActionNodes[strconv.Itoa(node.DataNodeBase.HostgroupId) +"_" + node.DataNodeBase.Dns]= node
+				log.Info(fmt.Sprintf("I am going to re-insert a declared node in Backup HGs that went missed in ProxySQL mysql_server table "))
+				log.Info(fmt.Sprintf("Node %s will be first inserted in special HG %d Then if it status is fine will be promoted",node.DataNodeBase.Dns,node.DataNodeBase.HostgroupId))
+			}
+
 			//# in the case node is not in one of the declared state
 			//# BUT it has the counter retry set THEN I reset it to 0 whatever it was because
 			//# I assume it is ok now
@@ -768,6 +830,7 @@ func (cluster *DataCluster) cleanWriters() bool{
 	}
 	return true
 }
+//Once we have done the identification of the node status in EvalNodes we can now process the nodes by ROLE. The main point here is First identify the Good possible writer(s)
 func (cluster *DataCluster) evaluateWriters() bool{
 	backupWriters := cluster.BackupWriters
 
@@ -777,7 +840,7 @@ func (cluster *DataCluster) evaluateWriters() bool{
 	/*
 	Unfortunately we must execute the loop multiple times because we FIRST loop is to identify the nodes going down
 	And only after we can process correctly the up.
-	The loop should normally be very short so it should be fast ialso if redundant
+	The loop should normally be very short so it should be fast also if redundant
 	 */
 	for key, node := range cluster.ActionNodes {
 		var hgI int
@@ -789,7 +852,7 @@ func (cluster *DataCluster) evaluateWriters() bool{
 		hgI = Global.ToInt(hg)
 		portI = Global.ToInt(port)
 
-		// We process only WRITERS
+		// We process only WRITERS and check for nodes marked in EvalNodes as DOWN
 		if currentHg.Type == "W" || currentHg.Type == "WREC" {
 			//We must first check if the node is going down, because if it is single primary we probably need to failover
 			if node.DataNodeBase.ReturnActionCategory(node.DataNodeBase.ActionType) == "DOWN" ||
@@ -811,6 +874,7 @@ func (cluster *DataCluster) evaluateWriters() bool{
 							log.Warning(fmt.Sprintf("FAILOVER!!! Cluster Needs a new Writer to fail-over last writer is going down %s", key))
 						} else if len(cluster.WriterNodes) > 1 {
 							delete(cluster.WriterNodes, node.DataNodeBase.Dns)
+							delete(cluster.BackupWriters, node.DataNodeBase.Dns)
 						}
 					}
 				}else {
@@ -821,9 +885,12 @@ func (cluster *DataCluster) evaluateWriters() bool{
 		}
 	}
 
-	//Check if node is coming up
+
+	// Process only Writers but now we Check if node is coming up. Here we also have the first action in case of FAILOVER. bacause if a node is coming up
+	// And is a possible replacement for the Writer going down, we need to flag it.
+	// Writer are evaluated on the base of the WEIGHT in the config group 8000
 	for key, node := range cluster.ActionNodes {
-		//fist thing we remove the node from the possible writer to add as not present in the list of evaluated
+		//While evaluating the nodes that are coming up we also check if it is a Failover Node
 		var hgI int
 		var portI = 0
 		currentHg := cluster.Hostgroups[node.DataNodeBase.HostgroupId]
@@ -843,13 +910,17 @@ func (cluster *DataCluster) evaluateWriters() bool{
 					//delete(backupWriters,node.DataNodeBase.Dns)
 					//check if we have already a primary or if we have already the max number of writers
 					if len(cluster.WriterNodes) < cluster.MaxNumWriters ||
-						(len(cluster.WriterNodes) < 1 && cluster.RequireFailover){
+						(len(cluster.WriterNodes) < 1 || cluster.RequireFailover){
 						if cluster.RequireFailover &&
 							!cluster.HasFailoverNode &&
 							!cluster.HasPrimary {
 							// we also check if the weight is higher to be sure we put the nodes in order
 							if node.DataNodeBase.Weight > cluster.FailOverNode.DataNodeBase.Weight &&
 								(node.WsrepSegment == cluster.MainSegment || cluster.ActiveFailover > 1){
+								if cluster.SinglePrimary {
+									delete(cluster.ActionNodes,strconv.Itoa(cluster.FailOverNode.DataNodeBase.HostgroupId) +"_" + cluster.FailOverNode.DataNodeBase.Dns)
+									delete(cluster.WriterNodes, cluster.FailOverNode.DataNodeBase.Dns)
+								}
 								cluster.FailOverNode = node
 								cluster.WriterNodes[node.DataNodeBase.Dns] = node
 								log.Warning(fmt.Sprintf("FAILOVER!!! Cluster may have identified a Node to failover: %s", key))
@@ -859,11 +930,14 @@ func (cluster *DataCluster) evaluateWriters() bool{
 							cluster.WriterNodes[node.DataNodeBase.Dns] = node
 							log.Warning(fmt.Sprintf("Node %s is coming UP in writer HG %d", key, cluster.HgWriterId))
 						}
+					//Failback is a pain in the xxxx because it can cause a lot of bad behaviour.
 					//IF cluster failback is active we need to check for coming up nodes if our node has higher WEIGHT of current writer(s) and eventually act
 					}else if _, ok := cluster.BackupWriters[node.DataNodeBase.Dns]; ok  &&
 						cluster.FailBack {
+
 						//if node is already coming up, must be removed from current writers
 						delete(cluster.BackupWriters,node.DataNodeBase.Dns)
+
 						//tempWriters := make(map[string]DataNodePxc)
 						lowerNode := node
 						for _, wNode := range cluster.WriterNodes{
@@ -872,14 +946,18 @@ func (cluster *DataCluster) evaluateWriters() bool{
 								lowerNode = wNode
 							}
 						}
-						//IF the lower node IS NOT our new node then we have a FAIL BACK. But only if inside same segmen OR if Active failover method allow the use of other segment
+						//IF the lower node IS NOT our new node then we have a FAIL BACK. But only if inside same segment OR if Active failover method allow the use of other segment
 						//If instead our new node is the lowest .. no action and ignore it (for writers)
 						if node.DataNodeBase.Dns != lowerNode.DataNodeBase.Dns &&
 							(node.WsrepSegment == cluster.MainSegment || cluster.ActiveFailover > 1){
+
 							//in this case we need to set the action and also the retry or it will NOT go down consistently
 							lowerNode.DataNodeBase.RetryDown = cluster.RetryDown + 1
 							lowerNode.DataNodeBase.ActionType = lowerNode.DataNodeBase.MOVE_DOWN_OFFLINE()
 							cluster.ActionNodes[ strconv.Itoa(lowerNode.DataNodeBase.HostgroupId) +"_" + lowerNode.DataNodeBase.Dns] = lowerNode
+
+							//we remove from the writerHG the node that is going down
+							delete(cluster.WriterNodes,lowerNode.DataNodeBase.Dns)
 
 							log.Warn(fmt.Sprintf("Failback! Node %s is going down while Node %s is coming up as Writer ",
 								strconv.Itoa(lowerNode.DataNodeBase.HostgroupId) +"_" + lowerNode.DataNodeBase.Dns,
@@ -887,13 +965,16 @@ func (cluster *DataCluster) evaluateWriters() bool{
 
 							//let also add it to the Writers to prevent double insertion
 							cluster.WriterNodes[node.DataNodeBase.Dns] = node
+
 							//Given this is a failover I will remove the failover flag if present
 							cluster.RequireFailover = false
 
-						}else if node.DataNodeBase.Dns == lowerNode.DataNodeBase.Dns && cluster.RequireFailover{
+						}else if node.DataNodeBase.Dns == lowerNode.DataNodeBase.Dns &&
+							(cluster.RequireFailover  || cluster.FailBack){
 							log.Warn(fmt.Sprintf("Node %s coming back online but will not be promoted to Writer because lower Weight %d",
 								strconv.Itoa(lowerNode.DataNodeBase.HostgroupId) +"_" + lowerNode.DataNodeBase.Dns,
 								node.DataNodeBase.Weight))
+							delete(cluster.ActionNodes, key)
 						}
 						//else{
 						////	Node should not promote back but we cannot remove it. So we will notify in the log as ERROR to be sure is reported
@@ -901,6 +982,10 @@ func (cluster *DataCluster) evaluateWriters() bool{
 						//		strconv.Itoa(lowerNode.DataNodeBase.HostgroupId) +"_" + lowerNode.DataNodeBase.Dns , cluster.HgWriterId))
 						//	delete(cluster.ActionNodes,strconv.Itoa(lowerNode.DataNodeBase.HostgroupId) +"_" + lowerNode.DataNodeBase.Dns)
 						//}
+					}else if  len(cluster.WriterNodes) < cluster.MaxNumWriters && !cluster.RequireFailover {
+						log.Warning(fmt.Sprintf("Node %s is trying to come UP in writer HG: %d but cannot promote given we already have enough writers %d ", key, cluster.HgWriterId, len(cluster.WriterNodes)))
+						delete(cluster.ActionNodes, key)
+
 					}else {
 						//In this case we cannot put back another writer and node must be removed from Actionlist
 						log.Warning(fmt.Sprintf("Node %s is trying to come UP in writer HG: %d but cannot promote given we already have enough writers %d ", key, cluster.HgWriterId, len(cluster.WriterNodes)))
@@ -914,51 +999,81 @@ func (cluster *DataCluster) evaluateWriters() bool{
 
 		}
 	}
-	//let us check if the left writer is to be add or not but I am not adding to
+
+	//check if in special HG 9000 and if so remove it from backupWriters
+	for key, _ := range cluster.OffLineWriters{
+		if _,ok := backupWriters[key]; ok{
+			delete(backupWriters,key)
+		}
+	}
+
+	// At this point our list should have a clear status of what is coming up and/or down.
+	// It also has possible failovers, so for the ones left we need to consolidate and eventually add what is missed.
+	// let us check if the left writers are to be add or not
 	for key, node := range backupWriters {
-		if _, ok := cluster.NodesPxc.internal[node.DataNodeBase.Dns]; ok{
+		// First of all we need to be sure node was tested
+		if _, ok := cluster.NodesPxc.internal[node.DataNodeBase.Dns]; ok {
+
 			//the backup node is not present we will try to add it
 			if cluster.NodesPxc.internal[node.DataNodeBase.Dns].DataNodeBase.ProxyStatus == "ONLINE" &&
 				!cluster.NodesPxc.internal[node.DataNodeBase.Dns].DataNodeBase.ReadOnly &&
-				cluster.NodesPxc.internal[node.DataNodeBase.Dns].DataNodeBase.Processed{
+				cluster.NodesPxc.internal[node.DataNodeBase.Dns].DataNodeBase.Processed {
 
 				// in this case we just have to add the node given lower number of allowed writers. But only in the same segment
-				if len(cluster.WriterNodes) < cluster.MaxNumWriters && cluster.MaxNumWriters > 1 &&
+				if  _,ok := cluster.WriterNodes[node.DataNodeBase.Dns]; !ok &&
+					len(cluster.WriterNodes) < cluster.MaxNumWriters && cluster.MaxNumWriters > 1 &&
 					node.WsrepSegment == cluster.MainSegment {
 					node.DataNodeBase.HostgroupId = cluster.HgWriterId
 					cluster.WriterNodes[node.DataNodeBase.Dns] = node
+					node.DataNodeBase.ActionType = node.DataNodeBase.DELETE_NODE()
+					cluster.ActionNodes[strconv.Itoa(node.DataNodeBase.ActionType) + "_" +  strconv.Itoa(cluster.HgWriterId)+"_"+node.DataNodeBase.Dns] = node
 					node.DataNodeBase.ActionType = node.DataNodeBase.INSERT_WRITE()
-					cluster.ActionNodes[strconv.Itoa(cluster.HgWriterId)  + "_" + node.DataNodeBase.Dns]=node
+					cluster.ActionNodes[strconv.Itoa(node.DataNodeBase.ActionType) + "_" +  strconv.Itoa(cluster.HgWriterId)+"_"+node.DataNodeBase.Dns] = node
+
 					//if is a failover we will evaluate the node with the one already stored in case there is a writer coming UP from offline with higher weight
 					// in that case we do not want an existing node to take over but we prefer to have directly the right node up
-				}else if cluster.RequireFailover &&
+				} else if cluster.RequireFailover &&
 					len(cluster.WriterNodes) < cluster.MaxNumWriters &&
-					(node.WsrepSegment == cluster.MainSegment || cluster.ActiveFailover > 1){
-						if node.DataNodeBase.Weight > cluster.FailOverNode.DataNodeBase.Weight {
-							node.DataNodeBase.ActionType = node.DataNodeBase.INSERT_WRITE()
-							cluster.FailOverNode = node
-							log.Warning(fmt.Sprintf("Failover require node identified as candidate: %s I will try to add it back.", key))
+					(node.WsrepSegment == cluster.MainSegment || cluster.ActiveFailover > 1) {
+					if node.DataNodeBase.Weight > cluster.FailOverNode.DataNodeBase.Weight {
+						node.DataNodeBase.ActionType = node.DataNodeBase.INSERT_WRITE()
+						cluster.FailOverNode = node
+						log.Warning(fmt.Sprintf("Failover require node identified as candidate: %s .", key))
+					}
+
+				// If we have exceeded the number of writers, the one with lower Weight will be removed
+				}else if  _,ok := cluster.WriterNodes[node.DataNodeBase.Dns]; ok &&
+							len(cluster.WriterNodes) > cluster.MaxNumWriters &&
+							node.DataNodeBase.ProxyStatus =="ONLINE"{
+					lowerNode := node
+					for _, wNode := range cluster.WriterNodes{
+						if wNode.DataNodeBase.Weight < lowerNode.DataNodeBase.Weight &&
+							wNode.DataNodeBase.Weight < node.DataNodeBase.Weight{
+							lowerNode = wNode
 						}
 					}
-					//else {
-					//	log.Warning(fmt.Sprintf("Writer Node may be missing in MySQL Servers table but present in the Backup Writer HG : %s I will try to add it back.", key))
-					//	cluster.ActionNodes[strconv.Itoa(cluster.HgWriterId)  + "_" + node.DataNodeBase.Dns]=node
-					//}
+					lowerNode.DataNodeBase.HostgroupId = cluster.HgWriterId
+					lowerNode.DataNodeBase.ActionType = node.DataNodeBase.DELETE_NODE()
+					if _,ok := cluster.ActionNodes[strconv.Itoa(cluster.HgWriterId)+"_"+ lowerNode.DataNodeBase.Dns]; !ok {
+						cluster.ActionNodes[strconv.Itoa(cluster.HgWriterId)+"_"+node.DataNodeBase.Dns] = lowerNode
+					}
 
-				//in case the cluster already has enough nodes but we have failback, we will try to put back an existing node
+				// Now if we have failback and we have a writer with HIGHER weight coming back we need to identify the one with lower again and remove it
 				}else if len(cluster.WriterNodes) == cluster.MaxNumWriters &&
-					!cluster.RequireFailover &&
-					cluster.FailBack{
+				!cluster.RequireFailover &&
+				cluster.FailBack {
 					//we need to loop the writers
 					for _, nodeB := range cluster.WriterNodes {
 						if node.DataNodeBase.Weight > nodeB.DataNodeBase.Weight &&
-							(node.WsrepSegment == cluster.MainSegment || cluster.ActiveFailover > 1){
+							(node.WsrepSegment == cluster.MainSegment || cluster.ActiveFailover > 1) {
 							node.DataNodeBase.ActionType = node.DataNodeBase.INSERT_WRITE()
 							node.DataNodeBase.HostgroupId = cluster.HgWriterId
+
 							// the node with lower weight is removed
-							nodeB.DataNodeBase.ActionType = node.DataNodeBase.DELETE_NODE()
-							cluster.ActionNodes[strconv.Itoa(cluster.HgWriterId)  + "_" + node.DataNodeBase.Dns]=node
-							cluster.ActionNodes[strconv.Itoa(cluster.HgWriterId)  + "_" + nodeB.DataNodeBase.Dns]=nodeB
+							nodeB.DataNodeBase.RetryDown = cluster.RetryDown + 1
+							nodeB.DataNodeBase.ActionType = nodeB.DataNodeBase.MOVE_DOWN_OFFLINE()
+							cluster.ActionNodes[strconv.Itoa(cluster.HgWriterId)+"_"+node.DataNodeBase.Dns] = node
+							cluster.ActionNodes[strconv.Itoa(cluster.HgWriterId)+"_"+nodeB.DataNodeBase.Dns] = nodeB
 
 							//let also add it to the Writers to prevent double insertion
 							cluster.WriterNodes[node.DataNodeBase.Dns] = node
@@ -966,33 +1081,15 @@ func (cluster *DataCluster) evaluateWriters() bool{
 							cluster.RequireFailover = false
 
 							log.Warn(fmt.Sprintf("Failback! Node %s is going down while Node %s is coming up as Writer ",
-								strconv.Itoa(nodeB.DataNodeBase.HostgroupId) +"_" + nodeB.DataNodeBase.Dns,
-								strconv.Itoa(node.DataNodeBase.HostgroupId) +"_" + node.DataNodeBase.Dns))
+								strconv.Itoa(nodeB.DataNodeBase.HostgroupId)+"_"+nodeB.DataNodeBase.Dns,
+								strconv.Itoa(node.DataNodeBase.HostgroupId)+"_"+node.DataNodeBase.Dns))
 							//if found we just exit no need to loop more
 							break
 						}
 					}
 				}
 			}
-//All this block may not be needed the problem must be solved before tying to include back the missing nodes when checking
-	 	//the backup node is not present in the writers but is present in backup and was processed we try to include it back
-		//}else if _, ok := cluster.WriterNodes[node.DataNodeBase.Dns]; !ok{
-		//
-		//	if node.DataNodeBase.ProxyStatus == "ONLINE" &&
-		//		node.DataNodeBase.Processed{
-		//		if cluster.RequireFailover {
-		//			if node.DataNodeBase.Weight > cluster.FailOverNode.DataNodeBase.Weight {
-		//				cluster.WriterNodes[node.DataNodeBase.Dns] = node
-		//				node.DataNodeBase.ActionType = node.DataNodeBase.INSERT_WRITE()
-		//				node.DataNodeBase.HostgroupId = cluster.HgWriterId
-		//				cluster.FailOverNode = node
-		//				cluster.HasFailoverNode = true
-		//				log.Warning(fmt.Sprintf("Evaluate node as candidate for failopvr : %s ", key))
-		//
-		//			}
-		//		}
-		//	}
-		//
+		}
 	}
 
 
@@ -1012,61 +1109,120 @@ This method identify if we have an active reader and if not will force (no matte
 It will also remove the writer as reader is we have WriterIsAlsoReader <> 1 and reader group with at least 1 element
 
  */
-func (cluster *DataCluster)  checkReaderPresence() {
-	readerNodes := cluster.ReaderNodes
+func (cluster *DataCluster)  checkReaderPresence() bool{
+	readerNodes := make(map[string]DataNodePxc)
+	CopyMap(readerNodes, cluster.ReaderNodes)
 	actionNodes := cluster.ActionNodes
-	for _, node := range actionNodes {
-		currentHg := cluster.Hostgroups[node.DataNodeBase.HostgroupId]
-		// We process only Readers
-		if currentHg.Type == "R" || currentHg.Type == "RREC" {
-			//If node is going down we will remove it from the list of available readers
-			if node.DataNodeBase.ReturnActionCategory(node.DataNodeBase.ActionType) == "DOWN" ||
-				node.DataNodeBase.ReturnActionCategory(node.DataNodeBase.ActionType) == "SWAP_W" {
-				delete(readerNodes, node.DataNodeBase.Dns)
-			// If node is coming up we add it to the list of readers
-			}else if node.DataNodeBase.ReturnActionCategory(node.DataNodeBase.ActionType) == "UP" ||
-				node.DataNodeBase.ReturnActionCategory(node.DataNodeBase.ActionType) == "SWAP_R"{
-				if(node.DataNodeBase.Processed && node.DataNodeBase.ProxyStatus == "ONLINE"){
-					node.DataNodeBase.HostgroupId = cluster.HgReaderId
+
+	//first I add any missing node in the reader list
+	for key, node := range cluster.BackupReaders {
+		if _,ok := readerNodes[key]; !ok{
+			readerNodes[key] = node
+		}
+	}
+
+	//We process the action nodes to identify what is coming up and what down
+	//for _, node := range readerNodes {
+		for _, actionNode := range actionNodes {
+			currentHg := cluster.Hostgroups[actionNode.DataNodeBase.HostgroupId]
+			if currentHg.Type == "R" || currentHg.Type == "RREC" {
+				if actionNode.DataNodeBase.ReturnActionCategory(actionNode.DataNodeBase.ActionType) == "DOWN" ||
+					actionNode.DataNodeBase.ReturnActionCategory(actionNode.DataNodeBase.ActionType) == "SWAP_W" {
+					delete(readerNodes, actionNode.DataNodeBase.Dns)
+					// If node is coming up we add it to the list of readers
+				} else if actionNode.DataNodeBase.ReturnActionCategory(actionNode.DataNodeBase.ActionType) == "UP" ||
+					actionNode.DataNodeBase.ReturnActionCategory(actionNode.DataNodeBase.ActionType) == "SWAP_R" {
+					if actionNode.DataNodeBase.Processed && actionNode.DataNodeBase.ProxyStatus == "ONLINE" {
+						actionNode.DataNodeBase.HostgroupId = cluster.HgReaderId
+						actionNode.DataNodeBase.Processed = false
+						readerNodes[actionNode.DataNodeBase.Dns] = actionNode
+					}
+				}
+			}
+		}
+	//}
+
+	//check for nodes in the reader group that are also in the OFFLINE_HG for reads
+	//check for offline_soft nodes left in the readerNodes
+	for key, node := range readerNodes{
+		if okHgR :=  cluster.OffLineReaders[key]; okHgR.DataNodeBase.Dns !=""   || (    node.DataNodeBase.ReturnActionCategory(node.DataNodeBase.ActionType) == "NOTHING_TO_DO" &&
+			cluster.ReaderNodes[node.DataNodeBase.Dns].DataNodeBase.ProxyStatus == "OFFLINE_SOFT") {
+			delete(readerNodes, node.DataNodeBase.Dns)
+		}
+	}
+
+
+
+	//Check for readers and see if we can add
+	if len(readerNodes) <= 0 {
+		if len(cluster.WriterNodes) > 0 {
+			for _, node := range cluster.WriterNodes{
+				if node.DataNodeBase.Processed && node.DataNodeBase.ProxyStatus == "ONLINE" {
 					readerNodes[node.DataNodeBase.Dns] = node
 				}
 			}
 		}
-	}
-
-	//Ok let see what we have at the end if we have 0 here we need ot add the writer as reader ... period
-	if len(readerNodes) <=0 {
-		if len(cluster.WriterNodes) > 0{
-			candidateNewReader := new(DataNodePxc)
-			candidateNewReader.DataNodeBase.Weight = 10000000
-			writersNode := cluster.WriterNodes
-
-			for _, node := range writersNode {
-				if node.DataNodeBase.Weight < candidateNewReader.DataNodeBase.Weight &&
-					node.DataNodeBase.ProxyStatus == "ONLINE"{
-					node.DataNodeBase.HostgroupId = cluster.HgReaderId
-					node.DataNodeBase.ActionType = node.DataNodeBase.INSERT_READ() // I am setting this node as insert in read HG and then insert it to the
-					cluster.ActionNodes[strconv.Itoa(cluster.HgReaderId) + "_" + node.DataNodeBase .Dns] = node
-				}
-
-			}
-		}
-	//	If we have single writer and WriterIsAlsoReader is <> 1 and we have more than 1 reader, then remove the Writer as reader
 	}else{
-		if cluster.WriterIsReader != 1 &&
-			len(readerNodes) > 1 &&
-			cluster.SinglePrimary &&
-			len(cluster.WriterNodes) == 1{
-			for _, node := range cluster.WriterNodes {
-				if _, ok := cluster.ActionNodes[strconv.Itoa(cluster.HgReaderId) + "_" + node.DataNodeBase.Dns]; !ok{
-					node.DataNodeBase.HostgroupId = cluster.HgReaderId
-					node.DataNodeBase.ActionType = node.DataNodeBase.DELETE_NODE()
-					cluster.ActionNodes[strconv.Itoa(cluster.HgReaderId) + "_" + node.DataNodeBase.Dns] = node
+		// WriterIsAlsoReader != 1 so we need to check if writer is in reader group and remove it in the case we have more readers
+		if cluster.WriterIsReader != 1 {
+
+			if len(readerNodes) > 1 {
+				for key, node := range readerNodes {
+					//if the reader node is in the writer group and we have more than 1 reader good left, then we can remove the reader node
+					if _, ok := cluster.WriterNodes[key]; ok &&
+						node.DataNodeBase.HostgroupId == cluster.HgReaderId{
+						delete(readerNodes,key)
+						node.DataNodeBase.HostgroupId = cluster.HgReaderId
+						node.DataNodeBase.ActionType = node.DataNodeBase.DELETE_NODE()
+						cluster.ActionNodes[strconv.Itoa(cluster.HgReaderId)+"_"+node.DataNodeBase.Dns] = node
+					//But if the reader node is from backup group this means we are just checkin if we should re-insert it so we do ot need to delete, but just remove it from the list
+					} else if _, ok := cluster.WriterNodes[key]; ok &&
+						node.DataNodeBase.HostgroupId == cluster.BackupHgReaderId {
+						delete(readerNodes,key)
+
+					}
+
+				}
+			}else if len(readerNodes) == 1{
+				//if we see that we have 1 item left in readers and this one is also the writer and is already present, we will NOT process it otherwise we will insert back
+				for key, node := range readerNodes {
+					if _, ok := cluster.WriterNodes[key]; ok && node.DataNodeBase.HostgroupId == cluster.HgReaderId {
+						node.DataNodeBase.Processed = false
+						readerNodes[key] = node
+					}
 				}
 			}
 		}
+
+	}
+	//whatever is now in the readNodes map should be pushed in offline read HG to be evaluated and move back in prod if OK
+	for _,node := range readerNodes{
+		key := node.DataNodeBase.Dns
+		if  okR := cluster.ReaderNodes[key] ;  okR.DataNodeBase.Dns != "" || !node.DataNodeBase.Processed{
+			delete(readerNodes,key)
+		} else{
+			cluster.pushNewNode(node)
+		}
 	}
 
+	return true;
+}
+
+//add a new non existing Reader but force a delete first to avoid dirty writes. This inly IF a Offline node with taht key is NOT already present
+func (cluster *DataCluster) pushNewNode(node DataNodePxc) bool{
+	if ok1:= cluster.OffLineReaders[node.DataNodeBase.Dns]; ok1.DataNodeBase.Dns != ""  {
+		return false
+	}
+	// we normalize the node values against the Backup Group
+	node = cluster.BackupReaders[node.DataNodeBase.Dns]
+	node.DataNodeBase.HostgroupId = cluster.OffLineHgReaderID
+	node.DataNodeBase.ActionType = node.DataNodeBase.DELETE_NODE()
+	node.DataNodeBase.NodeIsNew = true
+	cluster.ActionNodes[strconv.Itoa(node.DataNodeBase.ActionType)+"_"+strconv.Itoa(node.DataNodeBase.HostgroupId)+"_"+node.DataNodeBase.Dns] = node
+	node.DataNodeBase.ActionType = node.DataNodeBase.INSERT_READ()
+	cluster.ActionNodes[strconv.Itoa(node.DataNodeBase.ActionType)+"_"+strconv.Itoa(node.DataNodeBase.HostgroupId)+"_"+node.DataNodeBase.Dns] = node
+
+	return true
 }
 
 
@@ -1385,5 +1541,15 @@ func MergeMaps(arrayOfMaps [4]map[string]DataNodePxc) map[string]DataNodePxc{
 		}
 	}
 	return mergedMap
+
+}
+
+func CopyMap(mapDest map[string]DataNodePxc, mapSource map[string]DataNodePxc ) map[string]DataNodePxc{
+
+		for k, v := range mapSource {
+			mapDest[k] = v
+		}
+
+	return mapDest
 
 }

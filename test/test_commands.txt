@@ -1,4 +1,4 @@
-cenario:
+scenario:
 =======================================
 Scenario 1 writer 3 readers
     writerIsAlsoReader =1
@@ -35,8 +35,10 @@ Commands :
  For reader HG we have multiple nodes so all good to be desync
 
  ----------------------------------------------------------
- Test : wsrep_reject_queries <> none
- Expectations: node is moved to HG 9000
+ Test : Read_only = 1
+ Expectations: node is removed from writers
+
+
  Command on a Reader node: set global READ_ONLY = 1;
  Results: nothing happen
 
@@ -55,7 +57,287 @@ Commands :
 
  ----------------------------------------------------------
  Test : on SHUNNED
+ Expectations: node is moved to HG 9000
+ Command on writer  : kill -9 <mysqd pid>
+ Results: Writer node is shunned and new node is elected as writer
+
+on failback online Reader is add back Writer attempt to come back if no writer
+
+
+----------------------------------------------------------
+Test : on Crash or network down
+Expectations: node is moved to HG 9000
+
+Command on node : ifdown <dev> toward backend
+Results: Node goes as expected to special HG 9000 other node take place if writer
+
+on failback node is put back online
+
+Command on node : ifdown <dev> toward frontend
+Results: Node goes as expected to special HG 9000 but this action is slower given it must wait for the node network to fail
+
+on failback it comes back online
+
+
+----------------------------------------------------------
+Test : Add node
+Expectations: when a new node comes online and is declared in the 8000 HG, it is added to the corresponding HG (writer only if it fits)
+
+Command: delete from mysql_servers where hostname = '<ip>' and hostgroup_id in (list of active HGs !!!NOT the backup HGs !!!)
+Results: node in Backup HGs is inserted back first in 9000 Reader HG, then evaluated and if successful promoted to HGRead
+
+if Failback node is also move back to writer and previous writer moved to offline_soft
+
+****************************************************************
+ All tests passed
+****************************************************************
+
+=======================================
+Scenario 1 writer 3 readers
+    writerIsAlsoReader =1
+    FailBack = 1
+    with retry Down = 2
+----------------------------------
+
+Test : PXC maint
+Expectations:
+    Writer will go in OFFLINE_SOFT
+    Reader will become writer in respect to the weight as declared in the 8000 HG
+    On end of maintenance NO failback is expected
+    If node is reader then OFFLINE_SOFT then failback
+----------------------------------------------------------
+Commands :
+    on writer = set global pxc_maint_mode = maintenance;
+ Results: OK - writer is offline soft and new writer elected
+
+on failback
+ Command : set global pxc_maint_mode = disabled;
+ Results: OK - writer is put to offline soft and old node put back
+
+
+ ----------------------------------------------------------
+ Test : wsrep_desync (or any state <> 4)
+ Expectations:
+     Node will go in OFFLINE_SOFT only if HG size > 1
+ Command: on any reader: set global wsrep_desync=1;
+ Results: OK - if only node nothing happens if another node exists already and OFFLINE (limit by number of writers)  the original node will go OFFLINE Softe and the old OFFLINE soft elected
+
+Failover
+ Command: on writer: set global wsrep_desync=1;
+ Results: nodes are swap back
+
+ ----------------------------------------------------------
+ Test : Read_only = 1
+ Expectations: node is removed from writers
+
+
+ Command on a Reader node: set global READ_ONLY = 1;
+ Results: nothing happen
+
+ Command on a writer node: set global READ_ONLY = 1;
+ Results: fail-over to the next available backup
+
+ ----------------------------------------------------------
+ Test : wsrep_reject_queries <> none
+ Expectations: node is moved to HG 9000
+
+ Command: on writer: set global wsrep_reject_queries=all;
+ Results: writer goes to 9000 and a new node is elected
+
+ Command: on reader: set global wsrep_reject_queries=all;
+ Results: reader goes to 9000
+
+ on Failback current writer goes OFFLINE_SOFT and failing back node become active
+
+ ----------------------------------------------------------
+ Test : on SHUNNED
  Expectations: node is moved to HG 9000 if back online Reader is add back Writer attempt to come back if no writer
 
- Command 
+ Command on writer  : kill -9 <mysqd pid>
+ Results: Writer node is shunned and new node is elected as writer
 
+on failback node is also move back to writer hg and previos node goes in offline_soft
+
+----------------------------------------------------------
+Test : on Crash or network down
+Expectations: node is moved to HG 9000
+
+Command on node : ifdown <dev> toward backend
+Results: Node goes as expected to special HG 9000
+
+Command on node : ifdown <dev> toward frontend
+Results: Node goes as expected to special HG 9000
+
+----------------------------------------------------------
+Test : Add node
+Expectations: when a new node comes online and is declared in the 8000 HG, it is added to the corresponding HG (writer only if it fits)
+
+Command: delete from mysql_servers where hostname = '<ip>' and hostgroup_id in (list of active HGs !!!NOT the backup HGs !!!)
+Results: node in Backup HGs is inserted back first in 9000 Reader HG, then evaluated and if successful promoted to HGRead
+
+==========================================
+=======================================
+Scenario 2 writer 3 readers
+    writerIsAlsoReader = 1
+    FailBack = 0
+    with retry Down = 2
+    In all tests Writer is not a reader unless not reader left. This works ONLY if all nodes have wsrep_sync_wait = 3 or >
+
+----------------------------------
+Test : PXC maint
+Expectations:
+    Writer will go in OFFLINE_SOFT
+    Reader will become writer in respect to the weight as declared in the 8000 HG
+    On end of maintenance NO failback is expected
+    If node is reader then OFFLINE_SOFT then failback
+----------------------------------------------------------
+Commands :
+    on writer = set global pxc_maint_mode = maintenance;
+
+ Results: OK
+
+
+ ----------------------------------------------------------
+ Test : wsrep_desync (or any state <> 4)
+ Expectations:
+     Node will go in OFFLINE_SOFT only if HG size > 1
+ Command: on any reader: set global wsrep_desync=1;
+ Results: OK
+
+ Command: on writer: set global wsrep_desync=1;
+ Results: writer moves offline_soft another one from reader take place
+ For reader HG we have multiple nodes so all good to be desync
+
+ ----------------------------------------------------------
+ Test : Read_only = 1
+ Expectations: node is removed from writers
+
+
+ Command on a Reader node: set global READ_ONLY = 1;
+ Results: nothing happen
+
+ Command on a writer node: set global READ_ONLY = 1;
+ Results: fail-over to the next available backup
+
+ ----------------------------------------------------------
+ Test : wsrep_reject_queries <> none
+ Expectations: node is moved to HG 9000
+
+ Command: on writer: set global wsrep_reject_queries=all;
+ Results: writer goes to 9000 and a new node is elected
+
+ Command: on reader: set global wsrep_reject_queries=all;
+ Results: reader goes to 9000
+
+ ----------------------------------------------------------
+ Test : on SHUNNED
+ Expectations: node is moved to HG 9000
+ Command on writer  : kill -9 <mysqd pid>
+ Results: Writer node is shunned and new node is elected as writer
+
+
+----------------------------------------------------------
+Test : on Crash or network down
+Expectations: node is moved to HG 9000
+
+Command on node : ifdown <dev> toward backend
+Results: Node goes as expected to special HG 9000 other node take place if writer
+
+on failback node is put back online
+
+Command on node : ifdown <dev> toward frontend
+Results: Node goes as expected to special HG 9000 but this action is slower given it must wait for the node network to fail
+
+on failback it comes back online
+
+
+----------------------------------------------------------
+Test : Add node
+Expectations: when a new node comes online and is declared in the 8000 HG, it is added to the corresponding HG (writer only if it fits)
+
+Command: delete from mysql_servers where hostname = '<ip>' and hostgroup_id in (list of active HGs !!!NOT the backup HGs !!!)
+Results: node in Backup HGs is inserted back first in 9000 Reader HG, then evaluated and if successful promoted to HGRead
+
+if Failback node is also move back to writer and previous writer moved to offline_soft
+========================================================
+=======================================
+Scenario 1 writer 3 readers
+    writerIsAlsoReader =0
+    FailBack = 0
+    with retry Down = 2
+----------------------------------
+Test : PXC maint
+Expectations:
+    Writer will go in OFFLINE_SOFT
+    Reader will become writer in respect to the weight as declared in the 8000 HG
+    On end of maintenance NO failback is expected
+    If node is reader then OFFLINE_SOFT then failback
+----------------------------------------------------------
+Commands :
+    on writer = set global pxc_maint_mode = maintenance;
+
+ Results: OK
+
+
+ ----------------------------------------------------------
+ Test : wsrep_desync (or any state <> 4)
+ Expectations:
+     Node will go in OFFLINE_SOFT only if HG size > 1
+ Command: on any reader: set global wsrep_desync=1;
+ Results: OK
+
+ Command: on writer: set global wsrep_desync=1;
+ Results: writer moves offline_soft another one from reader take place
+ For reader HG we have multiple nodes so all good to be desync
+
+
+
+ ----------------------------------------------------------
+ Test : Read_only = 1
+ Expectations: node is removed from writers
+
+
+ Command on a Reader node: set global READ_ONLY = 1;
+ Results: nothing happen
+
+ Command on a writer node: set global READ_ONLY = 1;
+ Results: fail-over to the next available backup
+ Results: OK
+
+ ----------------------------------------------------------
+ Test : wsrep_reject_queries <> none
+ Expectations: node is moved to HG 9000
+
+ Command: on writer: set global wsrep_reject_queries=all;
+ Results: writer goes to 9000 and a new node is elected
+
+ Command: on reader: set global wsrep_reject_queries=all;
+ Results: reader goes to 9000
+
+Results: OK
+ ----------------------------------------------------------
+ Test : on SHUNNED
+ Expectations: node is moved to HG 9000
+ Command on writer  : kill -9 <mysqd pid>
+ Results: Writer node is shunned and new node is elected as writer
+
+
+----------------------------------------------------------
+Test : on Crash or network down
+Expectations: node is moved to HG 9000
+
+Command on node : ifdown <dev> toward backend
+Results: Node goes as expected to special HG 9000 other node take place if writer
+
+
+Command on node : ifdown <dev> toward frontend
+Results: Node goes as expected to special HG 9000 but this action is slower given it must wait for the node network to fail
+
+
+
+----------------------------------------------------------
+Test : Add node
+Expectations: when a new node comes online and is declared in the 8000 HG, it is added to the corresponding HG (writer only if it fits)
+
+Command: delete from mysql_servers where hostname = '<ip>' and hostgroup_id in (list of active HGs !!!NOT the backup HGs !!!)
+Results: node in Backup HGs is inserted back first in 9000 Reader HG, then evaluated and if successful promoted to HGRead

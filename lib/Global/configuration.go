@@ -139,6 +139,13 @@ func (conf *Configuration) SanityCheck(){
 
 		os.Exit(1)
 	}
+
+	if conf.Pxcluster.WriterIsAlsoReader != 1 && (conf.Pxcluster.MaxWriters > 1 || !conf.Pxcluster.SinglePrimary) {
+		log.Error("Configuration error cannot have WriterIsAlsoReader NOT = 1 and use more than one Writer")
+
+		os.Exit(1)
+
+	}
 }
 
 

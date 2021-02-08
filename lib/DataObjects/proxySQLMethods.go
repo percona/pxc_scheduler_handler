@@ -315,11 +315,18 @@ func (node *ProxySQLNode) MoveNodeDownToHGCange(dataNode DataNode,hg int,ip stri
 	log.Debug(fmt.Sprintf("Preparing for node  %s:%d HG:%d SQL: %s", ip, port, hg,myString))
 	return myString
 }
-//TODO verify we are working with Node from 8000 HG range
+/*
+When inserting a node we need to differentiate when is a NEW node coming from the Bakcup HG because in that case we will NOT push it directly to prod
+ */
 func (node *ProxySQLNode) InsertRead(dataNode DataNode,hg int,ip string,port int) string{
+	if dataNode.NodeIsNew{
+		hg = node.MySQLCluster.HgReaderId + 9000
+	}else{
+		hg = node.MySQLCluster.HgReaderId
+	}
 	myString := fmt.Sprintf("INSERT INTO mysql_servers (hostgroup_id, hostname,port,gtid_port,status,weight,compression,max_connections,max_replication_lag,use_ssl,max_latency_ms,comment) " +
 		" VALUES(%d,'%s',%d,%d,'%s',%d,%d,%d,%d,%d,%d,'%s')",
-		node.MySQLCluster.HgReaderId,
+		hg,
 		ip,
 		port,
 		dataNode.Gtid_port,
@@ -334,11 +341,19 @@ func (node *ProxySQLNode) InsertRead(dataNode DataNode,hg int,ip string,port int
 	log.Debug(fmt.Sprintf("Preparing for node  %s:%d HG:%d SQL: %s", ip, port, hg,myString))
 	return myString
 }
-//TODO verify we are working with Node from 8000 HG range
+/*
+When inserting a node we need to differentiate when is a NEW node coming from the Bakcup HG because in that case we will NOT push it directly to prod
+*/
 func (node *ProxySQLNode) InsertWrite(dataNode DataNode,hg int,ip string,port int) string{
+	if dataNode.NodeIsNew{
+		hg = node.MySQLCluster.HgWriterId + 9000
+	}else{
+		hg = node.MySQLCluster.HgWriterId
+	}
+
 	myString := fmt.Sprintf("INSERT INTO mysql_servers (hostgroup_id, hostname,port,gtid_port,status,weight,compression,max_connections,max_replication_lag,use_ssl,max_latency_ms,comment) " +
 				" VALUES(%d,'%s',%d,%d,'%s',%d,%d,%d,%d,%d,%d,'%s')",
-				node.MySQLCluster.HgWriterId,
+				hg,
 				ip,
 				port,
 				dataNode.Gtid_port,

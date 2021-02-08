@@ -9,6 +9,7 @@ import (
 
 type DataNode struct{
 	ActionType int
+	NodeIsNew bool
 	RetryUp int
 	RetryDown int
 	Comment string

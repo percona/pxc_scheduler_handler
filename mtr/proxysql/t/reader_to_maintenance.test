@@ -52,9 +52,13 @@
 # scheduler script
 # allow scheduler script to write its logs
 --chmod 0777 $MYSQL_TMP_DIR
-#--let $scheduler_script=/home/kamil/repo/pxc/8.0/install/proxysql/galera_check.pl
---replace_result $proxysql_scheduler_script SCHEDULER_SCRIPT $MYSQL_TMP_DIR MYSQL_TMP_DIR
---eval INSERT INTO scheduler (id,active,interval_ms,filename,arg1) values (10,1,3000,"$proxysql_scheduler_script","-u=admin -p=admin -h=127.0.0.1 -H=$wHG:W,$rHG:R -P=6032 --debug=1 --active_failover=1 --retry_down=2 --writer_is_also_reader=0 --log=$MYSQL_TMP_DIR/galera_check-perl.log")
+
+# The following line works with Perl
+# --replace_result $proxysql_scheduler_script SCHEDULER_SCRIPT $MYSQL_TMP_DIR MYSQL_TMP_DIR
+# --eval INSERT INTO scheduler (id,active,interval_ms,filename,arg1) values (10,1,3000,"$proxysql_scheduler_script","-u=admin -p=admin -h=127.0.0.1 -H=$wHG:W,$rHG:R -P=6032 --debug=1 --active_failover=1 --retry_down=2 --writer_is_also_reader=0 --log=$MYSQL_TMP_DIR/galera_check-perl.log")
+# The following line works with Golang
+--replace_result $proxysql_scheduler_script SCHEDULER_SCRIPT $proxysql_scheduler_config_dir CONFIG_DIR
+--eval INSERT INTO scheduler (id,active,interval_ms,filename,arg1) values (10,1,3000,"$proxysql_scheduler_script","config-file=$proxysql_scheduler_config_dir/reader_to_maintenance.toml")
 
 --source ../include/apply_proxysql_config.inc
 
@@ -88,7 +92,7 @@ SELECT * FROM t1 ORDER BY a ASC;
 
 --connection proxysql_admin
 # node_2 it is OFFLINE_SOFT
--- echo node_2 -> maintenance
+-- echo node_2 ($NODE_MYPORT_2) -> maintenance
 --eval SELECT * FROM runtime_mysql_servers WHERE port=$NODE_MYPORT_2 ORDER BY hostgroup_id
 
 
@@ -115,7 +119,7 @@ SELECT * from t1 ORDER BY a ASC;
 #
 
 --connection proxysql_admin
--- echo node_2 -> back from maintenance to reader
+-- echo node_2 ($NODE_MYPORT_1) -> back from maintenance to reader
 # it is ONLINE, and it is reader
 --eval SELECT * FROM runtime_mysql_servers WHERE port=$NODE_MYPORT_2 ORDER BY hostgroup_id;
 

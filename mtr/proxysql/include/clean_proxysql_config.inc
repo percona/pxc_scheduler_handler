@@ -45,4 +45,4 @@ SELECT COUNT(*) FROM runtime_mysql_servers;
 SELECT COUNT(*) FROM runtime_mysql_users;
 SELECT COUNT(*) FROM runtime_proxysql_servers;
 SELECT COUNT(*) FROM runtime_mysql_query_rules;
-SELECT COUNT(*) FROM scheduler;
+SELECT COUNT(*) FROM runtime_scheduler;

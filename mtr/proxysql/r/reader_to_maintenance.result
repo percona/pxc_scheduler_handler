@@ -13,7 +13,7 @@ COUNT(*)
 SELECT COUNT(*) FROM runtime_mysql_query_rules;
 COUNT(*)
 0
-SELECT COUNT(*) FROM scheduler;
+SELECT COUNT(*) FROM runtime_scheduler;
 COUNT(*)
 0
 UPDATE global_variables SET Variable_Value='8.0.22' WHERE Variable_name='mysql-server_version';
@@ -34,7 +34,7 @@ INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,com
 INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',101,13012,10000,1000,'READ');
 INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',8100,13006,1000,1000,'Backup writer 1');
 INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',8100,13012,10000,999,'Backup writer 2');
-INSERT INTO scheduler (id,active,interval_ms,filename,arg1) values (10,1,3000,"SCHEDULER_SCRIPT","-u=admin -p=admin -h=127.0.0.1 -H=100:W,101:R -P=6032 --debug=1 --active_failover=1 --retry_down=2 --writer_is_also_reader=0 --log=MYSQL_TMP_DIR/galera_check-perl.log");
+INSERT INTO scheduler (id,active,interval_ms,filename,arg1) values (10,1,3000,"SCHEDULER_SCRIPT","config-file=CONFIG_DIR/reader_to_maintenance.toml");
 #
 # Applying ProxySQL configuration
 #
@@ -50,10 +50,10 @@ a
 11
 12
 13
-node_2 -> maintenance
+node_2 (13006) -> maintenance
 SELECT * FROM runtime_mysql_servers WHERE port=13006 ORDER BY hostgroup_id;
 hostgroup_id	hostname	port	gtid_port	status	weight	compression	max_connections	max_replication_lag	use_ssl	max_latency_ms	comment
-101	127.0.0.1	13006	0	OFFLINE_SOFT	10000	0	1000	0	0	0	READ100_W_101_R_retry_up=0;100_W_101_R_retry_down=0;
+101	127.0.0.1	13006	0	OFFLINE_SOFT	10000	0	1000	0	0	0	READ
 8100	127.0.0.1	13006	0	ONLINE	1000	0	1000	0	0	0	Backup writer 1
 SET global pxc_maint_mode=DISABLED;
 INSERT INTO t1 VALUES (21), (22), (23);
@@ -68,10 +68,10 @@ a
 21
 22
 23
-node_2 -> back from maintenance to reader
+node_2 (13000) -> back from maintenance to reader
 SELECT * FROM runtime_mysql_servers WHERE port=13006 ORDER BY hostgroup_id;;
 hostgroup_id	hostname	port	gtid_port	status	weight	compression	max_connections	max_replication_lag	use_ssl	max_latency_ms	comment
-101	127.0.0.1	13006	0	ONLINE	10000	0	1000	0	0	0	READ100_W_101_R_retry_up=0;100_W_101_R_retry_down=0;
+101	127.0.0.1	13006	0	ONLINE	10000	0	1000	0	0	0	READ
 8100	127.0.0.1	13006	0	ONLINE	1000	0	1000	0	0	0	Backup writer 1
 #
 # Loading default ProxySQL configuration
@@ -88,7 +88,7 @@ COUNT(*)
 SELECT COUNT(*) FROM runtime_mysql_query_rules;
 COUNT(*)
 0
-SELECT COUNT(*) FROM scheduler;
+SELECT COUNT(*) FROM runtime_scheduler;
 COUNT(*)
 0
 SET global pxc_maint_mode=DISABLED;

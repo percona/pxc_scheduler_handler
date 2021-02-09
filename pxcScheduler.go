@@ -5,11 +5,11 @@ import (
 	Global "./lib/Global"
 	"bufio"
 	"fmt"
+	"github.com/alexflint/go-arg"
 	_ "github.com/go-sql-driver/mysql"
 	log "github.com/sirupsen/logrus"
 	"os"
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -31,14 +31,23 @@ func main() {
 	// By default performance collection is disabled
     Global.Performance = false
 
+    //process command line args
+    arg.MustParse(&Global.Args)
+	args := Global.Args
+    //fmt.Print(args.ConfigFile)
+
+
+
     //check for current params
-	if len(os.Args) < 2 || len(os.Args) > 2 {
-		fmt.Println("You must pass the config-file=xxx parameter ONLY")
+	if len(os.Args) < 2  || args.ConfigFile == ""{
+		fmt.Println("You must at least pass the --configfile=xxx parameter ")
 		os.Exit(1)
 	}
 
+
+
 	//read config and return a config object
-	configFile = strings.ReplaceAll(string(os.Args[1]), "config-file=", "")
+	configFile = args.ConfigFile
 	var currPath, err = os.Getwd()
 	var config = Global.GetConfig(currPath + Separator + "config" + Separator + configFile)
 

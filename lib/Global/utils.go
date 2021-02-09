@@ -32,31 +32,32 @@ func (wg *MyWaitGroup) WaitTimeout(timeout time.Duration) bool {
 	}
 }
 
-func (wg *MyWaitGroup) IncreaseCounter(){
+func (wg *MyWaitGroup) IncreaseCounter() {
 	wg.count++
 }
-func (wg *MyWaitGroup) DecreaseCounter(){
-	if wg.count >0 {
+func (wg *MyWaitGroup) DecreaseCounter() {
+	if wg.count > 0 {
 		wg.count--
 	}
 }
 
-func (wg *MyWaitGroup) ReportCounter() int{
+func (wg *MyWaitGroup) ReportCounter() int {
 	return wg.count
 }
 
 const (
 	Separator = string(os.PathSeparator)
 )
+
 //==================================
 
-func FromStringToMAp(mystring string, separator string) map[string]string{
+func FromStringToMAp(mystring string, separator string) map[string]string {
 	myMap := make(map[string]string)
-	if mystring != "" && separator != ""{
+	if mystring != "" && separator != "" {
 		keyValuePairArray := strings.Split(mystring, separator)
 		for _, keyValuePair := range keyValuePairArray {
 			//keyValuePair = strings.Trim(keyValuePair," ")
-			keyValueSplit := strings.Split(keyValuePair,"=")
+			keyValueSplit := strings.Split(keyValuePair, "=")
 			if len(keyValueSplit) > 1 {
 				var key = strings.TrimSpace(keyValueSplit[0])
 				var value = strings.TrimSpace(keyValueSplit[1])
@@ -74,7 +75,7 @@ func ToInt(myString string) int {
 		i, err := strconv.Atoi(myString)
 		if err != nil {
 			pc, fn, line, _ := runtime.Caller(1)
-			log.Error(pc," ",fn," ",line,": ",err)
+			log.Error(pc, " ", fn, " ", line, ": ", err)
 			return -1
 		} else {
 			return i
@@ -83,12 +84,14 @@ func ToInt(myString string) int {
 	return 0
 }
 
-func ToBool (myString string, boolTrueString string) bool{
+func ToBool(myString string, boolTrueString string) bool {
 	myString = strings.ToLower(myString)
-	boolTrueString  = strings.ToLower(boolTrueString)
-	if myString !="" && myString == boolTrueString{
+	boolTrueString = strings.ToLower(boolTrueString)
+	if myString != "" && myString == boolTrueString {
 		return true
-	}else {return false}
+	} else {
+		return false
+	}
 }
 
 func Bool2int(b bool) int {
@@ -97,4 +100,3 @@ func Bool2int(b bool) int {
 	}
 	return 0
 }
-

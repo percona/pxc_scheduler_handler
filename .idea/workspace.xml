@@ -1,20 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
+  <component name="AnalysisUIOptions">
+    <option name="SCOPE_TYPE" value="3" />
+  </component>
   <component name="AutoImportSettings">
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
     <list default="true" id="c603b4de-b46a-45fd-bef4-8d20deb405fc" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/runConfigurations/proxyPxcScheduler.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/runConfigurations/proxyPxcScheduler.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/go_build_pxc_scheduler_" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/go_build_pxc_scheduler_.exe" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/config.toml" beforeDir="false" afterPath="$PROJECT_DIR$/config/config.toml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/lib/DataObjects/dataObjects.go" beforeDir="false" afterPath="$PROJECT_DIR$/lib/DataObjects/dataObjects.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/DataObjects/dataObjectsMethods.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/DataObjects/proxySQLMethods.go" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/lib/DataObjects/proxySQLObjects.go" beforeDir="false" afterPath="$PROJECT_DIR$/lib/DataObjects/proxySQLObjects.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/DataObjects/proxyTablesActions.go" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/lib/DataObjects/pxcObjects.go" beforeDir="false" afterPath="$PROJECT_DIR$/lib/DataObjects/pxcObjects.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/proxy_scheduler.go" beforeDir="false" afterPath="$PROJECT_DIR$/proxyPxcScheduler.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/Global/configuration.go" beforeDir="false" afterPath="$PROJECT_DIR$/lib/Global/configuration.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/Global/utils.go" beforeDir="false" afterPath="$PROJECT_DIR$/lib/Global/utils.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/Sql/Proxy/sqlobjects.go" beforeDir="false" afterPath="$PROJECT_DIR$/lib/Sql/Proxy/sqlobjects.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/proxyPxcScheduler.go" beforeDir="false" afterPath="$PROJECT_DIR$/proxyPxcScheduler.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/.travis.yml" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/.travis.yml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/COMPATIBLE" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/COMPATIBLE" afterDir="false" />
@@ -254,7 +257,6 @@
       <change beforePath="$PROJECT_DIR$/src/gopkg.in/yaml.v3/yaml.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/gopkg.in/yaml.v3/yaml.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/gopkg.in/yaml.v3/yamlh.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/gopkg.in/yaml.v3/yamlh.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/gopkg.in/yaml.v3/yamlprivateh.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/gopkg.in/yaml.v3/yamlprivateh.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/test_connection.go" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -272,6 +274,7 @@
   <component name="GOROOT" url="file://$USER_HOME$/go/go1.15.6" />
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+    <option name="ROOT_SYNC" value="DONT_SYNC" />
   </component>
   <component name="GitSEFilterConfiguration">
     <file-type-list>
@@ -313,7 +316,7 @@
     <property name="node.js.selected.package.eslint" value="(autodetect)" />
     <property name="node.js.selected.package.tslint" value="(autodetect)" />
     <property name="run.code.analysis.last.selected.profile" value="pProject Default" />
-    <property name="settings.editor.selected.configurable" value="preferences.pluginManager" />
+    <property name="settings.editor.selected.configurable" value="go.sdk" />
   </component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
@@ -362,18 +365,13 @@
           <option name="timeStamp" value="9" />
         </line-breakpoint>
         <line-breakpoint type="DlvLineBreakpoint">
-          <url>file://$PROJECT_DIR$/lib/DataObjects/proxySQLObjects.go</url>
-          <line>59</line>
-          <option name="timeStamp" value="27" />
-        </line-breakpoint>
-        <line-breakpoint type="DlvLineBreakpoint">
           <url>file://$PROJECT_DIR$/lib/DataObjects/dataObjects.go</url>
           <line>2</line>
           <option name="timeStamp" value="122" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="DlvLineBreakpoint">
-          <url>file://$PROJECT_DIR$/lib/DataObjects/dataObjects.go</url>
-          <line>349</line>
+          <url>file://$PROJECT_DIR$/proxyPxcScheduler.go</url>
+          <line>34</line>
           <option name="timeStamp" value="123" />
         </line-breakpoint>
       </breakpoints>

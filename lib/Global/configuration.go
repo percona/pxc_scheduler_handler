@@ -2,7 +2,7 @@ package Global
 
 import (
 	"fmt"
-	toml "github.com/Tusamarco/toml"
+	"github.com/Tusamarco/toml"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
@@ -12,33 +12,36 @@ import (
 	"sync"
 	"syscall"
 	"time"
+	//"github.com/alexflint/go-arg"
 )
+
 //perfomance settings and structure
 var Performance bool
 
 var PerformanceMap *StatSyncMap //map[string][2]int64
 
-func SetPerformanceValue(key string, start bool){
-	valStat := [2]int64{0,0}
+func SetPerformanceValue(key string, start bool) {
+	valStat := [2]int64{0, 0}
 	if start {
 		valStat[0] = time.Now().UnixNano()
-	}else{
+	} else {
 		valStat = PerformanceMap.get(key)
-		valStat[1]= time.Now().UnixNano()
+		valStat[1] = time.Now().UnixNano()
 	}
-	PerformanceMap.Store(key,valStat) //  ExposeMap()[key] = valStat
+	PerformanceMap.Store(key, valStat) //  ExposeMap()[key] = valStat
 }
 
-func ReportPerformance(){
+func ReportPerformance() {
 	formatter := message.NewPrinter(language.English)
 
 	log.Info("======== Reporting execution times (nanosec/ms)by phase ============")
 	for key, wm := range PerformanceMap.internal {
-		value := formatter.Sprintf("%d",  wm[1] - wm[0])
-		log.Info("Phase: ", key, " = ", value," us ",strconv.FormatInt( (wm[1] - wm[0])/1000000, 10)," ms" )
+		value := formatter.Sprintf("%d", wm[1]-wm[0])
+		log.Info("Phase: ", key, " = ", value, " us ", strconv.FormatInt((wm[1]-wm[0])/1000000, 10), " ms")
 	}
 
 }
+
 //
 //type PerformanceObject struct {
 //	ExecutionPhase map[string][]int64
@@ -58,67 +61,112 @@ Configuration file has 3 main section:
 //Main structure working as container for the configuration sections
 // So far only 2 but this may increase like logs for instance
 type Configuration struct {
-	Proxysql proxySql `toml:"proxysql"`
-	Pxcluster pxcCluster `toml:"pxccluster"`
-	Global globalScheduler `toml:Global`
+	Proxysql  proxySql        `toml:"proxysql"`
+	Pxcluster pxcCluster      `toml:"pxccluster"`
+	Global    globalScheduler `toml:"Global"`
 }
 
 //Pxc configuration class
 type pxcCluster struct {
-	ActiveFailover int
-	FailBack	bool
-	CheckTimeOut int
-	ClusterId int
-	Debug int
-	Development bool
-	DevelopmentTime int32
-	Host string
-	LogDir string
-	LogLevel string
-	MainSegment int
-	MaxNumWriters int
-	OS string
-	Password              string
-	Port                  int
-	RetryDown             int
-	RetryUp               int
-	SinglePrimary         bool
-	SslClient             string
-	SslKey                string
-	SslCa                 string
-	SslCertificate_path   string
-	User                  string
-	WriterIsAlsoReader    int
-	HgW                  int
-	HgR                  int
-	BckHgW              int
-	BckHgR              int
-	SingleWriter         int
-	MaxWriters           int
-
-
+	ActiveFailover     int
+	FailBack           bool
+	CheckTimeOut       int
+	ClusterId          int
+	Debug              int
+	Development        bool
+	DevelopmentTime    int32
+	Host               string
+	LogDir             string
+	LogLevel           string
+	MainSegment        int
+	MaxNumWriters      int
+	OS                 string
+	Password           string
+	Port               int
+	RetryDown          int
+	RetryUp            int
+	SinglePrimary      bool
+	SslClient          string
+	SslKey             string
+	SslCa              string
+	SslcertificatePath string
+	User               string
+	WriterIsAlsoReader int
+	HgW                int
+	HgR                int
+	BckHgW             int
+	BckHgR             int
+	SingleWriter       int
+	MaxWriters         int
 }
 
 //ProxySQL configuration class
-type proxySql struct{
-	Host string
-	Password string
-	Port int
-	User string
-	Clustered bool
+type proxySql struct {
+	Host       string
+	Password   string
+	Port       int
+	User       string
+	Clustered  bool
 	Initialize bool
 }
 
 //Global scheduler conf
-type globalScheduler struct{
-Debug bool
-LogLevel string
-LogTarget string // #stdout | file
-LogFile string //"/tmp/pscheduler"
-Development bool
-DevInterval int
-Performance bool
+type globalScheduler struct {
+	Debug       bool
+	LogLevel    string
+	LogTarget   string // #stdout | file
+	LogFile     string //"/tmp/pscheduler"
+	Development bool
+	DevInterval int
+	Performance bool
+}
 
+
+var Args struct {
+	ConfigFile   string `arg:"required" arg:"--configFile" help:"Config file name"`
+	Confpath     string `arg:" --config-path" help:"Config path name. if omitted execution directory is used"`
+
+	//Global scheduler conf
+	Debug       bool
+	LogLevel    string
+	LogTarget   string // #stdout | file
+	LogFile     string //"/tmp/pscheduler"
+	Development bool
+	DevInterval int
+	Performance bool
+
+	//type pxcCluster struct {
+	ActiveFailover     int
+	FailBack           bool
+	CheckTimeOut       int
+	ClusterId          int
+	DevelopmentTime    int32
+	LogDir             string
+	MainSegment        int
+	MaxNumWriters      int
+	RetryDown          int
+	RetryUp            int
+	SinglePrimary      bool
+	SslClient          string
+	SslKey             string
+	SslCa              string
+	SslcertificatePath string
+	WriterIsAlsoReader int
+	HgW                int
+	HgR                int
+	BckHgW             int
+	BckHgR             int
+	SingleWriter       int
+	MaxWriters         int
+
+
+	//ProxySQL configuration class
+	//type proxySql struct {
+	Host       string
+	Password   string
+	Port       int
+	User       string
+	Clustered  bool
 }
 
 
@@ -132,9 +180,9 @@ func GetConfig(path string) Configuration {
 	return config
 }
 
-func (conf *Configuration) SanityCheck(){
+func (conf *Configuration) SanityCheck() {
 	if conf.Pxcluster.MaxNumWriters > 1 &&
-		conf.Pxcluster.SinglePrimary{
+		conf.Pxcluster.SinglePrimary {
 		log.Error("Configuration error cannot have SinglePrimary true and MaxNumWriter >1")
 
 		os.Exit(1)
@@ -148,14 +196,13 @@ func (conf *Configuration) SanityCheck(){
 	}
 }
 
-
 //initialize the log
 func InitLog(config Configuration) {
-    //var ilog = logrus.New()
-	if( strings.ToLower(config.Global.LogTarget) == "stdout") {
+	//var ilog = logrus.New()
+	if strings.ToLower(config.Global.LogTarget) == "stdout" {
 		log.SetOutput(os.Stdout)
-	}else if (strings.ToLower(config.Global.LogTarget) == "file" &&
-	 		  config.Global.LogFile != ""){
+	} else if strings.ToLower(config.Global.LogTarget) == "file" &&
+		config.Global.LogFile != "" {
 		//try to initialize the log on file if it fails it will redirect to stdout
 		file, err := os.OpenFile(config.Global.LogFile, os.O_APPEND|os.O_WRONLY, 0666)
 		if err == nil {
@@ -165,7 +212,7 @@ func InitLog(config Configuration) {
 		}
 	}
 
-    //set log severity level
+	//set log severity level
 	switch level := strings.ToLower(config.Global.LogLevel); level {
 	case "debug":
 		log.SetLevel(log.DebugLevel)
@@ -178,7 +225,6 @@ func InitLog(config Configuration) {
 	default:
 		log.SetLevel(log.ErrorLevel)
 	}
-
 
 	//log.SetFormatter(&log.JSONFormatter{}) <-- future for Kafaka
 	if log.GetLevel() == log.DebugLevel {
@@ -236,6 +282,6 @@ func (rm *StatSyncMap) Store(key string, value [2]int64) {
 
 }
 
-func (rm *StatSyncMap) ExposeMap() map[string][2]int64{
+func (rm *StatSyncMap) ExposeMap() map[string][2]int64 {
 	return rm.internal
 }

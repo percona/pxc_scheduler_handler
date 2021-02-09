@@ -1,0 +1,30 @@
+# We do not save it to disk, to not affect ProxySQL configuration.
+# Not persisting the configuration is OK for testing purposes.
+# Once we restart ProxySQL, we are in initial state.
+
+--echo #
+--echo # Applying ProxySQL configuration
+--echo #
+
+--disable_query_log
+LOAD MYSQL SERVERS TO RUNTIME;
+SAVE MYSQL SERVERS FROM RUNTIME;
+
+LOAD MYSQL USERS TO RUNTIME;
+SAVE MYSQL USERS FROM RUNTIME;
+
+LOAD ADMIN VARIABLES TO RUNTIME;
+SAVE ADMIN VARIABLES FROM RUNTIME;
+
+LOAD MYSQL VARIABLES TO RUNTIME;
+SAVE MYSQL VARIABLES FROM RUNTIME;
+
+LOAD PROXYSQL SERVERS TO RUNTIME;
+SAVE PROXYSQL SERVERS FROM RUNTIME;
+
+LOAD MYSQL QUERY RULES TO RUNTIME;
+SAVE MYSQL QUERY RULES FROM RUNTIME;
+
+LOAD SCHEDULER TO RUNTIME;
+SAVE SCHEDULER FROM RUNTIME;
+--enable_query_log

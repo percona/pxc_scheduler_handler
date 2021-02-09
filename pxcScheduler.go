@@ -1,24 +1,24 @@
 package main
 
 import (
-	DO "./lib/DataObjects"
-	Global "./lib/Global"
 	"bufio"
 	"fmt"
-	"github.com/alexflint/go-arg"
-	_ "github.com/go-sql-driver/mysql"
-	log "github.com/sirupsen/logrus"
 	"os"
 	"strconv"
 	"time"
-)
 
+	DO "./lib/DataObjects"
+	Global "./lib/Global"
+	"github.com/alexflint/go-arg"
+	_ "github.com/go-sql-driver/mysql"
+	log "github.com/sirupsen/logrus"
+)
 
 /*
 Main function must contains only initial parameter, log system init and main object init
- */
+*/
 func main() {
-//global setup of basic parameters
+	//global setup of basic parameters
 	const (
 		Separator = string(os.PathSeparator)
 	)
@@ -29,48 +29,43 @@ func main() {
 	var configFile string
 
 	// By default performance collection is disabled
-    Global.Performance = false
+	Global.Performance = false
 
-    //process command line args
-    arg.MustParse(&Global.Args)
+	//process command line args
+	arg.MustParse(&Global.Args)
 	args := Global.Args
-    //fmt.Print(args.ConfigFile)
+	//fmt.Print(args.ConfigFile)
 
-
-
-    //check for current params
-	if len(os.Args) < 2  || args.ConfigFile == ""{
+	//check for current params
+	if len(os.Args) < 2 || args.ConfigFile == "" {
 		fmt.Println("You must at least pass the --configfile=xxx parameter ")
 		os.Exit(1)
 	}
 
-
-
 	//read config and return a config object
 	configFile = args.ConfigFile
-	var currPath, err = os.Getwd()
-	var config = Global.GetConfig(currPath + Separator + "config" + Separator + configFile)
+	var config = Global.GetConfig(configFile)
 
 	//Let us do a sanity check on the configuration to prevent most obvious issues
 	config.SanityCheck()
 
-    // Set lock file
-    lockId = strconv.Itoa(config.Pxcluster.ClusterId) +
-    		"_HG_" + strconv.Itoa(config.Pxcluster.HgW) +
-    		"_W_HG_" + strconv.Itoa(config.Pxcluster.HgR) +
-    	    "_R"
+	// Set lock file
+	lockId = strconv.Itoa(config.Pxcluster.ClusterId) +
+		"_HG_" + strconv.Itoa(config.Pxcluster.HgW) +
+		"_W_HG_" + strconv.Itoa(config.Pxcluster.HgR) +
+		"_R"
 
-   if !config.Global.Development {
-	   if !setLockFile(lockId) {
-		   fmt.Print("Cannot create a lock, exit")
-		   os.Exit(1)
-	   }
-   }else{
-   		devLoop = 2
-   		devLoopWait = config.Global.DevInterval
-   }
+	if !config.Global.Development {
+		if !setLockFile(lockId) {
+			fmt.Print("Cannot create a lock, exit")
+			os.Exit(1)
+		}
+	} else {
+		devLoop = 2
+		devLoopWait = config.Global.DevInterval
+	}
 
-	for i:=0; i <= devLoop; {
+	for i := 0; i <= devLoop; {
 
 		//initialize the log system
 		Global.InitLog(config)
@@ -89,10 +84,6 @@ func main() {
 		proxysqlCluster := new(DO.ProxySQLCluster)
 		proxysqlNode := new(DO.ProxySQLNode)
 
-		if err != nil {
-			panic(err.Error())
-			os.Exit(1)
-		}
 		/*
 			TODO the check against a cluster require a PRE-phase to align the nodes and an AFTER to be sure nodes settings are distributed.
 			Not yet implemented
@@ -158,9 +149,9 @@ func main() {
 			Global.ReportPerformance()
 		}
 
-		if config.Global.Development{
+		if config.Global.Development {
 			time.Sleep(time.Duration(devLoopWait) * time.Millisecond)
-		}else{
+		} else {
 			i++
 		}
 		log.Info("")
@@ -171,17 +162,17 @@ func main() {
 
 }
 
-func setLockFile(lockId string) bool{
+func setLockFile(lockId string) bool {
 
-	if _, err := os.Stat("/tmp/" +lockId); err == nil {
-		fmt.Printf("A lock file named: /tmp/%s  already exists.\n If this is a refuse of a dirty execution remove it manually to have the check able to run\n",lockId);
-		return false;
+	if _, err := os.Stat("/tmp/" + lockId); err == nil {
+		fmt.Printf("A lock file named: /tmp/%s  already exists.\n If this is a refuse of a dirty execution remove it manually to have the check able to run\n", lockId)
+		return false
 	} else {
-		sampledata := []string{ "PID:" + strconv.Itoa(os.Getpid()),
-			"Time:" +  strconv.FormatInt(time.Now().Unix(),10),
+		sampledata := []string{"PID:" + strconv.Itoa(os.Getpid()),
+			"Time:" + strconv.FormatInt(time.Now().Unix(), 10),
 		}
 
-		file, err := os.OpenFile("/tmp/" +lockId, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		file, err := os.OpenFile("/tmp/"+lockId, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 
 		if err != nil {
 			fmt.Printf("failed creating lock file: %s", err)
@@ -197,15 +188,13 @@ func setLockFile(lockId string) bool{
 		file.Close()
 	}
 
-
 	return true
 }
 
-func removeLockFile(lockId string) bool{
+func removeLockFile(lockId string) bool {
 	e := os.Remove("/tmp/" + lockId)
 	if e != nil {
 		log.Fatalf("Cannot remove lock file %s", e)
 	}
 	return true
 }
-

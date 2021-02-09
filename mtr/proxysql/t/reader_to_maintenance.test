@@ -1,0 +1,15 @@
+# ProxySQL:
+#   scheduler: active_failover=1 retry_down=2 writer_is_also_reader=0
+#
+# Scenario:
+# 1. node_2: set pxc_maint_mode=MAINTENANCE
+#     => node_2 state changes to SOFT_OFFLINE in ProxySQL
+# 2. node_2: set pxc_maint_mode=DISABLED
+#     => node_2 state changes to ONLINE. Node still in readers
+
+--let $proxysql_scheduler_config = reader_to_maintenance.toml
+--let $action_1_node = node_2
+--let $action_1 = SET global pxc_maint_mode=MAINTENANCE;
+--let $action_2_node = node_2
+--let $action_2 = SET global pxc_maint_mode=DISABLED;
+--source 1w2r2bw_2actions.inc

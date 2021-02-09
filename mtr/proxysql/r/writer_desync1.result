@@ -34,7 +34,7 @@ INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,com
 INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',101,13012,10000,1000,'READ');
 INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',8100,13006,1000,1000,'Backup writer 1');
 INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',8100,13012,10000,999,'Backup writer 2');
-INSERT INTO scheduler (id,active,interval_ms,filename,arg1) values (10,1,3000,"SCHEDULER_SCRIPT","config-file=CONFIG_DIR/writer_desync1.toml");
+INSERT INTO scheduler (id,active,interval_ms,filename,arg1) values (10,1,3000,"SCHEDULER_SCRIPT","--configfile=CONFIG_DIR/writer_desync1.toml");
 #
 # Applying ProxySQL configuration
 #
@@ -48,7 +48,6 @@ INSERT INTO t1 VALUES (11), (12), (13);
 SELECT * FROM runtime_mysql_servers ORDER BY hostgroup_id, port;;
 hostgroup_id	hostname	port	gtid_port	status	weight	compression	max_connections	max_replication_lag	use_ssl	max_latency_ms	comment
 100	127.0.0.1	13000	0	ONLINE	10000	0	1000	0	0	0	WRITE
-101	127.0.0.1	13000	0	OFFLINE_SOFT	100	0	1000	0	0	0	READ/WRITE100_W_101_R_retry_up=0;100_W_101_R_retry_down=0;
 101	127.0.0.1	13006	0	ONLINE	10000	0	1000	0	0	0	READ
 101	127.0.0.1	13012	0	ONLINE	10000	0	1000	0	0	0	READ
 8100	127.0.0.1	13006	0	ONLINE	1000	0	1000	0	0	0	Backup writer 1

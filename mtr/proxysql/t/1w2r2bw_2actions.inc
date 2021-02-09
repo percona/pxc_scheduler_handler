@@ -59,7 +59,7 @@
 # --eval INSERT INTO scheduler (id,active,interval_ms,filename,arg1) values (10,1,3000,"$proxysql_scheduler_script","-u=admin -p=admin -h=127.0.0.1 -H=$wHG:W,$rHG:R -P=6032 --debug=1 --active_failover=1 --retry_down=2 --writer_is_also_reader=0 --log=$MYSQL_TMP_DIR/galera_check-perl.log")
 # The following line works with Golang
 --replace_result $proxysql_scheduler_script SCHEDULER_SCRIPT $proxysql_scheduler_config_dir CONFIG_DIR
---eval INSERT INTO scheduler (id,active,interval_ms,filename,arg1) values (10,1,3000,"$proxysql_scheduler_script","config-file=$proxysql_scheduler_config_dir/$proxysql_scheduler_config")
+--eval INSERT INTO scheduler (id,active,interval_ms,filename,arg1) values (10,1,3000,"$proxysql_scheduler_script","--configfile=$proxysql_scheduler_config_dir/$proxysql_scheduler_config")
 
 --source ../include/apply_proxysql_config.inc
 

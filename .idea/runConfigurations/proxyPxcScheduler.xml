@@ -1,0 +1,11 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="proxyPxcScheduler" type="GoApplicationRunConfiguration" factoryName="Go Application">
+    <module name="pxc_scheduler" />
+    <working_directory value="$PROJECT_DIR$" />
+    <parameters value="config-file=config.toml" />
+    <kind value="DIRECTORY" />
+    <filePath value="$PROJECT_DIR$/proxy_scheduler.go|$PROJECT_DIR$/proxyPxcScheduler.go|$PROJECT_DIR$/proxyPxcScheduler.go" />
+    <directory value="$PROJECT_DIR$" />
+    <method v="2" />
+  </configuration>
+</component>

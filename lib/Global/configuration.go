@@ -7,9 +7,9 @@ import (
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
 	"os"
+	"reflect"
 	"strconv"
 	"strings"
-	"sync"
 	"syscall"
 	"time"
 	//"github.com/alexflint/go-arg"
@@ -124,7 +124,7 @@ type globalScheduler struct {
 
 var Args struct {
 	ConfigFile   string `arg:"required" arg:"--configFile" help:"Config file name"`
-	Confpath     string `arg:" --config-path" help:"Config path name. if omitted execution directory is used"`
+	Configpath     string `arg:" --configpath" help:"Config path name. if omitted execution directory is used"`
 
 	//Global scheduler conf
 	Debug       bool
@@ -238,50 +238,34 @@ func InitLog(config Configuration) {
 
 }
 
-/* =====================
-STATS
-*/
-
-type StatSyncMap struct {
-	sync.RWMutex
-	internal map[string][2]int64
-}
-
-func NewRegularIntMap() *StatSyncMap {
-	return &StatSyncMap{
-		internal: make(map[string][2]int64),
+func (config *Configuration) AlignWithArgs(osArgs []string){
+	iargs := len(osArgs) -1
+	localArgs := make([]string, iargs,100)
+	iargs = 0
+	for i := 1; i < len(osArgs);i++{
+		temp := strings.ReplaceAll(osArgs[i],"--","")
+		localArgs[iargs] = temp
+		iargs++
 	}
-}
 
-func (rm *StatSyncMap) Load(key string) (value [2]int64, ok bool) {
-	rm.RLock()
-	defer rm.RUnlock()
-	result, ok := rm.internal[key]
+	refArgs   := reflect.ValueOf(Args)
+	refGlobal := reflect.ValueOf(config.Global)
+	//refProxy := reflect.ValueOf(&config.Proxysql)
+	//refPxc := reflect.ValueOf(&config.Pxcluster)
 
-	return result, ok
-}
+	typeOfG := refGlobal.Type()
 
-func (rm *StatSyncMap) Delete(key string) {
-	rm.Lock()
-	defer rm.Unlock()
-	delete(rm.internal, key)
+	fmt.Print(typeOfG.Field(1).Name)
 
-}
+	//iArgs := refArgs.NumField()
+	iG := refGlobal.NumField()
 
-func (rm *StatSyncMap) get(key string) [2]int64 {
-	rm.Lock()
-	defer rm.Unlock()
-	return rm.internal[key]
 
-}
+	for i := 0; i < iG; i++{
+		fieldName := typeOfG.Field(i).Name
+		value := refArgs.FieldByName(fieldName)
+		fmt.Print(fieldName , " = ",value,"\n")
+	}
 
-func (rm *StatSyncMap) Store(key string, value [2]int64) {
-	rm.Lock()
-	defer rm.Unlock()
-	rm.internal[key] = value
 
-}
-
-func (rm *StatSyncMap) ExposeMap() map[string][2]int64 {
-	return rm.internal
 }

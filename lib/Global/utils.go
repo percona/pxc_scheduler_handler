@@ -100,3 +100,53 @@ func Bool2int(b bool) int {
 	}
 	return 0
 }
+
+
+//----------------------
+/* =====================
+STATS
+*/
+
+type StatSyncMap struct {
+	sync.RWMutex
+	internal map[string][2]int64
+}
+
+func NewRegularIntMap() *StatSyncMap {
+	return &StatSyncMap{
+		internal: make(map[string][2]int64),
+	}
+}
+
+func (rm *StatSyncMap) Load(key string) (value [2]int64, ok bool) {
+	rm.RLock()
+	defer rm.RUnlock()
+	result, ok := rm.internal[key]
+
+	return result, ok
+}
+
+func (rm *StatSyncMap) Delete(key string) {
+	rm.Lock()
+	defer rm.Unlock()
+	delete(rm.internal, key)
+
+}
+
+func (rm *StatSyncMap) get(key string) [2]int64 {
+	rm.Lock()
+	defer rm.Unlock()
+	return rm.internal[key]
+
+}
+
+func (rm *StatSyncMap) Store(key string, value [2]int64) {
+	rm.Lock()
+	defer rm.Unlock()
+	rm.internal[key] = value
+
+}
+
+func (rm *StatSyncMap) ExposeMap() map[string][2]int64 {
+	return rm.internal
+}

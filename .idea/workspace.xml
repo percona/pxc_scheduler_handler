@@ -10,14 +10,9 @@
     <list default="true" id="c603b4de-b46a-45fd-bef4-8d20deb405fc" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/runConfigurations/proxyPxcScheduler.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/runConfigurations/proxyPxcScheduler.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/config.toml" beforeDir="false" afterPath="$PROJECT_DIR$/config/config.toml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/DataObjects/dataObjects.go" beforeDir="false" afterPath="$PROJECT_DIR$/lib/DataObjects/dataObjects.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/DataObjects/proxySQLObjects.go" beforeDir="false" afterPath="$PROJECT_DIR$/lib/DataObjects/proxySQLObjects.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/DataObjects/pxcObjects.go" beforeDir="false" afterPath="$PROJECT_DIR$/lib/DataObjects/pxcObjects.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/lib/Global/configuration.go" beforeDir="false" afterPath="$PROJECT_DIR$/lib/Global/configuration.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/lib/Global/utils.go" beforeDir="false" afterPath="$PROJECT_DIR$/lib/Global/utils.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/Sql/Proxy/sqlobjects.go" beforeDir="false" afterPath="$PROJECT_DIR$/lib/Sql/Proxy/sqlobjects.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/proxyPxcScheduler.go" beforeDir="false" afterPath="$PROJECT_DIR$/proxyPxcScheduler.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pxcScheduler.go" beforeDir="false" afterPath="$PROJECT_DIR$/pxcScheduler.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/.travis.yml" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/.travis.yml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/COMPATIBLE" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/COMPATIBLE" afterDir="false" />
@@ -360,7 +355,7 @@
     <breakpoint-manager>
       <breakpoints>
         <line-breakpoint type="DlvLineBreakpoint">
-          <url>file://$PROJECT_DIR$/proxyPxcScheduler.go</url>
+          <url>file://$PROJECT_DIR$/pxcScheduler.go</url>
           <line>2</line>
           <option name="timeStamp" value="9" />
         </line-breakpoint>
@@ -370,9 +365,19 @@
           <option name="timeStamp" value="122" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="DlvLineBreakpoint">
-          <url>file://$PROJECT_DIR$/proxyPxcScheduler.go</url>
-          <line>34</line>
-          <option name="timeStamp" value="123" />
+          <url>file://$PROJECT_DIR$/lib/Global/configuration.go</url>
+          <line>249</line>
+          <option name="timeStamp" value="126" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$PROJECT_DIR$/pxcScheduler.go</url>
+          <line>41</line>
+          <option name="timeStamp" value="127" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$PROJECT_DIR$/lib/Global/configuration.go</url>
+          <line>244</line>
+          <option name="timeStamp" value="128" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

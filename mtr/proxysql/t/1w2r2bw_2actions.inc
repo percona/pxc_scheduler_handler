@@ -1,19 +1,14 @@
-# Setup:
-# 1. 3 node PXC cluster + ProxySQL
-# 2. PXC:
-#     node_1 : writer/reader
-#     node_2 : reader/backup writer with weight 1000
-#     node_3 : reader/backup writer with weight 999
-# 3. ProxySQL:
-#     scheduler: active_failover=1 retry_down=2 writer_is_also_reader=0
-#
-# Scenario:
-# 1. node_1: set pxc_maint_mode=MAINTENANCE
-#     => node_1 state changes to SOFT_OFFLINE in ProxySQL
-#     => node_3 promoted to writer, removed from readers
-# 2. node_1: set pxc_maint_mode=DISABLED
-#     => node_1 state changes to ONLINE. Node moved to readers
-#     => node_3 still writer
+# This is common scenario for 1 writer, 2 reades, 2 backup writers
+# 1. Setup 3 node PXC cluster
+# 2. Setup ProxySQL 
+#  node_1: writer
+#  node_2: reader/backup writer weight 1000
+#  node_3: reader/backup writer weight 999
+# 3. Setup ProxySQL scheduler with config passed in $proxysql_scheduler_config
+# 4. Connect to $action_1_node and perform $action_1
+# 5. Validate ProxySQL configuration
+# 6. Connect to $action_2_node and perform $action_2
+# 7. Validate ProxySQL configuration
 
 
 --source include/galera_cluster_3nodes.inc
@@ -24,7 +19,9 @@
 --connection node_1
 --source ../include/common_pxc_init.inc
 
-show variables like 'wsrep_provider_options';
+# Check if ProxySQL scheduler config exists
+--file_exists $proxysql_scheduler_config_dir/$proxysql_scheduler_config
+
 #
 # ARRANGE
 #
@@ -62,7 +59,7 @@ show variables like 'wsrep_provider_options';
 # --eval INSERT INTO scheduler (id,active,interval_ms,filename,arg1) values (10,1,3000,"$proxysql_scheduler_script","-u=admin -p=admin -h=127.0.0.1 -H=$wHG:W,$rHG:R -P=6032 --debug=1 --active_failover=1 --retry_down=2 --writer_is_also_reader=0 --log=$MYSQL_TMP_DIR/galera_check-perl.log")
 # The following line works with Golang
 --replace_result $proxysql_scheduler_script SCHEDULER_SCRIPT $proxysql_scheduler_config_dir CONFIG_DIR
---eval INSERT INTO scheduler (id,active,interval_ms,filename,arg1) values (10,1,3000,"$proxysql_scheduler_script","config-file=$proxysql_scheduler_config_dir/writer_to_maintenance.toml")
+--eval INSERT INTO scheduler (id,active,interval_ms,filename,arg1) values (10,1,3000,"$proxysql_scheduler_script","config-file=$proxysql_scheduler_config_dir/$proxysql_scheduler_config")
 
 --source ../include/apply_proxysql_config.inc
 
@@ -76,9 +73,11 @@ show variables like 'wsrep_provider_options';
 CREATE TABLE t1 (a int primary key);
 INSERT INTO t1 VALUES (1), (2), (3);
 
-# Put node_1 (current writer) into the maintenance
---connection node_1
-SET global pxc_maint_mode=MAINTENANCE;
+--echo #
+--echo # $action_1_node $action_1
+--echo #
+--connection $action_1_node
+--eval $action_1
 
 # now let ProxySQL scheduler detect this change and do its job
 --sleep 10
@@ -87,7 +86,6 @@ SET global pxc_maint_mode=MAINTENANCE;
 --disconnect conn_app_test
 --connect(conn_app_test, 127.0.0.1, app_test, test, , 6033)
 --connection conn_app_test
-# writes should go to the new writer (promoted Backup writer 1)
 INSERT INTO t1 VALUES (11), (12), (13);
 
 
@@ -96,23 +94,22 @@ INSERT INTO t1 VALUES (11), (12), (13);
 #
 
 --connection proxysql_admin
-# it is OFFLINE_SOFT
--- echo node_1 ($NODE_MYPORT_1) -> maintenance, node_3 ($NODE_MYPORT_3) -> writer
---eval SELECT * FROM runtime_mysql_servers WHERE port=$NODE_MYPORT_1 ORDER BY hostgroup_id
---eval SELECT * FROM runtime_mysql_servers WHERE port=$NODE_MYPORT_3 ORDER BY hostgroup_id
+--eval SELECT * FROM runtime_mysql_servers ORDER BY hostgroup_id, port;
 
 --connection conn_app_test
-# verify that writes reached the backend (promoted Backup writer 1)
-SELECT * FROM t1 ORDER BY a ASC;
+# verify that writes reached the backend
+SELECT COUNT(*) FROM t1;
 
 
 #
 # ACT 2
 #
 
-# Put node_1 back from maintenance
---connection node_1
-SET global pxc_maint_mode=DISABLED;
+--echo #
+--echo # $action_2_node $action_2
+--echo #
+--connection $action_2_node
+--eval $action_2
 
 # now let ProxySQL scheduler detect this change and do its job
 --sleep 10
@@ -121,7 +118,6 @@ SET global pxc_maint_mode=DISABLED;
 --disconnect conn_app_test
 --connect(conn_app_test, 127.0.0.1, app_test, test, , 6033)
 --connection conn_app_test
-# writes should go to the new writer (promoted Backup writer 1)
 INSERT INTO t1 VALUES (21), (22), (23);
 
 #
@@ -129,15 +125,12 @@ INSERT INTO t1 VALUES (21), (22), (23);
 #
 
 --connection proxysql_admin
--- echo node_1 (NODE_MYPORT_1) -> back from maintenance to reader, node_3 (NODE_MYPORT_3) -> still writer
---eval SELECT * FROM runtime_mysql_servers WHERE port=$NODE_MYPORT_1 ORDER BY hostgroup_id;
-# it is still writer and backup writer and still reader
---eval SELECT * FROM runtime_mysql_servers WHERE port=$NODE_MYPORT_3 ORDER BY hostgroup_id;
+--eval SELECT * FROM runtime_mysql_servers ORDER BY hostgroup_id, port;
 
 
 --connection conn_app_test
 # verify that writes reached the backend (promoted Backup writer 1)
-SELECT * FROM t1 ORDER BY a ASC;
+SELECT COUNT(*) FROM t1;
 
 #
 # CLEANUP

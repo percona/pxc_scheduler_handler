@@ -22,9 +22,6 @@ CREATE USER 'monitor'@'%' IDENTIFIED BY 'monitor';
 GRANT ALL ON *.* TO 'monitor'@'%';
 CREATE USER 'app_test'@'%' IDENTIFIED WITH 'mysql_native_password' BY 'test';
 GRANT ALL ON *.* TO 'app_test'@'%';
-show variables like 'wsrep_provider_options';
-Variable_name	Value
-wsrep_provider_options	base_dir = /home/kamil/repo/pxc/8.0/bld/mysql-test/var/mysqld.1/data/; base_host = 127.0.0.1; base_port = 13001; cert.log_conflicts = no; cert.optimistic_pa = no; dbug = ; debug = no; evs.auto_evict = 0; evs.causal_keepalive_period = PT1S; evs.debug_log_mask = 0x1; evs.delay_margin = PT1S; evs.delayed_keep_period = PT30S; evs.inactive_check_period = PT0.5S; evs.inactive_timeout = PT30S; evs.info_log_mask = 0; evs.install_timeout = PT25S; evs.join_retrans_period = PT1S; evs.keepalive_period = PT1S; evs.max_install_timeouts = 3; evs.send_window = 10; evs.stats_report_period = PT1M; evs.suspect_timeout = PT20S; evs.use_aggregate = true; evs.user_send_window = 4; evs.version = 1; evs.view_forget_timeout = P1D; gcache.debug = 0; gcache.dir = /home/kamil/repo/pxc/8.0/bld/mysql-test/var/mysqld.1/data/; gcache.freeze_purge_at_seqno = -1; gcache.keep_pages_count = 0; gcache.keep_pages_size = 0; gcache.mem_size = 0; gcache.name = galera.cache; gcache.page_size = 128M; gcache.recover = yes; gcache.size = 128M; gcomm.thr
 INSERT INTO MYSQL_USERS (username,password,active,default_hostgroup,default_schema,transaction_persistent,comment) VALUES ('app_test','test',1,100,'mysql',1,'application test user DC1');
 INSERT INTO mysql_query_rules (rule_id,proxy_port,username,destination_hostgroup,active,retries,match_digest,apply) VALUES(1040,6033,'app_test',100,1,3,'^SELECT.*FOR UPDATE',1);
 INSERT INTO mysql_query_rules (rule_id,proxy_port,username,destination_hostgroup,active,retries,match_digest,apply) VALUES(1042,6033,'app_test',101,1,3,'^SELECT.*$',1);
@@ -37,53 +34,46 @@ INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,com
 INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',101,13012,10000,1000,'READ');
 INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',8100,13006,1000,1000,'Backup writer 1');
 INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',8100,13012,10000,999,'Backup writer 2');
-INSERT INTO scheduler (id,active,interval_ms,filename,arg1) values (10,1,3000,"SCHEDULER_SCRIPT","config-file=CONFIG_DIR/writer_to_maintenance.toml");
+INSERT INTO scheduler (id,active,interval_ms,filename,arg1) values (10,1,3000,"SCHEDULER_SCRIPT","config-file=CONFIG_DIR/writer_to_maintenance2.toml");
 #
 # Applying ProxySQL configuration
 #
 CREATE TABLE t1 (a int primary key);
 INSERT INTO t1 VALUES (1), (2), (3);
-SET global pxc_maint_mode=MAINTENANCE;
+#
+# node_1 SET global pxc_maint_mode=MAINTENANCE;
+#
+SET global pxc_maint_mode=MAINTENANCE;;
 INSERT INTO t1 VALUES (11), (12), (13);
-node_1 (13000) -> maintenance, node_3 (13012) -> writer
-SELECT * FROM runtime_mysql_servers WHERE port=13000 ORDER BY hostgroup_id;
+SELECT * FROM runtime_mysql_servers ORDER BY hostgroup_id, port;;
 hostgroup_id	hostname	port	gtid_port	status	weight	compression	max_connections	max_replication_lag	use_ssl	max_latency_ms	comment
 100	127.0.0.1	13000	0	OFFLINE_SOFT	10000	0	1000	0	0	0	WRITE
+100	127.0.0.1	13012	0	ONLINE	10000	0	999	0	0	0	Backup writer 2
 101	127.0.0.1	13000	0	OFFLINE_SOFT	100	0	1000	0	0	0	READ/WRITE
-SELECT * FROM runtime_mysql_servers WHERE port=13012 ORDER BY hostgroup_id;
-hostgroup_id	hostname	port	gtid_port	status	weight	compression	max_connections	max_replication_lag	use_ssl	max_latency_ms	comment
-100	127.0.0.1	13012	0	ONLINE	10000	0	999	0	0	0	Backup writer 2
+101	127.0.0.1	13006	0	ONLINE	10000	0	1000	0	0	0	READ
+101	127.0.0.1	13012	0	ONLINE	10000	0	1000	0	0	0	READ
+8100	127.0.0.1	13006	0	ONLINE	1000	0	1000	0	0	0	Backup writer 1
 8100	127.0.0.1	13012	0	ONLINE	10000	0	999	0	0	0	Backup writer 2
-SELECT * FROM t1 ORDER BY a ASC;
-a
-1
-2
-3
-11
-12
-13
-SET global pxc_maint_mode=DISABLED;
+SELECT COUNT(*) FROM t1;
+COUNT(*)
+6
+#
+# node_1 SET global pxc_maint_mode=DISABLED;
+#
+SET global pxc_maint_mode=DISABLED;;
 INSERT INTO t1 VALUES (21), (22), (23);
-node_1 (NODE_MYPORT_1) -> back from maintenance to reader, node_3 (NODE_MYPORT_3) -> still writer
-SELECT * FROM runtime_mysql_servers WHERE port=13000 ORDER BY hostgroup_id;;
+SELECT * FROM runtime_mysql_servers ORDER BY hostgroup_id, port;;
 hostgroup_id	hostname	port	gtid_port	status	weight	compression	max_connections	max_replication_lag	use_ssl	max_latency_ms	comment
 100	127.0.0.1	13000	0	OFFLINE_SOFT	10000	0	1000	0	0	0	WRITE
-101	127.0.0.1	13000	0	ONLINE	100	0	1000	0	0	0	READ/WRITE
-SELECT * FROM runtime_mysql_servers WHERE port=13012 ORDER BY hostgroup_id;;
-hostgroup_id	hostname	port	gtid_port	status	weight	compression	max_connections	max_replication_lag	use_ssl	max_latency_ms	comment
 100	127.0.0.1	13012	0	ONLINE	10000	0	999	0	0	0	Backup writer 2
+101	127.0.0.1	13000	0	ONLINE	100	0	1000	0	0	0	READ/WRITE
+101	127.0.0.1	13006	0	ONLINE	10000	0	1000	0	0	0	READ
+101	127.0.0.1	13012	0	ONLINE	10000	0	1000	0	0	0	READ
+8100	127.0.0.1	13006	0	ONLINE	1000	0	1000	0	0	0	Backup writer 1
 8100	127.0.0.1	13012	0	ONLINE	10000	0	999	0	0	0	Backup writer 2
-SELECT * FROM t1 ORDER BY a ASC;
-a
-1
-2
-3
-11
-12
-13
-21
-22
-23
+SELECT COUNT(*) FROM t1;
+COUNT(*)
+9
 #
 # Loading default ProxySQL configuration
 #

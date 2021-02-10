@@ -42,17 +42,31 @@ func main() {
 		os.Exit(1)
 	}
 
-	osArgs := os.Args
+
 
 	//read config and return a config object
 	configFile = args.ConfigFile
+
 	var currPath, err = os.Getwd()
+
+	if Global.Args.Configpath != "" {
+		if Global.Args.Configpath[len(Global.Args.Configpath) -1:] == Separator{
+			currPath = Global.Args.Configpath
+		}else{
+			currPath = Global.Args.Configpath + Separator
+		}
+	} else{
+		currPath = currPath + Separator + "config" + Separator
+	}
+
 	if err != nil{
 		fmt.Print("Problem loading the config")
 		os.Exit(1)
 	}
-	var config = Global.GetConfig(currPath + Separator + "config" + Separator + configFile)
-	config.AlignWithArgs(osArgs)
+	var config = Global.GetConfig(currPath + configFile)
+
+	//osArgs := os.Args
+	// ignore for now WIP config.AlignWithArgs(osArgs)
 
 
 	//Let us do a sanity check on the configuration to prevent most obvious issues

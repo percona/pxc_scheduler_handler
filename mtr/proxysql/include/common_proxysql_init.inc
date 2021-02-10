@@ -4,8 +4,9 @@
 if ($mysql_errno) {
   --die "Cannot connect to ProxySQL"
 }
+--enable_query_log
 --source ../include/clean_proxysql_config.inc
-
+--disable_query_log
 --connection proxysql_admin
 UPDATE global_variables SET Variable_Value='8.0.22' WHERE Variable_name='mysql-server_version';
 UPDATE global_variables SET Variable_Value='utf8' WHERE Variable_name='mysql-default_charset';

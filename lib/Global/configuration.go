@@ -2,16 +2,17 @@ package Global
 
 import (
 	"fmt"
-	"github.com/Tusamarco/toml"
-	log "github.com/sirupsen/logrus"
-	"golang.org/x/text/language"
-	"golang.org/x/text/message"
 	"os"
 	"reflect"
 	"strconv"
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/Tusamarco/toml"
+	log "github.com/sirupsen/logrus"
+	"golang.org/x/text/language"
+	"golang.org/x/text/message"
 	//"github.com/alexflint/go-arg"
 )
 
@@ -160,10 +161,9 @@ type globalScheduler struct {
 	Performance bool
 }
 
-
 var Args struct {
-	ConfigFile   string `arg:"required" arg:"--configFile" help:"Config file name"`
-	Configpath     string `arg:" --configpath" help:"Config path name. if omitted execution directory is used"`
+	ConfigFile string `arg:"required" arg:"--configFile" help:"Config file name"`
+	Configpath string `arg:" --configpath" help:"Config path name. if omitted execution directory is used"`
 
 	//Global scheduler conf
 	Debug       bool
@@ -198,16 +198,14 @@ var Args struct {
 	SingleWriter       int
 	MaxWriters         int
 
-
 	//ProxySQL configuration class
 	//type proxySql struct {
-	Host       string
-	Password   string
-	Port       int
-	User       string
-	Clustered  bool
+	Host      string
+	Password  string
+	Port      int
+	User      string
+	Clustered bool
 }
-
 
 //Methods to return the config as map
 func GetConfig(path string) Configuration {
@@ -243,7 +241,7 @@ func InitLog(config Configuration) {
 	} else if strings.ToLower(config.Global.LogTarget) == "file" &&
 		config.Global.LogFile != "" {
 		//try to initialize the log on file if it fails it will redirect to stdout
-		file, err := os.OpenFile(config.Global.LogFile, os.O_APPEND|os.O_WRONLY, 0666)
+		file, err := os.OpenFile(config.Global.LogFile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0666)
 		if err == nil {
 			log.SetOutput(file)
 		} else {
@@ -277,6 +275,7 @@ func InitLog(config Configuration) {
 
 }
 
+//WIP and to do not use
 func (config *Configuration) AlignWithArgs(osArgs []string){
 	iargs := len(osArgs) -1
 	localArgs := make([]string, iargs)
@@ -297,7 +296,6 @@ func (config *Configuration) AlignWithArgs(osArgs []string){
 
 	refArgs   := reflect.ValueOf(Args)
 	//refGlobal := reflect.ValueOf(&config.Global)
-
 	//refProxy := reflect.ValueOf(&config.Proxysql)
 	//refPxc := reflect.ValueOf(&config.Pxcluster)
 
@@ -322,6 +320,7 @@ func (config *Configuration) AlignWithArgs(osArgs []string){
 			break
 		}
 	}
+
 
 	fmt.Print("\n")
 	var err error
@@ -380,3 +379,4 @@ func caseInsenstiveFieldByName(v reflect.Value, name string) reflect.Value {
 	name = strings.ToLower(name)
 	return v.FieldByNameFunc(func(n string) bool { return strings.ToLower(n) == name })
 }
+

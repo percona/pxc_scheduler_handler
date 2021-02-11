@@ -2,16 +2,17 @@ package Global
 
 import (
 	"fmt"
-	"github.com/Tusamarco/toml"
-	log "github.com/sirupsen/logrus"
-	"golang.org/x/text/language"
-	"golang.org/x/text/message"
 	"os"
 	"reflect"
 	"strconv"
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/Tusamarco/toml"
+	log "github.com/sirupsen/logrus"
+	"golang.org/x/text/language"
+	"golang.org/x/text/message"
 	//"github.com/alexflint/go-arg"
 )
 
@@ -160,10 +161,9 @@ type globalScheduler struct {
 	Performance bool
 }
 
-
 var Args struct {
-	ConfigFile   string `arg:"required" arg:"--configFile" help:"Config file name"`
-	Configpath     string `arg:" --configpath" help:"Config path name. if omitted execution directory is used"`
+	ConfigFile string `arg:"required" arg:"--configFile" help:"Config file name"`
+	Configpath string `arg:" --configpath" help:"Config path name. if omitted execution directory is used"`
 
 	//Global scheduler conf
 	Debug       bool
@@ -198,16 +198,14 @@ var Args struct {
 	SingleWriter       int
 	MaxWriters         int
 
-
 	//ProxySQL configuration class
 	//type proxySql struct {
-	Host       string
-	Password   string
-	Port       int
-	User       string
-	Clustered  bool
+	Host      string
+	Password  string
+	Port      int
+	User      string
+	Clustered bool
 }
-
 
 //Methods to return the config as map
 func GetConfig(path string) Configuration {
@@ -243,7 +241,7 @@ func InitLog(config Configuration) {
 	} else if strings.ToLower(config.Global.LogTarget) == "file" &&
 		config.Global.LogFile != "" {
 		//try to initialize the log on file if it fails it will redirect to stdout
-		file, err := os.OpenFile(config.Global.LogFile, os.O_APPEND|os.O_WRONLY, 0666)
+		file, err := os.OpenFile(config.Global.LogFile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0666)
 		if err == nil {
 			log.SetOutput(file)
 		} else {
@@ -277,51 +275,25 @@ func InitLog(config Configuration) {
 
 }
 
-func (config *Configuration) AlignWithArgs(osArgs []string){
-	iargs := len(osArgs) -1
-	localArgs := make([]string, iargs)
-	//toModifyArgs := make([]string, iargs)
+//WIP not use
+func (config *Configuration) AlignWithArgs(osArgs []string) {
+	iargs := len(osArgs) - 1
+	localArgs := make([]string, iargs, 100)
 	iargs = 0
-
-
-
-	for i := 1; i < len(osArgs);i++{
-		temp := strings.Split(osArgs[i],"=")
-		if strings.HasPrefix(temp[0],"-"){
-			temp[0] = strings.ReplaceAll(temp[0],"-","")
-			localArgs[iargs] = temp[0]
-			iargs++
-		}
-
+	for i := 1; i < len(osArgs); i++ {
+		temp := strings.ReplaceAll(osArgs[i], "--", "")
+		localArgs[iargs] = temp
+		iargs++
 	}
 
-	refArgs   := reflect.ValueOf(Args)
-	//refGlobal := reflect.ValueOf(&config.Global)
-
+	refArgs := reflect.ValueOf(Args)
+	//refGlobal := reflect.ValueOf(config.Global)
 	//refProxy := reflect.ValueOf(&config.Proxysql)
 	//refPxc := reflect.ValueOf(&config.Pxcluster)
 
 
 	//argsArray := make([]string,refArgs.NumField())
 
-	for i := 0; i < refArgs.NumField(); i++{
-		typeOf := refArgs.Type()
-		fieldName := typeOf.Field(i).Name
-
-		for iargs = 0;iargs < len(localArgs);iargs++{
-			if strings.ToLower(fieldName) == strings.ToLower(localArgs[iargs]){
-				localArgs[iargs] = fieldName
-				break
-			}
-		}
- 	}
- 	// cleanup slice
-	for iargs = 0; iargs < len(localArgs) ; iargs++ {
-		if localArgs[iargs] == ""{
-			localArgs = ChompSlice(localArgs,iargs)
-			break
-		}
-	}
 
 	fmt.Print("\n")
 	var err error
@@ -367,11 +339,6 @@ func (config *Configuration) AlignWithArgs(osArgs []string){
 	//iArgs := refArgs.NumField()
 	//iG := refGlobal.NumField()
 	fmt.Print("\n")
-
-
-
-
-
 
 }
 

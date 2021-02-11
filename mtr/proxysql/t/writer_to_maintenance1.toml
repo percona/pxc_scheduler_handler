@@ -36,7 +36,7 @@ initialize = true
 [global]
 debug = true
 logLevel = "debug"
-logTarget = "stdout" #stdout | file
+logTarget = "file" #stdout | file
 logFile = "/tmp/pscheduler.log"
 development = false
 devInterval = 2000

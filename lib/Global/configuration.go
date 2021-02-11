@@ -17,8 +17,9 @@ import (
 
 //perfomance settings and structure
 var Performance bool
+var PerformanceMapOrdered *OrderedPerfMap
 
-var PerformanceMap *StatSyncMap //map[string][2]int64
+var PerformanceMap *StatSyncInfo //map[string][2]int64
 
 func SetPerformanceValue(key string, start bool) {
 	valStat := [2]int64{0, 0}
@@ -31,16 +32,54 @@ func SetPerformanceValue(key string, start bool) {
 	PerformanceMap.Store(key, valStat) //  ExposeMap()[key] = valStat
 }
 
+func SetPerformanceObj(key string, start bool,logLevel log.Level) {
+	var perfObj PerfObject
+	valStat := [2]int64{}
+
+	if val, exists := PerformanceMapOrdered.Get(key); !exists{
+		perfObj  = val
+		perfObj.LogLevel = logLevel
+		perfObj.Name = key
+		valStat = [2]int64{0, 0}
+	}else{
+		perfObj = val
+		valStat = perfObj.Time
+	}
+
+	if start {
+		valStat[0] = time.Now().UnixNano()
+	} else {
+		valStat[1] = time.Now().UnixNano()
+	}
+	perfObj.Time = valStat
+
+	PerformanceMapOrdered.Set(key, perfObj) //  ExposeMap()[key] = valStat
+}
+
 func ReportPerformance() {
 	formatter := message.NewPrinter(language.English)
 
-	log.Info("======== Reporting execution times (nanosec/ms)by phase ============")
-	for key, wm := range PerformanceMap.internal {
-		value := formatter.Sprintf("%d", wm[1]-wm[0])
-		log.Info("Phase: ", key, " = ", value, " us ", strconv.FormatInt((wm[1]-wm[0])/1000000, 10), " ms")
+	if log.InfoLevel <= log.GetLevel() {
+		fmt.Println("======== Reporting execution times (nanosec/ms)by phase ============")
 	}
+	it := PerformanceMapOrdered.Iterator()
+	for {
+		i, _, perfObj := it()
+		if perfObj.Name != "" {
+			time := perfObj.Time
+			value := formatter.Sprintf("%d", time[1]-time[0])
+			if perfObj.LogLevel <= log.GetLevel() {
+				fmt.Println("Phase: ", perfObj.Name, " = ", value, " us ", strconv.FormatInt((time[1]-time[0])/1000000, 10), " ms")
+			}
+		}
 
+		if i == nil {
+			break
+		}
+	}
 }
+
+
 
 //
 //type PerformanceObject struct {
@@ -240,32 +279,104 @@ func InitLog(config Configuration) {
 
 func (config *Configuration) AlignWithArgs(osArgs []string){
 	iargs := len(osArgs) -1
-	localArgs := make([]string, iargs,100)
+	localArgs := make([]string, iargs)
+	//toModifyArgs := make([]string, iargs)
 	iargs = 0
+
+
+
 	for i := 1; i < len(osArgs);i++{
-		temp := strings.ReplaceAll(osArgs[i],"--","")
-		localArgs[iargs] = temp
-		iargs++
+		temp := strings.Split(osArgs[i],"=")
+		if strings.HasPrefix(temp[0],"-"){
+			temp[0] = strings.ReplaceAll(temp[0],"-","")
+			localArgs[iargs] = temp[0]
+			iargs++
+		}
+
 	}
 
 	refArgs   := reflect.ValueOf(Args)
-	refGlobal := reflect.ValueOf(config.Global)
+	//refGlobal := reflect.ValueOf(&config.Global)
+
 	//refProxy := reflect.ValueOf(&config.Proxysql)
 	//refPxc := reflect.ValueOf(&config.Pxcluster)
 
-	typeOfG := refGlobal.Type()
 
-	fmt.Print(typeOfG.Field(1).Name)
+	//argsArray := make([]string,refArgs.NumField())
 
-	//iArgs := refArgs.NumField()
-	iG := refGlobal.NumField()
+	for i := 0; i < refArgs.NumField(); i++{
+		typeOf := refArgs.Type()
+		fieldName := typeOf.Field(i).Name
 
+		for iargs = 0;iargs < len(localArgs);iargs++{
+			if strings.ToLower(fieldName) == strings.ToLower(localArgs[iargs]){
+				localArgs[iargs] = fieldName
+				break
+			}
+		}
+ 	}
+ 	// cleanup slice
+	for iargs = 0; iargs < len(localArgs) ; iargs++ {
+		if localArgs[iargs] == ""{
+			localArgs = ChompSlice(localArgs,iargs)
+			break
+		}
+	}
 
-	for i := 0; i < iG; i++{
-		fieldName := typeOfG.Field(i).Name
-		value := refArgs.FieldByName(fieldName)
-		fmt.Print(fieldName , " = ",value,"\n")
+	fmt.Print("\n")
+	var err error
+	//Now wr set the values from command line to Conf structure
+	for iargs = 0; iargs < len(localArgs) ; iargs++ {
+		value := refArgs.FieldByName(localArgs[iargs])
+		err = ReflectStructField(&config.Pxcluster,localArgs[iargs])
+
+		if err == nil {
+			f :=  reflect.ValueOf(&config.Pxcluster)
+			fType := f.Elem().Type()
+			typeOf := reflect.ValueOf(config.Pxcluster).Type()
+
+			for i := 0 ; i < f.Elem().NumField() ; i++{
+				if f.Elem().Field(i).CanInterface(){
+					name := typeOf.Field(i).Name
+					fmt.Print(name,"  ", localArgs[iargs],"\n")
+					if name == localArgs[iargs]{
+						fieldType := typeOf.Field(i).Type.Name()
+						kValue := reflect.ValueOf(value)
+						fmt.Printf("field type: ", fieldType,"\n")
+						fmt.Printf(" value = %d \n",kValue)
+						if kValue.IsValid() {
+							f.Elem().Field(i).Set(kValue.Convert(fType.Field(i).Type))
+						}
+					}
+				}
+				//fmt.Print(localArgs[iargs], " = ", value, "\n")
+				break
+			}
+		}else{
+			fmt.Print(localArgs[iargs], " Not present in refPxc ",err, "\n")
+		}
+
 	}
 
 
+	// we need to loop for each element
+	//typeOfG := refGlobal.Type()
+
+	//fmt.Print(typeOfG.Field(1).Name)
+
+	//iArgs := refArgs.NumField()
+	//iG := refGlobal.NumField()
+	fmt.Print("\n")
+
+
+
+
+
+
+}
+
+
+func caseInsenstiveFieldByName(v reflect.Value, name string) reflect.Value {
+	name = strings.ToLower(name)
+	return v.FieldByNameFunc(func(n string) bool { return strings.ToLower(n) == name })
 }

@@ -2,7 +2,7 @@
 [pxccluster]
 activeFailover = 1
 failBack = false
-checkTimeOut = 200
+checkTimeOut = 4000
 debug = 1
 mainSegment = 2
 sslClient = "client-cert.pem"

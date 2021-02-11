@@ -135,7 +135,7 @@ Data cluster initialization method
 func (cluster *DataCluster) init(config Global.Configuration, connectionProxy *sql.DB) bool {
 
 	if Global.Performance {
-		Global.SetPerformanceValue("data_cluster_init", true)
+		Global.SetPerformanceObj("data_cluster_init", true,log.InfoLevel)
 	}
 	//set parameters from the config file
 	cluster.Debug = config.Global.Debug
@@ -196,7 +196,7 @@ func (cluster *DataCluster) init(config Global.Configuration, connectionProxy *s
 	}
 
 	if Global.Performance {
-		Global.SetPerformanceValue("data_cluster_init", false)
+		Global.SetPerformanceObj("data_cluster_init", false,log.InfoLevel)
 	}
 	return true
 }
@@ -215,6 +215,7 @@ func (cluster *DataCluster) getNodesInfo() bool {
 		waitingGroup.IncreaseCounter()
 		// Here we go for parallelization but with a timeout as for configuration *** CheckTimeout ***
 		go node.getInformation(&waitingGroup, cluster)
+		//node.getInformation(&waitingGroup, cluster)
 
 		if log.GetLevel() == log.DebugLevel {
 			log.Debug("Retrieving information from node: ", key)
@@ -230,7 +231,13 @@ func (cluster *DataCluster) getNodesInfo() bool {
 		//		log.Debug("wait ", i)
 	}
 	end := time.Now().UnixNano()
-	log.Debug("time taken :", (end-start)/1000000, " checkTimeOut : ", cluster.CheckTimeout)
+	timems :=  (end-start)/1000000
+	log.Debug("time taken :", timems, " checkTimeOut : ", cluster.CheckTimeout)
+	if int(timems) > cluster.CheckTimeout{
+		log.Error("CheckTimeout exceeded try to increase it above the execution time : ", timems)
+		os.Exit(1)
+
+	}
 	return true
 }
 
@@ -244,7 +251,7 @@ In prod is parallelized
 func (cluster *DataCluster) loadNodes(connectionProxy *sql.DB) bool {
 	// get list of nodes from ProxySQL
 	if Global.Performance {
-		Global.SetPerformanceValue("loadNodes", true)
+		Global.SetPerformanceObj("loadNodes", true,log.InfoLevel)
 	}
 	var sb strings.Builder
 	sb.WriteString(strconv.Itoa(cluster.HgWriterId))
@@ -329,7 +336,7 @@ func (cluster *DataCluster) loadNodes(connectionProxy *sql.DB) bool {
 
 	}
 	if Global.Performance {
-		Global.SetPerformanceValue("loadNodes", false)
+		Global.SetPerformanceObj("loadNodes", false,log.InfoLevel)
 	}
 	return true
 }
@@ -487,7 +494,9 @@ The actionList is the object returning the list of nodes that require modificati
 Any modification at their status in ProxySQL is done by the ProxySQLNode object
 */
 func (cluster *DataCluster) GetActionList() map[string]DataNodePxc {
-
+	if Global.Performance {
+		Global.SetPerformanceObj("Get Action Map (DataCluster)" , true,log.DebugLevel)
+	}
 	/*
 		NOTES:
 			steps:
@@ -515,6 +524,10 @@ func (cluster *DataCluster) GetActionList() map[string]DataNodePxc {
 	if !cluster.checkFailoverIfFound() {
 		log.Error("Error electing Node for fail-over")
 	}
+	if Global.Performance {
+		Global.SetPerformanceObj("Get Action Map (DataCluster)" , false,log.DebugLevel)
+	}
+
 	//At this point we should be able to do actions in consistent way
 	return cluster.ActionNodes
 }
@@ -660,25 +673,25 @@ func (cluster *DataCluster) evaluateNode(node DataNodePxc) DataNodePxc {
 			//ony node not in config HG or special 9000 will be processed
 			if node.DataNodeBase.HostgroupId < 9000 {
 				// desync
-				cluster.checkWsrepDesync(node, currentHg)
+				if cluster.checkWsrepDesync(node, currentHg){ return node}
 
 				// Node is in unsafe state we will move to maintenance group 9000
-				cluster.checkAnyNotReadyStatus(node, currentHg)
+				if cluster.checkAnyNotReadyStatus(node, currentHg) {return node}
 
 				//#3) Node/cluster in non primary
-				cluster.checkNotPrimary(node, currentHg)
+				if cluster.checkNotPrimary(node, currentHg){return node}
 
 				//# 4) wsrep_reject_queries=NONE
-				cluster.checkRejectQueries(node, currentHg)
+				if cluster.checkRejectQueries(node, currentHg){return node}
 
 				//#5) Donor, node donot reject queries =1 size of cluster > 2 of nodes in the same segments
-				cluster.checkDonorReject(node, currentHg)
+				if cluster.checkDonorReject(node, currentHg) {return node}
 
 				//#6) Node had pxc_maint_mode set to anything except DISABLED, not matter what it will go in OFFLINE_SOFT
-				cluster.checkPxcMaint(node, currentHg)
+				if cluster.checkPxcMaint(node, currentHg){return node}
 
 				//7 Writer is READ_ONLY
-				cluster.checkReadOnly(node, currentHg)
+				if cluster.checkReadOnly(node, currentHg){return node}
 			}
 
 			/*
@@ -699,14 +712,14 @@ func (cluster *DataCluster) evaluateNode(node DataNodePxc) DataNodePxc {
 			//# 1) node state is 4
 			//# 3) wsrep_reject_queries = none
 			//# 4) Primary state
-			cluster.checkBackPrimary(node, currentHg)
+			if cluster.checkBackPrimary(node, currentHg){return node}
 
 			/*
 				When a new node is coming in we do not put it online directly, but instead we will insert it in the special group 9000
 				this will allow us to process it correctly and validate the state.
 				Then we will put online
 			*/
-			cluster.checkBackNew(node)
+			if cluster.checkBackNew(node){return node}
 
 			//# in the case node is not in one of the declared state
 			//# BUT it has the counter retry set THEN I reset it to 0 whatever it was because
@@ -739,7 +752,7 @@ func (cluster *DataCluster) checkBackOffline(node DataNodePxc, currentHg Hostgro
 	return DataNodePxc{}, false
 }
 
-func (cluster *DataCluster) checkUpSaveRetry(node DataNodePxc, currentHg Hostgroup) {
+func (cluster *DataCluster) checkUpSaveRetry(node DataNodePxc, currentHg Hostgroup) bool{
 	if node.DataNodeBase.ActionType == node.DataNodeBase.NOTHING_TO_DO() &&
 		(node.DataNodeBase.RetryUp > 0 || node.DataNodeBase.RetryDown > 0) {
 		node.DataNodeBase.RetryDown = 0
@@ -747,10 +760,12 @@ func (cluster *DataCluster) checkUpSaveRetry(node DataNodePxc, currentHg Hostgro
 		node.DataNodeBase.ActionType = node.DataNodeBase.SAVE_RETRY()
 		cluster.ActionNodes[strconv.Itoa(node.DataNodeBase.HostgroupId)+"_"+node.DataNodeBase.Dns] = node
 		log.Info("Node: ", node.DataNodeBase.Dns, " ", node.WsrepNodeName, " HG: ", currentHg.Id, " Type ", currentHg.Type, " resetting the retry cunters to 0, all seems fine now")
+		return true
 	}
+	return false
 }
 
-func (cluster *DataCluster) checkBackNew(node DataNodePxc) {
+func (cluster *DataCluster) checkBackNew(node DataNodePxc) bool{
 	if node.DataNodeBase.NodeIsNew &&
 		node.DataNodeBase.HostgroupId < 9000 {
 		node.DataNodeBase.HostgroupId = node.DataNodeBase.HostgroupId + 9000
@@ -758,10 +773,12 @@ func (cluster *DataCluster) checkBackNew(node DataNodePxc) {
 		cluster.ActionNodes[strconv.Itoa(node.DataNodeBase.HostgroupId)+"_"+node.DataNodeBase.Dns] = node
 		log.Info(fmt.Sprintf("I am going to re-insert a declared node in Backup HGs that went missed in ProxySQL mysql_server table "))
 		log.Info(fmt.Sprintf("Node %s will be first inserted in special HG %d Then if it status is fine will be promoted", node.DataNodeBase.Dns, node.DataNodeBase.HostgroupId))
+		return true
 	}
+	return false
 }
 
-func (cluster *DataCluster) checkBackPrimary(node DataNodePxc, currentHg Hostgroup) {
+func (cluster *DataCluster) checkBackPrimary(node DataNodePxc, currentHg Hostgroup) bool{
 	if node.DataNodeBase.HostgroupId >= 9000 &&
 		node.WsrepStatus == 4 &&
 		!node.WsrepRejectqueries &&
@@ -773,10 +790,12 @@ func (cluster *DataCluster) checkBackPrimary(node DataNodePxc, currentHg Hostgro
 		cluster.ActionNodes[strconv.Itoa(node.DataNodeBase.HostgroupId)+"_"+node.DataNodeBase.Dns] = node
 		log.Warning("Node: ", node.DataNodeBase.Dns, " ", node.WsrepNodeName, " HG: ", currentHg.Id, " Type ", currentHg.Type, " coming back ONLINE from previous Offline Special Host Group ",
 			node.DataNodeBase.HostgroupId)
+		return true
 	}
+	return false
 }
 
-func (cluster *DataCluster) checkReadOnly(node DataNodePxc, currentHg Hostgroup) {
+func (cluster *DataCluster) checkReadOnly(node DataNodePxc, currentHg Hostgroup) bool{
 	if node.DataNodeBase.HostgroupId == cluster.HgWriterId &&
 		node.DataNodeBase.ReadOnly {
 		if cluster.RetryDown > 0 {
@@ -786,11 +805,12 @@ func (cluster *DataCluster) checkReadOnly(node DataNodePxc, currentHg Hostgroup)
 		cluster.ActionNodes[strconv.Itoa(node.DataNodeBase.HostgroupId)+"_"+node.DataNodeBase.Dns] = node
 		log.Warning("Node: ", node.DataNodeBase.Dns, " ", node.WsrepNodeName, " HG: ", currentHg.Id, " Type ", currentHg.Type, " has READ_ONLY ",
 			"moving it to Reader HG ")
-
+		return true
 	}
+	return false
 }
 
-func (cluster *DataCluster) checkPxcMaint(node DataNodePxc, currentHg Hostgroup) {
+func (cluster *DataCluster) checkPxcMaint(node DataNodePxc, currentHg Hostgroup) bool{
 	if node.PxcMaintMode != "DISABLED" &&
 		node.DataNodeBase.ProxyStatus != "OFFLINE_SOFT" &&
 		node.DataNodeBase.HostgroupId < 8000 {
@@ -800,10 +820,12 @@ func (cluster *DataCluster) checkPxcMaint(node DataNodePxc, currentHg Hostgroup)
 		cluster.ActionNodes[strconv.Itoa(node.DataNodeBase.HostgroupId)+"_"+node.DataNodeBase.Dns] = node
 		log.Warning("Node: ", node.DataNodeBase.Dns, " ", node.WsrepNodeName, " HG: ", currentHg.Id, " Type ", currentHg.Type, " has PXC_maint_mode as ", node.PxcMaintMode,
 			" moving it to OFFLINE_SOFT ")
+		return true
 	}
+	return false
 }
 
-func (cluster *DataCluster) checkDonorReject(node DataNodePxc, currentHg Hostgroup) {
+func (cluster *DataCluster) checkDonorReject(node DataNodePxc, currentHg Hostgroup) bool{
 	if node.WsrepDonorrejectqueries &&
 		node.WsrepStatus == 2 &&
 		cluster.Hostgroups[node.DataNodeBase.HostgroupId].Size > 1 &&
@@ -815,11 +837,13 @@ func (cluster *DataCluster) checkDonorReject(node DataNodePxc, currentHg Hostgro
 		cluster.ActionNodes[strconv.Itoa(node.DataNodeBase.HostgroupId)+"_"+node.DataNodeBase.Dns] = node
 		log.Warning("Node: ", node.DataNodeBase.Dns, " ", node.WsrepNodeName, " HG: ", currentHg.Id, " Type ", currentHg.Type, " has WSREP Reject queries active ",
 			"moving it to HG ", node.DataNodeBase.HostgroupId+9000)
+		return true
 
 	}
+	return false
 }
 
-func (cluster *DataCluster) checkRejectQueries(node DataNodePxc, currentHg Hostgroup) {
+func (cluster *DataCluster) checkRejectQueries(node DataNodePxc, currentHg Hostgroup) bool{
 	if node.WsrepRejectqueries &&
 		node.DataNodeBase.HostgroupId < 8000 {
 		if cluster.RetryDown > 0 {
@@ -829,10 +853,12 @@ func (cluster *DataCluster) checkRejectQueries(node DataNodePxc, currentHg Hostg
 		cluster.ActionNodes[strconv.Itoa(node.DataNodeBase.HostgroupId)+"_"+node.DataNodeBase.Dns] = node
 		log.Warning("Node: ", node.DataNodeBase.Dns, " ", node.WsrepNodeName, " HG: ", currentHg.Id, " Type ", currentHg.Type, " has WSREP Reject queries active ",
 			"moving it to HG ", node.DataNodeBase.HostgroupId+9000)
+		return true
 	}
+	return false
 }
 
-func (cluster *DataCluster) checkNotPrimary(node DataNodePxc, currentHg Hostgroup) {
+func (cluster *DataCluster) checkNotPrimary(node DataNodePxc, currentHg Hostgroup) bool{
 	if node.WsrepClusterStatus != "Primary" {
 		if cluster.RetryDown > 0 {
 			node.DataNodeBase.RetryDown++
@@ -841,10 +867,12 @@ func (cluster *DataCluster) checkNotPrimary(node DataNodePxc, currentHg Hostgrou
 		cluster.ActionNodes[strconv.Itoa(node.DataNodeBase.HostgroupId)+"_"+node.DataNodeBase.Dns] = node
 		log.Warning("Node: ", node.DataNodeBase.Dns, " ", node.WsrepNodeName, " HG: ", currentHg.Id, " Type ", currentHg.Type, " is NOT in Primary state ",
 			" moving it to HG ", node.DataNodeBase.HostgroupId+9000, " given unsafe node state")
+		return true
 	}
+	return false
 }
 
-func (cluster *DataCluster) checkAnyNotReadyStatus(node DataNodePxc, currentHg Hostgroup) {
+func (cluster *DataCluster) checkAnyNotReadyStatus(node DataNodePxc, currentHg Hostgroup) bool {
 	if node.WsrepStatus != 2 &&
 		node.WsrepStatus != 4 {
 		//if cluster retry > 0 then we manage the node as well
@@ -856,10 +884,12 @@ func (cluster *DataCluster) checkAnyNotReadyStatus(node DataNodePxc, currentHg H
 		log.Warning("Node: ", node.DataNodeBase.Dns, " ", node.WsrepNodeName, " HG: ", currentHg.Id, " Type ", currentHg.Type, " is in state ", node.WsrepStatus,
 			"moving it to HG ", node.DataNodeBase.HostgroupId+9000, " given unsafe node state")
 
+		return true
 	}
+	return false
 }
 
-func (cluster *DataCluster) checkWsrepDesync(node DataNodePxc, currentHg Hostgroup) {
+func (cluster *DataCluster) checkWsrepDesync(node DataNodePxc, currentHg Hostgroup) bool {
 	if node.WsrepStatus == 2 &&
 		!node.DataNodeBase.ReadOnly &&
 		node.DataNodeBase.ProxyStatus != "OFFLINE_SOFT" {
@@ -876,9 +906,11 @@ func (cluster *DataCluster) checkWsrepDesync(node DataNodePxc, currentHg Hostgro
 			cluster.ActionNodes[strconv.Itoa(node.DataNodeBase.HostgroupId)+"_"+node.DataNodeBase.Dns] = node
 			log.Warning("Node: ", node.DataNodeBase.Dns, " ", node.WsrepNodeName, " HG: ", currentHg.Id, " Type ", currentHg.Type, " is in state ", node.WsrepStatus,
 				" moving it to OFFLINE_SOFT given we have other nodes in the Host group")
+			return true
 		}
 
 	}
+	return false
 }
 func (cluster *DataCluster) cleanWriters() bool {
 	for key, node := range cluster.WriterNodes {
@@ -1129,7 +1161,6 @@ func (cluster *DataCluster) processUpActionMap() {
 						key, hgI, ip, portI, node.DataNodeBase.ReturnTextFromCode(node.DataNodeBase.ActionType), node.DataNodeBase.RetryUp))
 				}
 			}
-
 		}
 	}
 }
@@ -1313,7 +1344,7 @@ return true if successful in any other case false
 */
 func (node *DataNode) GetConnection() bool {
 	if Global.Performance {
-		Global.SetPerformanceValue("node_connection_"+node.Dns, true)
+		Global.SetPerformanceObj("node_connection_"+node.Dns, true,log.DebugLevel)
 	}
 	//dns := node.User + ":" + node.Password + "@tcp(" + node.Dns + ":"+ strconv.Itoa(node.Port) +")/admin" //
 	//if log.GetLevel() == log.DebugLevel {log.Debug(dns)}
@@ -1399,7 +1430,7 @@ func (node *DataNode) GetConnection() bool {
 	node.NodeTCPDown = false
 
 	if Global.Performance {
-		Global.SetPerformanceValue("node_connection_"+node.Dns, false)
+		Global.SetPerformanceObj("node_connection_"+node.Dns, false,log.DebugLevel)
 	}
 	return true
 }

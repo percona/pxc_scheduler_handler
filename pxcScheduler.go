@@ -100,8 +100,9 @@ func main() {
 		*/
 		//initialize performance collection if requested
 		if Global.Performance {
+			Global.PerformanceMapOrdered = Global.NewOrderedMap()
 			Global.PerformanceMap = Global.NewRegularIntMap()
-			Global.SetPerformanceValue("main", true)
+			Global.SetPerformanceObj("main", true, log.ErrorLevel)
 		}
 		// create the two main containers the ProxySQL cluster and at least ONE ProxySQL node
 		proxysqlCluster := new(DO.ProxySQLCluster)
@@ -168,7 +169,8 @@ func main() {
 		}
 
 		if Global.Performance {
-			Global.SetPerformanceValue("main", false)
+			Global.SetPerformanceObj("main", false, log.ErrorLevel)
+			Global.PerformanceMapOrdered.Get("pippo")
 			Global.ReportPerformance()
 		}
 

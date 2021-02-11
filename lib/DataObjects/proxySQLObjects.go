@@ -65,7 +65,7 @@ Init the proxySQL node
 */
 func (node *ProxySQLNode) Init(config Global.Configuration) bool {
 	if Global.Performance {
-		Global.SetPerformanceValue("proxysql_init", true)
+		Global.SetPerformanceObj("proxysql_init", true,log.InfoLevel)
 	}
 	node.User = config.Proxysql.User
 	node.Password = config.Proxysql.Password
@@ -93,7 +93,7 @@ func (node *ProxySQLNode) Init(config Global.Configuration) bool {
 
 	//calculate the performance
 	if Global.Performance {
-		Global.SetPerformanceValue("proxysql_init", false)
+		Global.SetPerformanceObj("proxysql_init", false,log.InfoLevel)
 	}
 
 	if node.Connection != nil {
@@ -141,7 +141,7 @@ Having a connection taking longer than that is outrageous. Period!
 */
 func (node *ProxySQLNode) GetConnection() bool {
 	if Global.Performance {
-		Global.SetPerformanceValue("main_connection", true)
+		Global.SetPerformanceObj("main_connection", true,log.DebugLevel)
 	}
 	//dns := node.User + ":" + node.Password + "@tcp(" + node.Dns + ":"+ strconv.Itoa(node.Port) +")/admin" //
 	//if log.GetLevel() == log.DebugLevel {log.Debug(dns)}
@@ -164,7 +164,7 @@ func (node *ProxySQLNode) GetConnection() bool {
 	}
 
 	if Global.Performance {
-		Global.SetPerformanceValue("main_connection", false)
+		Global.SetPerformanceObj("main_connection", false,log.DebugLevel)
 	}
 	return true
 }
@@ -227,6 +227,11 @@ func (node *ProxySQLNode) ProcessChanges() bool {
 		check for retries
 		Add SQL statement SQL array.
 	*/
+	if Global.Performance {
+		Global.SetPerformanceObj("Process changes - ActionMap - (ProxysqlNode)" , true,log.DebugLevel)
+	}
+
+
 	var SQLActionString []string
 
 	log.Info("Processing action node list and build SQL commands")
@@ -306,6 +311,10 @@ func (node *ProxySQLNode) ProcessChanges() bool {
 		}
 
 	}
+	if Global.Performance {
+		Global.SetPerformanceObj("Process changes - ActionMap - (ProxysqlNode)" , false,log.DebugLevel)
+	}
+
 	if !node.executeSQLChanges(SQLActionString) {
 		log.Fatal("Cannot apply changes error in SQL execution in ProxySQL, Exit with error")
 		os.Exit(1)
@@ -425,6 +434,10 @@ func (node *ProxySQLNode) executeSQLChanges(SQLActionString []string) bool {
 	if len(SQLActionString) <= 0 {
 		return true
 	}
+
+	if Global.Performance {
+		Global.SetPerformanceObj("Execute SQL changes - ActionMap - (ProxysqlNode)" , true,log.DebugLevel)
+	}
 	//We will execute all the commands inside a transaction if any error we will roll back all
 	ctx := context.Background()
 	tx, err := node.Connection.BeginTx(ctx, nil)
@@ -460,6 +473,9 @@ func (node *ProxySQLNode) executeSQLChanges(SQLActionString []string) bool {
 			}
 		}
 
+	}
+	if Global.Performance {
+		Global.SetPerformanceObj("Execute SQL changes - ActionMap - (ProxysqlNode)" , false,log.DebugLevel)
 	}
 
 	return true

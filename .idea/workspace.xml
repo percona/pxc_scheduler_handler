@@ -8,14 +8,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="c603b4de-b46a-45fd-bef4-8d20deb405fc" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/runConfigurations/proxyPxcScheduler.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/runConfigurations/proxyPxcScheduler.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/config.toml" beforeDir="false" afterPath="$PROJECT_DIR$/config/config.toml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/DataObjects/dataObjects.go" beforeDir="false" afterPath="$PROJECT_DIR$/lib/DataObjects/dataObjects.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/DataObjects/proxySQLObjects.go" beforeDir="false" afterPath="$PROJECT_DIR$/lib/DataObjects/proxySQLObjects.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/lib/Global/configuration.go" beforeDir="false" afterPath="$PROJECT_DIR$/lib/Global/configuration.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/Global/utils.go" beforeDir="false" afterPath="$PROJECT_DIR$/lib/Global/utils.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pxcScheduler.go" beforeDir="false" afterPath="$PROJECT_DIR$/pxcScheduler.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/.travis.yml" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/.travis.yml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/COMPATIBLE" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/COMPATIBLE" afterDir="false" />
@@ -374,22 +368,12 @@
         </line-breakpoint>
         <line-breakpoint type="DlvLineBreakpoint">
           <url>file://$PROJECT_DIR$/lib/Global/configuration.go</url>
-          <line>368</line>
-          <option name="timeStamp" value="132" />
-        </line-breakpoint>
-        <line-breakpoint type="DlvLineBreakpoint">
-          <url>file://$PROJECT_DIR$/lib/Global/configuration.go</url>
-          <line>333</line>
+          <line>347</line>
           <option name="timeStamp" value="138" />
         </line-breakpoint>
         <line-breakpoint type="DlvLineBreakpoint">
           <url>file://$PROJECT_DIR$/lib/Global/configuration.go</url>
-          <line>343</line>
-          <option name="timeStamp" value="139" />
-        </line-breakpoint>
-        <line-breakpoint type="DlvLineBreakpoint">
-          <url>file://$PROJECT_DIR$/lib/Global/configuration.go</url>
-          <line>24</line>
+          <line>25</line>
           <option name="timeStamp" value="141" />
         </line-breakpoint>
         <line-breakpoint type="DlvLineBreakpoint">

@@ -10,9 +10,6 @@
     <list default="true" id="c603b4de-b46a-45fd-bef4-8d20deb405fc" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/lib/DataObjects/dataObjects.go" beforeDir="false" afterPath="$PROJECT_DIR$/lib/DataObjects/dataObjects.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/DataObjects/pxcObjects.go" beforeDir="false" afterPath="$PROJECT_DIR$/lib/DataObjects/pxcObjects.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/Global/configuration.go" beforeDir="false" afterPath="$PROJECT_DIR$/lib/Global/configuration.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/Global/utils.go" beforeDir="false" afterPath="$PROJECT_DIR$/lib/Global/utils.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/.travis.yml" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/.travis.yml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/COMPATIBLE" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/COMPATIBLE" afterDir="false" />

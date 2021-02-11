@@ -235,7 +235,7 @@ func (cluster *DataCluster) getNodesInfo() bool {
 	log.Debug("time taken :", timems, " checkTimeOut : ", cluster.CheckTimeout)
 	if int(timems) > cluster.CheckTimeout{
 		log.Error("CheckTimeout exceeded try to increase it above the execution time : ", timems)
-		os.Exit(1)
+		//os.Exit(1)
 
 	}
 	return true

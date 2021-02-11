@@ -2,90 +2,16 @@ package Global
 
 import (
 	"fmt"
-	"os"
-	"reflect"
-	"strconv"
-	"strings"
-	"syscall"
-	"time"
-
 	"github.com/Tusamarco/toml"
 	log "github.com/sirupsen/logrus"
-	"golang.org/x/text/language"
-	"golang.org/x/text/message"
+	"os"
+	"reflect"
+	"strings"
+	"syscall"
 	//"github.com/alexflint/go-arg"
 )
 
-//perfomance settings and structure
-var Performance bool
-var PerformanceMapOrdered *OrderedPerfMap
 
-var PerformanceMap *StatSyncInfo //map[string][2]int64
-
-func SetPerformanceValue(key string, start bool) {
-	valStat := [2]int64{0, 0}
-	if start {
-		valStat[0] = time.Now().UnixNano()
-	} else {
-		valStat = PerformanceMap.get(key)
-		valStat[1] = time.Now().UnixNano()
-	}
-	PerformanceMap.Store(key, valStat) //  ExposeMap()[key] = valStat
-}
-
-func SetPerformanceObj(key string, start bool,logLevel log.Level) {
-	var perfObj PerfObject
-	valStat := [2]int64{}
-
-	if val, exists := PerformanceMapOrdered.Get(key); !exists{
-		perfObj  = val
-		perfObj.LogLevel = logLevel
-		perfObj.Name = key
-		valStat = [2]int64{0, 0}
-	}else{
-		perfObj = val
-		valStat = perfObj.Time
-	}
-
-	if start {
-		valStat[0] = time.Now().UnixNano()
-	} else {
-		valStat[1] = time.Now().UnixNano()
-	}
-	perfObj.Time = valStat
-
-	PerformanceMapOrdered.Set(key, perfObj) //  ExposeMap()[key] = valStat
-}
-
-func ReportPerformance() {
-	formatter := message.NewPrinter(language.English)
-
-	if log.InfoLevel <= log.GetLevel() {
-		fmt.Println("======== Reporting execution times (nanosec/ms)by phase ============")
-	}
-	it := PerformanceMapOrdered.Iterator()
-	for {
-		i, _, perfObj := it()
-		if perfObj.Name != "" {
-			time := perfObj.Time
-			value := formatter.Sprintf("%d", time[1]-time[0])
-			if perfObj.LogLevel <= log.GetLevel() {
-				fmt.Println("Phase: ", perfObj.Name, " = ", value, " us ", strconv.FormatInt((time[1]-time[0])/1000000, 10), " ms")
-			}
-		}
-
-		if i == nil {
-			break
-		}
-	}
-}
-
-
-
-//
-//type PerformanceObject struct {
-//	ExecutionPhase map[string][]int64
-//}
 
 /*
 Here we have the references objects and methods to deal with the configuration file
@@ -342,8 +268,3 @@ func (config *Configuration) AlignWithArgs(osArgs []string) {
 
 }
 
-
-func caseInsenstiveFieldByName(v reflect.Value, name string) reflect.Value {
-	name = strings.ToLower(name)
-	return v.FieldByNameFunc(func(n string) bool { return strings.ToLower(n) == name })
-}

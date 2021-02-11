@@ -3,6 +3,7 @@ package DataObjects
 import (
 	"../Global"
 	SQLPxc "../Sql/Pcx"
+	"fmt"
 	log "github.com/sirupsen/logrus"
 	"strings"
 )
@@ -47,8 +48,10 @@ func (node *DataNodePxc) getPxcView(dml string) PxcClusterView {
 }
 
 //We parallelize the information retrieval using goroutine
-func (node DataNodePxc) getInformation(wg *Global.MyWaitGroup, cluster *DataCluster) int {
-
+func (node DataNodePxc) getInfo(wg *Global.MyWaitGroup, cluster *DataCluster) int {
+	if Global.Performance {
+		Global.SetPerformanceObj(fmt.Sprintf("Get info for node %s",node.DataNodeBase.Dns), true,log.DebugLevel)
+	}
 	// Get the connection
 	node.DataNodeBase.GetConnection()
 	/*
@@ -67,7 +70,9 @@ func (node DataNodePxc) getInformation(wg *Global.MyWaitGroup, cluster *DataClus
 
 		//set the specific monitoring parameters
 		node.setParameters()
-
+		if Global.Performance {
+			Global.SetPerformanceObj(fmt.Sprintf("Get info for node %s",node.DataNodeBase.Dns), false,log.DebugLevel)
+		}
 	} else {
 		node.DataNodeBase.Processed = false
 		log.Warn("Cannot load information (variables/status/pxc_view) for node: ", node.DataNodeBase.Dns)

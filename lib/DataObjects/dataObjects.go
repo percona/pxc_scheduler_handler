@@ -214,7 +214,7 @@ func (cluster *DataCluster) getNodesInfo() bool {
 	for key, node := range cluster.NodesPxc.ExposeMap() {
 		waitingGroup.IncreaseCounter()
 		// Here we go for parallelization but with a timeout as for configuration *** CheckTimeout ***
-		go node.getInformation(&waitingGroup, cluster)
+		go node.getInfo(&waitingGroup, cluster)
 		//node.getInformation(&waitingGroup, cluster)
 
 		if log.GetLevel() == log.DebugLevel {

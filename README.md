@@ -75,7 +75,8 @@ We have to configure also nodes in 8XXX:
 - HG 8101 for Reads
 
 We will need to :
-```delete from mysql_servers where hostgroup_id in (100,101,8100,8101);
+```
+delete from mysql_servers where hostgroup_id in (100,101,8100,8101);
 INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('192.168.4.22',100,3306,1000,2000,'Preferred writer');
 INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('192.168.4.23',100,3306,999,2000,'Second preferred ');
 INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('192.168.4.233',100,3306,998,2000,'Las chance');
@@ -162,13 +163,15 @@ OS = "na"
 ## Examples of configurations in ProxySQL
 Simply pass max 2 arguments 
 
-```INSERT  INTO scheduler (id,active,interval_ms,filename,arg1) values (10,0,2000,"/var/lib/proxysql/pxcScheduler","--configfile=config.toml","--configpath=<path to config>");
+``` 
+INSERT  INTO scheduler (id,active,interval_ms,filename,arg1) values (10,0,2000,"/var/lib/proxysql/pxcScheduler","--configfile=config.toml","--configpath=<path to config>");
 LOAD SCHEDULER TO RUNTIME;SAVE SCHEDULER TO DISK;
 ```
 
 
 To Activate it:
-```update scheduler set active=1 where id=10;
+``` 
+update scheduler set active=1 where id=10;
 LOAD SCHEDULER TO RUNTIME;
 ```
 

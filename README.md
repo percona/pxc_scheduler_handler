@@ -30,7 +30,7 @@ Node states:
  * Retry loop
  * PXC cluster state:
 
-###Fail-over options:
+### Fail-over options:
 
 Presence of active node in the special backup Hostgroup (8000 + original HG id).
 Special HostGoup 8000 is used also for READERS, to define which should be checked and eventually add to the pool if missed

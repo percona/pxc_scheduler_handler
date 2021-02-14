@@ -7,7 +7,7 @@ In ProxySQL is possible to represent a cluster and its segments using HostGroups
 PxcScheduler can now also manage single writer in PXC and fail-over/fail-back when in the need to. This is implemented usings:
 
 - Backup Node definition (using hostgroup. Backup Nodes are configuration nodes
-- Use PXC_CLUSTER_VIEW table (in PXC only)
+- ~~Use PXC_CLUSTER_VIEW table (in PXC only)~~
 
 PxcScheduler works by HG and as such it will perform isolated actions/checks by HG. It is not possible to have more than one check running on the same HG.
 

@@ -6,14 +6,36 @@ import (
 	"os"
 	"strconv"
 	"time"
+	"flag"
 
 	DO "./lib/DataObjects"
 	Global "./lib/Global"
-	"github.com/alexflint/go-arg"
 	_ "github.com/go-sql-driver/mysql"
 	log "github.com/sirupsen/logrus"
 )
+/*
+#######################################
+#
+# ProxySQL galera check v2
+#
+# Author Marco Tusa
+# Copyright (C) (2016 - 2021)
+#
+#
+#THIS PROGRAM IS PROVIDED "AS IS" AND WITHOUT ANY EXPRESS OR IMPLIED
+#WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED WARRANTIES OF
+#MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+#
+#This program is free software; you can redistribute it and/or modify it under
+#the terms of the GNU General Public License as published by the Free Software
+#Foundation, version 3;
+#
+#You should have received a copy of the GNU General Public License along with
+#this program; if not, write to the Free Software Foundation, Inc., 59 Temple
+#Place, Suite 330, Boston, MA  02111-1307  USA.
 
+#######################################
+*/
 /*
 Main function must contains only initial parameter, log system init and main object init
 */
@@ -27,33 +49,40 @@ func main() {
 	var lockId string //LockId is compose by clusterID_HG_W_HG_R
 
 	var configFile string
+	var configPath string
 
 	// By default performance collection is disabled
 	Global.Performance = false
+	//initialize help
+	help := new(Global.HelpText)
+	help.Init()
 
 	//process command line args
-	arg.MustParse(&Global.Args)
-	args := Global.Args
+	//arg.MustParse(&Global.Args)
+	//args := Global.Args
 	//fmt.Print(args.ConfigFile)
+	//appPath, _ := os.Getwd()
+
+	flag.StringVar(&configFile,"configfile", "", "Config file name for the script")
+	flag.StringVar(&configPath,"configpath", "", "Config file name for the script")
+	flag.Usage = func() {
+		fmt.Fprintf(os.Stderr, "\n",help.GetHelpText(),"\n")
+	}
+	flag.Parse()
 
 	//check for current params
-	if len(os.Args) < 2 || args.ConfigFile == "" {
+	if len(os.Args) < 2 || configFile == "" {
 		fmt.Println("You must at least pass the --configfile=xxx parameter ")
 		os.Exit(1)
 	}
 
-
-
-	//read config and return a config object
-	configFile = args.ConfigFile
-
 	var currPath, err = os.Getwd()
 
-	if Global.Args.Configpath != "" {
-		if Global.Args.Configpath[len(Global.Args.Configpath) -1:] == Separator{
-			currPath = Global.Args.Configpath
+	if configPath != "" {
+		if configPath[len(configPath) -1:] == Separator{
+			currPath = configPath
 		}else{
-			currPath = Global.Args.Configpath + Separator
+			currPath = configPath + Separator
 		}
 	} else{
 		currPath = currPath + Separator + "config" + Separator

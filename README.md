@@ -162,8 +162,15 @@ OS = "na"
 ## Examples of configurations in ProxySQL
 Simply pass max 2 arguments 
 
-`INSERT  INTO scheduler (id,active,interval_ms,filename,arg1) values (10,0,2000,"/var/lib/proxysql/pxcScheduler","config.toml","<path to config>");`
+```INSERT  INTO scheduler (id,active,interval_ms,filename,arg1) values (10,0,2000,"/var/lib/proxysql/pxcScheduler","--configfile=config.toml","--configpath=<path to config>");
+LOAD SCHEDULER TO RUNTIME;SAVE SCHEDULER TO DISK;
+```
 
+
+To Activate it:
+```update scheduler set active=1 where id=10;
+LOAD SCHEDULER TO RUNTIME;
+```
 
 ## Logic Rules used in the check:
 Set to offline_soft :

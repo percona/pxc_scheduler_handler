@@ -16,213 +16,91 @@ func (help *HelpText)PrintLicense(){
 }
 
 func (help *HelpText)GetHelpText() string{
- helpText := `
+ helpText := `pxcScheduler
 
-# ############################################################################
-# Documentation
-# #################
-=pod
-
-=head1 NAME
-galera_check.pl
-
-=head1 OPTIONS
-
-=over
-
-galera_check.pl -u=admin -p=admin -h=192.168.1.50 -H=500:W,501:R -P=3310 --main_segment=1 --debug=0  --log <full_path_to_file> --help
-sample [options] [file ...]
- Options:
-   -u|user            user to connect to the proxy
-   -p|password        Password for the proxy
-   -h|host            Proxy host
-   -H                 Hostgroups with role definition. List comma separated.
-		      Definition R = reader; W = writer [500:W,501:R]
-   --main_segment     If segments are in use which one is the leading at the moment
-   --retry_up         The number of loop/test the check has to do before moving a node up (default 0)
-   --retry_down       The number of loop/test the check has to do before moving a node Down (default 0)
-   --log	      Full path to the log file ie (/var/log/proxysql/galera_check_) the check will add
-		      the identifier for the specific HG.
-   --active_failover  A value from 0 to 3, indicating what level/kind of fail-over the script must perform.
-                       active_failover
-                       Valid values are:
-                          0 [default] do not make failover
-                          1 make failover only if HG 8000 is specified in ProxySQL mysl_servers
-                          2 use PXC_CLUSTER_VIEW to identify a server in the same segment
-                          3 do whatever to keep service up also failover to another segment (use PXC_CLUSTER_VIEW)
-   --single_writer    Active by default [single_writer = 1 ] if disable will allow to have multiple writers       
-   
-   
-   Performance parameters 
-   --check_timeout    This parameter set in ms then time the script can alow a thread connecting to a MySQL node to wait, before forcing a returnn.
-                      In short if a node will take longer then check_timeout its entry will be not filled and it will eventually ignored in the evaluation.
-                      Setting the debug option  =1 and look for [WARN] Check timeout Node ip : Information will tell you how much your nodes are exceeding the allowed limit.
-                      You can use the difference to correctly set the check_timeout 
-                      Default is 800 ms
-   
-   --help              help message
-   --debug             When active the log will have a lot of information about the execution. Parse it for ERRORS if you have problems
-   --print_execution   Active by default, it will print the execution time the check is taking in the log. This can be used to tune properly the scheduler time, and also the --check_timeout
-   
-   --development      When set to 1 you can run the script in a loop from bash directly and test what is going to happen
-   --development_time Time in seconds that the loop wait to execute when in development mode (default 2 seconds)
-   
-   SSL support
-   Now the script identify if the node in the ProxySQL table mysql_servers has use_ssl = 1 and will set SSL to be used for that specific entry.
-   This means that SSL connection is by ProxySQL mysql_server entry NOT by IP:port combination.
-   
-   --ssl_certs_path This parameter allow you to specify a DIRECTORY to use to assign specific certificates.
-                    At the moment is NOT possible to change the files names and ALL these 3 files must be there and named as follow:
-                     -  client-key.pem
-                     -  client-cert.pem
-                     -  ca.pem
-                     Script will exit with an error if ssl_certs_pathis declared but not filled properly
-                     OR if the user running the script doesn't have acces.
-   !!NOTE!! SSL connection requires more time to be established. This script is a check that needs to run very fast and constantly.
-            force it to use ssl WILL impact in the performance of the check. Tune properly the check_timeout parameter.
-
-=back    
-   
-=head1 DESCRIPTION
-
-Galera check is a script to manage integration between ProxySQL and Galera (from Codership).
-Galera and its implementations like Percona Cluster (PCX), use the data-centric concept, as such the status of a node is relvant in relation to a cluster.
-
-In ProxySQL is possible to represent a cluster and its segments using HostGroups.
-Galera check is design to manage a X number of nodes that belong to a given Hostgroup (HG). 
-In Galera_check it is also important to qualify the HG in case of use of Replication HG.
-
-galera_check works by HG and as such it will perform isolated actions/checks by HG. 
-It is not possible to have more than one check running on the same HG. The check will create a lock file {proxysql_galera_check_${hg}.pid} that will be used by the check to prevent duplicates.
-
-Galera_check will connect to the ProxySQL node and retrieve all the information regarding the Nodes/proxysql configuration. 
-It will then check in parallel each node and will retrieve the status and configuration.
-
-At the moment galera_check analyze and manage the following:
-
-Node states: 
-  read_only 
-  wsrep_status 
-  wsrep_rejectqueries 
-  wsrep_donorrejectqueries 
-  wsrep_connected 
-  wsrep_desinccount 
-  wsrep_ready 
-  wsrep_provider 
-  wsrep_segment 
-  Number of nodes in by segment
-  Retry loop
-  
-- Number of nodes in by segment
-If a node is the only one in a segment, the check will behave accordingly. 
-IE if a node is the only one in the MAIN segment, it will not put the node in OFFLINE_SOFT when the node become donor to prevent the cluster to become unavailable for the applications. 
-As mention is possible to declare a segment as MAIN, quite useful when managing prod and DR site.
-
--The check can be configure to perform retry in a X interval. 
-Where X is the time define in the ProxySQL scheduler. 
-As such if the check is set to have 2 retry for UP and 4 for down, it will loop that number before doing anything. Given that Galera does some action behind the hood.
-This feature is very useful in some not well known cases where Galera bhave weird.
-IE whenever a node is set to READ_ONLY=1, galera desync and resync the node. 
-A check not taking this into account will cause a node to be set OFFLINE and back for no reason.
-
-Another important differentiation for this check is that it use special HGs for maintenance, all in range of 9000. 
-So if a node belong to HG 10 and the check needs to put it in maintenance mode, the node will be moved to HG 9010. 
-Once all is normal again, the Node will be put back on his original HG.
-
-This check does NOT modify any state of the Nodes. 
-Meaning It will NOT modify any variables or settings in the original node. It will ONLY change states in ProxySQL. 
-    
-The check is still a prototype and is not suppose to go to production (yet).
+Parameters for the executable --configfile <file name> --configpath <full path> --help
 
 
-=over
-
-=item 1
-
-Note that galera_check is also Segment aware, as such the checks on the presence of Writer /reader is done by segment, respecting the MainSegment as primary.
-
-=back
-
-=head1 Configure in ProxySQL
-
-
-INSERT  INTO scheduler (id,active,interval_ms,filename,arg1) values (10,0,2000,"/var/lib/proxysql/galera_check.pl","-u=remoteUser -p=remotePW -h=192.168.1.50 -H=500:W,501:R -P=6032 --retry_down=2 --retry_up=1 --main_segment=1 --debug=0 --active_failover=1 --single_writer=1 --log=/var/lib/proxysql/galeraLog");
-LOAD SCHEDULER TO RUNTIME;SAVE SCHEDULER TO DISK;
-
-To activate it
-update scheduler set active=1 where id=10;
-LOAD SCHEDULER TO RUNTIME;SAVE SCHEDULER TO DISK;
-
-To update the parameters you must pass all of them not only the ones you want to change(IE enabling debug)
-update scheduler set arg1="-u=remoteUser -p=remotePW -h=192.168.1.50 -H=500:W,501:R -P=6032 --retry_down=2 --retry_up=1 --main_segment=1 --debug=1 --active_failover=1 --single_writer=1 --log=/var/lib/proxysql/galeraLog" where id =10;  
-LOAD SCHEDULER TO RUNTIME;SAVE SCHEDULER TO DISK;
-
-
-delete from scheduler where id=10;
-LOAD SCHEDULER TO RUNTIME;SAVE SCHEDULER TO DISK;
+Parameters in the config file:
+Global:
+	debug = true
+	logLevel = "debug"
+	logTarget = "stdout" #stdout | file
+	logFile = "/Users/marcotusa/work/temp/pscheduler.log"
+	development = true
+	devInterval = 2000
+	performance = true
+	OS = "na"
+	debug : [false] will active some additional features to debug locally as more verbose logs
+	development : [false] Will allow the script to run in a loop without the need to be call by ProxySQL scheduler
+	devInterval : Define in ms the time for looping when in development mode
+	loglevel : [error] Define the log level to be used
+	logTarget : [stdout] Can be either a file or stdout
+	logFile : In case file for loging define the target
+	OS : for future use
+ProxySQL
+	port : [6032] Port used to connect
+	host : [127.0.0.1] IP address used to connect to ProxySQL
+	user : [] User able to connect to ProxySQL
+	password : [] Password
+	clustered : [false] If this is NOT a single instance then we need to put a lock on the running scheduler (see Working with Cluster section)
+	initialized : not used (for the moment)
+Pxccluster
+	activeFailover : [1] Failover method
+	failBack : [false] If we should fail-back automatically or wait for manual intervention
+	checkTimeOut : [4000] This is one of the most important settings. When checking the Backend node (MySQL), it is possible that the node will not be able to answer in a consistent amount of time, due the different level of load. If this exceeds the Timeout, a warning will be print in the log, and the node will not be processed. Parsing the log it is possible to identify which is the best value for checkTimeOut to satisfy the need of speed and at the same time to give the nodes the time they need to answer.
+	debug : [0] Some additional debug specific for the pxc cluster
+	mainSegment : [1] This is another very important value to set, it defines which is the MAIN segment for failover
+	sslClient : "client-cert.pem" In case of use of SSL for backend we need to be able to use the right credential
+	sslKey : "client-key.pem" In case of use of SSL for backend we need to be able to use the right credential
+	sslCa : "ca.pem" In case of use of SSL for backend we need to be able to use the right credential
+	sslCertificatePath : ["/full-path/ssl_test"] Full path for the SSL certificates
+	hgW : Writer HG
+	hgR : Reader HG
+	bckHgW : Backup HG in the 8XXX range (hgW + 8000)
+	bckHgR : Backup HG in the 8XXX range (hgR + 8000)
+	singlePrimary : [true] This is the recommended way, always use Galera in Single Primary to avoid write conflicts
+	maxNumWriters : [1] If SinglePrimary is false you can define how many nodes to have as Writers at the same time
+	writerIsAlsoReader : [1] Possible values 0 - 1. The default is 1, if you really want to exclude the writer from read set it to 0. When the cluster will lose its last reader, the writer will be elected as Reader, no matter what.
+	retryUp : [0] Number of retry the script should do before restoring a failed node
+	retryDown : [0] Number of retry the script should do to put DOWN a failing node
+	clusterId : 10 the ID for the cluster
+	Examples of configurations in ProxySQL
+	Simply pass max 2 arguments
 
 
 
-=head1 Rules:
 
-=over
+Example of proxySql setup
+Assuming we have 3 nodes:
 
-=item 1
+	node4 : 192.168.4.22
+	node5 : 192.168.4.23
+	node6 : 192.168.4.233
+As Hostgroup:
 
-Set to offline_soft :
-    
-    any non 4 or 2 state, read only =ON
-    donor node reject queries - 0 size of cluster > 2 of nodes in the same segments more then one writer, node is NOT read_only.
-    
-    Changes to pxc_maint_mode to anything else DISABLED
+	HG 100 for Writes
+	HG 101 for Reads We have to configure also nodes in 8XXX:
+	HG 8100 for Writes
+	HG 8101 for Reads
 
-=item 2
+We will need to :
+	INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('192.168.4.22',100,3306,1000,2000,'Preferred writer');
+	INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('192.168.4.23',100,3306,999,2000,'Second preferred ');
+	INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('192.168.4.233',100,3306,998,2000,'Las chance');
+	INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('192.168.4.22',101,3306,998,2000,'last reader');
+	INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('192.168.4.23',101,3306,1000,2000,'reader1');    
+	INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('192.168.4.233',101,3306,1000,2000,'reader2');        
+	
+	INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('192.168.4.22',8100,3306,1000,2000,'Failover server preferred');
+	INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('192.168.4.23',8100,3306,999,2000,'Second preferred');    
+	INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('192.168.4.233',8100,3306,998,2000,'Thirdh and last in the list');      
+	
+	INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('192.168.4.22',8101,3306,998,2000,'Failover server preferred');
+	INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('192.168.4.23',8101,3306,999,2000,'Second preferred');    
+	INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('192.168.4.233',8101,3306,1000,2000,'Thirdh and last in the list');      
 
-change HG t maintenance HG:
-    
-    Node/cluster in non primary
-    wsrep_reject_queries different from NONE
-    Donor, node reject queries =1 size of cluster 
-
-=item 3
-
-Node comes back from offline_soft when (all of them):
-
-     1) Node state is 4
-     3) wsrep_reject_queries = none
-     4) Primary state
-
-
-=item 4
-
- Node comes back from maintenance HG when (all of them):
-
-     1) node state is 4
-     3) wsrep_reject_queries = none
-     4) Primary state
-
-
-=item 5
-
- active_failover
-      Valid values are:
-          0 [default] do not make failover
-          1 make failover only if HG 8000 is specified in ProxySQL mysl_servers
-          2 use PXC_CLUSTER_VIEW to identify a server in the same segment
-          3 do whatever to keep service up also failover to another segment (use PXC_CLUSTER_VIEW) 
-
-=item 6
- PXC_MAIN_MODE is fully supported.
- Any node in a state different from pxc_maint_mode=disabled will be set in OFFLINE_SOFT for all the HostGroup.
- 
-=item 7
- internally shunning node.
- While I am trying to rely as much as possible on ProxySQL, given few inefficiencies there are cases when I have to set a node to SHUNNED because ProxySQL doesn't recognize it correctly.  
-          
-=back
-=cut	
-
-
+	LOAD MYSQL SERVERS TO RUNTIME; SAVE MYSQL SERVERS TO DISK;
 `
 return helpText
 }

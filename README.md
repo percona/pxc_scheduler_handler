@@ -57,7 +57,8 @@ To manage that and also to provide a good way to set/define what and how to fail
 __Note__ The previous perl version had also 
 - 2 use PXC_CLUSTER_VIEW to identify a server in the same segment
 - 3 do whatever to keep service up also fail-over to another segment (use PXC_CLUSTER_VIEW)
-Given it was reported to me they were almost never used I had not implemented them in this GO version. But if there is a real need I will put them back.
+Given it was reported to me they were almost never used I had not implemented them in this GO version. 
+__But__ if there is a real need I will put them back.
 
 ### Example of proxySql setup 
 Assuming we have 3 nodes:

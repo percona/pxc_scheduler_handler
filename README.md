@@ -205,10 +205,29 @@ You can define IF you want to have multiple writers. Default is 1 writer only (I
 
 
 ## Download and compile from source
-To be done
+Once you have GO installed and running (at least version 1.15.8)
 
+Clone from github: `git clone https://github.com/Tusamarco/proxysql_scheduler.git`
 
+Install the needed library within go:
+```bash
+go get github.com/Tusamarco/toml
+go get github.com/go-sql-driver/mysql
+go get github.com/sirupsen/logrus
+go get golang.org/x/text/language
+go get golang.org/x/text/message
 
+go build .
+
+```
+First thing to do then is to run `./proxysql_scheduler --help`
+to navigate the parameters.
+
+Then adjust the config file in `./config/config.toml` better to do a copy and modify for what u need
+Then to test it OUTSIDE the ProxySQL scheduler script, in the config file `[Global]` section change `development=false` to `true`. 
+The script will auto-loop as if call by the scheduler. 
+
+ 
 #### Details
 
 

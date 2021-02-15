@@ -336,7 +336,10 @@ func ReportPerformance() {
 			time := perfObj.Time
 			value := formatter.Sprintf("%d", time[1]-time[0])
 			if perfObj.LogLevel <= log.GetLevel() {
-				fmt.Println("Phase: ", perfObj.Name, " = ", value, " us ", strconv.FormatInt((time[1]-time[0])/1000000, 10), " ms")
+				originalLogLevel := log.GetLevel()
+				log.SetLevel(log.InfoLevel)
+				log.Info("Phase: ", perfObj.Name, " = ", value, " us ", strconv.FormatInt((time[1]-time[0])/1000000, 10), " ms")
+				log.SetLevel(originalLogLevel)
 			}
 		}
 

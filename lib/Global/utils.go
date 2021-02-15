@@ -327,7 +327,7 @@ func ReportPerformance() {
 	formatter := message.NewPrinter(language.English)
 
 	if log.InfoLevel <= log.GetLevel() {
-		fmt.Println("======== Reporting execution times (nanosec/ms)by phase ============")
+		log.Info("======== Reporting execution times (nanosec/ms)by phase ============")
 	}
 	it := PerformanceMapOrdered.Iterator()
 	for {

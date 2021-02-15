@@ -6,13 +6,13 @@ import (
 	"os"
 	"strconv"
 	"time"
-	"flag"
 
 	DO "./lib/DataObjects"
 	Global "./lib/Global"
 	_ "github.com/go-sql-driver/mysql"
 	log "github.com/sirupsen/logrus"
 )
+
 /*
 #######################################
 #
@@ -54,13 +54,9 @@ func main() {
 	help := new(Global.HelpText)
 	help.Init()
 
-
-	//osArgs := os.Args
-	// ignore for now WIP config.AlignWithArgs(osArgs)
-
 	config, err := Global.GetConfig(os.Args, Global.GetConfigFromFile)
 	if err != nil {
-		fmt.Printf("Problem loading the config: %v", err)
+		fmt.Fprintf(os.Stderr, "\n%s\n", help.GetHelpText())
 		os.Exit(1)
 	}
 

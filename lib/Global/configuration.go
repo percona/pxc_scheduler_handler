@@ -135,7 +135,9 @@ func GetConfig(args []string, baseConfigProvider BaseConfigProvider) (*Configura
 	config.align(argsMap)
 
 	//Let us do a sanity check on the configuration to prevent most obvious issues
-	config.sanityCheck()
+	if !config.sanityCheck() {
+		return nil, errors.New("Configuration sanity check failed")
+	}
 
 	return config, nil
 }
@@ -224,33 +226,33 @@ func GetConfigFromFile(args map[string]string) *Configuration {
 	return &config
 }
 
-func (conf *Configuration) SanityCheck() {
+func (conf *Configuration) sanityCheck() bool {
 	//check for single primary and writer is also reader
 	if conf.Pxcluster.MaxNumWriters > 1 &&
 		conf.Pxcluster.SinglePrimary {
 		log.Error("Configuration error cannot have SinglePrimary true and MaxNumWriter >1")
 
-		os.Exit(1)
+		return false
 	}
 
 	if conf.Pxcluster.WriterIsAlsoReader != 1 && (conf.Pxcluster.MaxWriters > 1 || !conf.Pxcluster.SinglePrimary) {
 		log.Error("Configuration error cannot have WriterIsAlsoReader NOT = 1 and use more than one Writer")
 
-		os.Exit(1)
+		return false
 
 	}
 
 	//check for HG consistency
 	// here HG and backup HG must match
-	if conf.Pxcluster.HgW + 8000 != conf.Pxcluster.BckHgW || conf.Pxcluster.HgR + 8000 != conf.Pxcluster.BckHgR{
+	if conf.Pxcluster.HgW+8000 != conf.Pxcluster.BckHgW || conf.Pxcluster.HgR+8000 != conf.Pxcluster.BckHgR {
 		log.Error(fmt.Sprintf("Hostgroups and Backup HG do not match. HGw %d - BKHGw %d; HGr %d - BKHGr %d",
 			conf.Pxcluster.HgW,
 			conf.Pxcluster.BckHgW,
 			conf.Pxcluster.HgR,
-			conf.Pxcluster.BckHgR ))
-		os.Exit(1)
+			conf.Pxcluster.BckHgR))
+		return false
 	}
-
+	return true
 }
 
 //initialize the log

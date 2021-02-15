@@ -144,6 +144,7 @@ func GetConfig(path string) Configuration {
 }
 
 func (conf *Configuration) SanityCheck() {
+	//check for single primary and writer is also reader
 	if conf.Pxcluster.MaxNumWriters > 1 &&
 		conf.Pxcluster.SinglePrimary {
 		log.Error("Configuration error cannot have SinglePrimary true and MaxNumWriter >1")
@@ -157,6 +158,18 @@ func (conf *Configuration) SanityCheck() {
 		os.Exit(1)
 
 	}
+
+	//check for HG consistency
+	// here HG and backup HG must match
+	if conf.Pxcluster.HgW + 8000 != conf.Pxcluster.BckHgW || conf.Pxcluster.HgR + 8000 != conf.Pxcluster.BckHgR{
+		log.Error(fmt.Sprintf("Hostgroups and Backup HG do not match. HGw %d - BKHGw %d; HGr %d - BKHGr %d",
+			conf.Pxcluster.HgW,
+			conf.Pxcluster.BckHgW,
+			conf.Pxcluster.HgR,
+			conf.Pxcluster.BckHgR ))
+		os.Exit(1)
+	}
+
 }
 
 //initialize the log

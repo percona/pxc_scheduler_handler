@@ -48,58 +48,21 @@ func main() {
 	var devLoop = 0
 	var lockId string //LockId is compose by clusterID_HG_W_HG_R
 
-	var configFile string
-	var configPath string
-
 	// By default performance collection is disabled
 	Global.Performance = false
 	//initialize help
 	help := new(Global.HelpText)
 	help.Init()
 
-	//process command line args
-	//arg.MustParse(&Global.Args)
-	//args := Global.Args
-	//fmt.Print(args.ConfigFile)
-	//appPath, _ := os.Getwd()
-
-	flag.StringVar(&configFile,"configfile", "", "Config file name for the script")
-	flag.StringVar(&configPath,"configpath", "", "Config file name for the script")
-	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "\n",help.GetHelpText(),"\n")
-	}
-	flag.Parse()
-
-	//check for current params
-	if len(os.Args) < 2 || configFile == "" {
-		fmt.Println("You must at least pass the --configfile=xxx parameter ")
-		os.Exit(1)
-	}
-
-	var currPath, err = os.Getwd()
-
-	if configPath != "" {
-		if configPath[len(configPath) -1:] == Separator{
-			currPath = configPath
-		}else{
-			currPath = configPath + Separator
-		}
-	} else{
-		currPath = currPath + Separator + "config" + Separator
-	}
-
-	if err != nil{
-		fmt.Print("Problem loading the config")
-		os.Exit(1)
-	}
-	var config = Global.GetConfig(currPath + configFile)
 
 	//osArgs := os.Args
 	// ignore for now WIP config.AlignWithArgs(osArgs)
 
-
-	//Let us do a sanity check on the configuration to prevent most obvious issues
-	config.SanityCheck()
+	config, err := Global.GetConfig(os.Args, Global.GetConfigFromFile)
+	if err != nil {
+		fmt.Printf("Problem loading the config: %v", err)
+		os.Exit(1)
+	}
 
 	// Set lock file
 	lockId = strconv.Itoa(config.Pxcluster.ClusterId) +
@@ -120,7 +83,7 @@ func main() {
 	for i := 0; i <= devLoop; {
 
 		//initialize the log system
-		Global.InitLog(config)
+		Global.InitLog(*config)
 		//should we track performance or not
 		Global.Performance = config.Global.Performance
 
@@ -156,7 +119,7 @@ func main() {
 		}
 		{
 			//ProxySQL Node work start here
-			if proxysqlNode.Init(config) {
+			if proxysqlNode.Init(*config) {
 				if log.GetLevel() == log.DebugLevel {
 					log.Debug("ProxySQL node initialized ")
 				}

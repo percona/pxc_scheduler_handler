@@ -1,17 +1,18 @@
 package Global
 
 import (
+	"errors"
 	"fmt"
-	"github.com/Tusamarco/toml"
-	log "github.com/sirupsen/logrus"
 	"os"
 	"reflect"
+	"regexp"
+	"strconv"
 	"strings"
 	"syscall"
-	//"github.com/alexflint/go-arg"
+
+	"github.com/Tusamarco/toml"
+	log "github.com/sirupsen/logrus"
 )
-
-
 
 /*
 Here we have the references objects and methods to deal with the configuration file
@@ -87,60 +88,140 @@ type globalScheduler struct {
 	Performance bool
 }
 
-var Args struct {
-	ConfigFile string `arg:"required" arg:"--configFile" help:"Config file name"`
-	Configpath string `arg:" --configpath" help:"Config path name. if omitted execution directory is used"`
+func splitArguments(args string) (map[string]string, error) {
+	a := regexp.MustCompile("\\s*--")
+	tokens := a.Split(args, -1)
 
-	//Global scheduler conf
-	Debug       bool
-	LogLevel    string
-	LogTarget   string // #stdout | file
-	LogFile     string //"/tmp/pscheduler"
-	Development bool
-	DevInterval int
-	Performance bool
+	result := make(map[string]string)
+	for i := 0; i < len(tokens); i++ {
+		if len(tokens[i]) == 0 {
+			continue
+		}
+		kv := strings.Split(tokens[i], "=")
+		if len(kv) != 2 {
+			return nil, errors.New("Invalid token: " + tokens[i])
+		}
+		result[strings.ToLower(strings.TrimSpace(kv[0]))] = strings.TrimSpace(kv[1])
+	}
+	return result, nil
+}
 
-	//type pxcCluster struct {
-	ActiveFailover     int
-	FailBack           bool
-	CheckTimeOut       int
-	ClusterId          int
-	DevelopmentTime    int32
-	LogDir             string
-	MainSegment        int
-	MaxNumWriters      int
-	RetryDown          int
-	RetryUp            int
-	SinglePrimary      bool
-	SslClient          string
-	SslKey             string
-	SslCa              string
-	SslcertificatePath string
-	WriterIsAlsoReader int
-	HgW                int
-	HgR                int
-	BckHgW             int
-	BckHgR             int
-	SingleWriter       int
-	MaxWriters         int
+type BaseConfigProvider func(map[string]string) *Configuration
 
-	//ProxySQL configuration class
-	//type proxySql struct {
-	Host      string
-	Password  string
-	Port      int
-	User      string
-	Clustered bool
+func GetConfig(args []string, baseConfigProvider BaseConfigProvider) (*Configuration, error) {
+	// we expect exactly one argument which is the string containing
+	// all possible arguments (this is because ProxySQL allows scheduler script
+	// to be called with at most 5 command line arguments)
+	if len(args) != 2 {
+		return nil, errors.New("Invalid configuration")
+	}
+
+	argsMap, err := splitArguments(args[1])
+	if err != nil {
+		return nil, errors.New("Error while parsing arguments")
+	}
+
+	// configfile is mandatory argument
+	if _, ok := argsMap["configfile"]; !ok {
+		return nil, errors.New("Missing 'configfile' argument")
+	}
+
+	config := baseConfigProvider(argsMap)
+	if config == nil {
+		return nil, errors.New("Error while loading base config")
+	}
+
+	// Now override config got from file with command line parameters
+	config.align(argsMap)
+
+	//Let us do a sanity check on the configuration to prevent most obvious issues
+	config.sanityCheck()
+
+	return config, nil
+}
+
+func alignCommon(ps reflect.Value, k string, v string) bool {
+	s := ps.Elem()
+	if s.Kind() == reflect.Struct {
+		k = strings.ToLower(k)
+		f := s.FieldByNameFunc(func(s string) bool { return strings.ToLower(s) == k })
+		if f.IsValid() && f.CanSet() {
+			switch f.Kind() {
+			case reflect.Int:
+				if x, err := strconv.Atoi(v); err == nil {
+					if !f.OverflowInt(int64(x)) {
+						f.SetInt(int64(x))
+						return true
+					}
+				}
+			case reflect.String:
+				f.SetString(v)
+				return true
+			case reflect.Bool:
+				if b, err := strconv.ParseBool(v); err == nil {
+					f.SetBool(b)
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
+func (conf *pxcCluster) align(k string, v string) bool {
+	return alignCommon(reflect.ValueOf(conf), k, v)
+}
+
+func (conf *proxySql) align(k string, v string) bool {
+	return alignCommon(reflect.ValueOf(conf), k, v)
+}
+
+func (conf *globalScheduler) align(k string, v string) bool {
+	return alignCommon(reflect.ValueOf(conf), k, v)
+}
+
+func (conf *Configuration) align(params map[string]string) {
+
+	for k, v := range params {
+		modParam := strings.SplitN(k, ".", 2)
+		if len(modParam) != 2 {
+			continue
+		}
+		switch strings.ToLower(modParam[0]) {
+		case "proxysql":
+			conf.Proxysql.align(modParam[1], v)
+		case "pxccluster":
+			conf.Pxcluster.align(modParam[1], v)
+		case "global":
+			conf.Global.align(modParam[1], v)
+		}
+	}
 }
 
 //Methods to return the config as map
-func GetConfig(path string) Configuration {
+func GetConfigFromFile(args map[string]string) *Configuration {
+	// parse config file to get the base configuration
+	//read config and return a config object
+	configFile := args["configfile"]
+
+	var configPath string
+
+	if _, ok := args["configpath"]; ok {
+		configPath = args["configpath"] + Separator
+	} else {
+		currPath, err := os.Getwd()
+		if err != nil {
+			return nil
+		}
+		configPath = currPath + Separator + "config" + Separator
+	}
+
 	var config Configuration
-	if _, err := toml.DecodeFile(path, &config); err != nil {
+	if _, err := toml.DecodeFile(configPath+configFile, &config); err != nil {
 		fmt.Println(err)
 		syscall.Exit(2)
 	}
-	return config
+	return &config
 }
 
 func (conf *Configuration) SanityCheck() {
@@ -213,71 +294,3 @@ func InitLog(config Configuration) {
 	}
 
 }
-
-//WIP not use
-func (config *Configuration) AlignWithArgs(osArgs []string) {
-	iargs := len(osArgs) - 1
-	localArgs := make([]string, iargs, 100)
-	iargs = 0
-	for i := 1; i < len(osArgs); i++ {
-		temp := strings.ReplaceAll(osArgs[i], "--", "")
-		localArgs[iargs] = temp
-		iargs++
-	}
-
-	refArgs := reflect.ValueOf(Args)
-	//refGlobal := reflect.ValueOf(config.Global)
-	//refProxy := reflect.ValueOf(&config.Proxysql)
-	//refPxc := reflect.ValueOf(&config.Pxcluster)
-
-
-	//argsArray := make([]string,refArgs.NumField())
-
-
-	fmt.Print("\n")
-	var err error
-	//Now wr set the values from command line to Conf structure
-	for iargs = 0; iargs < len(localArgs) ; iargs++ {
-		value := refArgs.FieldByName(localArgs[iargs])
-		err = ReflectStructField(&config.Pxcluster,localArgs[iargs])
-
-		if err == nil {
-			f :=  reflect.ValueOf(&config.Pxcluster)
-			fType := f.Elem().Type()
-			typeOf := reflect.ValueOf(config.Pxcluster).Type()
-
-			for i := 0 ; i < f.Elem().NumField() ; i++{
-				if f.Elem().Field(i).CanInterface(){
-					name := typeOf.Field(i).Name
-					fmt.Print(name,"  ", localArgs[iargs],"\n")
-					if name == localArgs[iargs]{
-						fieldType := typeOf.Field(i).Type.Name()
-						kValue := reflect.ValueOf(value)
-						fmt.Printf("field type: ", fieldType,"\n")
-						fmt.Printf(" value = %d \n",kValue)
-						if kValue.IsValid() {
-							f.Elem().Field(i).Set(kValue.Convert(fType.Field(i).Type))
-						}
-					}
-				}
-				//fmt.Print(localArgs[iargs], " = ", value, "\n")
-				break
-			}
-		}else{
-			fmt.Print(localArgs[iargs], " Not present in refPxc ",err, "\n")
-		}
-
-	}
-
-
-	// we need to loop for each element
-	//typeOfG := refGlobal.Type()
-
-	//fmt.Print(typeOfG.Field(1).Name)
-
-	//iArgs := refArgs.NumField()
-	//iG := refGlobal.NumField()
-	fmt.Print("\n")
-
-}
-

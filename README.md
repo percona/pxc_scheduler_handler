@@ -75,7 +75,7 @@ We have to configure also nodes in 8XXX:
 - HG 8101 for Reads
 
 We will need to :
-```
+```MySQL
 delete from mysql_servers where hostgroup_id in (100,101,8100,8101);
 INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('192.168.4.22',100,3306,1000,2000,'Preferred writer');
 INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('192.168.4.23',100,3306,999,2000,'Second preferred ');
@@ -136,7 +136,7 @@ OS = "na"
 - host : [127.0.0.1] IP address used to connect to ProxySQL
 - user : [] User able to connect to ProxySQL
 - password : [] Password 
-- clustered : [false] If this is __NOT__ a single instance then we need to put a lock on the running scheduler (see Working with Cluster section)
+- clustered : [false] If this is __NOT__ a single instance then we need to put a lock on the running scheduler (see [Working with ProxySQL cluster](Working-with-ProxySQL-cluster) section)
 - initialized : not used (for the moment) 
 
 #### Pxccluster
@@ -163,14 +163,14 @@ OS = "na"
 ## Examples of configurations in ProxySQL
 Simply pass max 2 arguments 
 
-``` 
+```MySQL 
 INSERT  INTO scheduler (id,active,interval_ms,filename,arg1) values (10,0,2000,"/var/lib/proxysql/pxcScheduler","--configfile=config.toml","--configpath=<path to config>");
 LOAD SCHEDULER TO RUNTIME;SAVE SCHEDULER TO DISK;
 ```
 
 
 To Activate it:
-``` 
+```MySQL 
 update scheduler set active=1 where id=10;
 LOAD SCHEDULER TO RUNTIME;
 ```
@@ -199,6 +199,9 @@ PXC_MAIN_MODE is fully supported. Any node in a state different from pxc_maint_m
 
 __Single Writer__
 You can define IF you want to have multiple writers. Default is 1 writer only (I strongly recommend you to do not use multiple writers unless you know very well what are you doing), but you can now have multiple writers at the same time.
+
+
+## Working with ProxySQL cluster
 
 
 ## Download and compile from source

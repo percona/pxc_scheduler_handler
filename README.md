@@ -202,7 +202,7 @@ You can define IF you want to have multiple writers. Default is 1 writer only (I
 
 
 ## Working with ProxySQL cluster
-
+WIP
 
 ## Download and compile from source
 Once you have GO installed and running (at least version 1.15.8)

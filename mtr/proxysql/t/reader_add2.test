@@ -1,0 +1,2 @@
+--let $proxysql_scheduler_config = config_writer_is_reader.toml
+--source reader_add.inc

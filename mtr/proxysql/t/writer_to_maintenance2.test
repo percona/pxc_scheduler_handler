@@ -9,7 +9,7 @@
 #     => node_1 state changes to ONLINE. Node moved to readers only
 #     => node_3 still writer the only writer
 
---let $proxysql_scheduler_config = writer_to_maintenance2.toml
+--let $proxysql_scheduler_config = config_writer_is_reader.toml
 --let $action_1_node = node_1
 --let $action_1 = SET global pxc_maint_mode=MAINTENANCE;
 --let $action_2_node = node_1

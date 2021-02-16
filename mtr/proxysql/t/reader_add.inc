@@ -9,8 +9,6 @@
 #   => node_3 promoted to writer
 #   => node_2 status changed to SHUNED, node moved to hostgroup 9100
 
---let $proxysql_scheduler_config = config_writer_is_reader.toml
-
 
 --source include/galera_cluster_3nodes.inc
 
@@ -49,6 +47,7 @@
 
 --eval INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',8100,$NODE_MYPORT_1,1000,1000,'Backup writer 1')
 --eval INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',8100,$NODE_MYPORT_3,10000,999,'Backup writer 2')
+--eval INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',8101,$NODE_MYPORT_3,10000,999,'Backup reader 1')
 
 # scheduler script
 # allow scheduler script to write its logs
@@ -60,7 +59,7 @@
 # --eval INSERT INTO scheduler (id,active,interval_ms,filename,arg1) values (10,1,3000,"$proxysql_scheduler_script","-u=admin -p=admin -h=127.0.0.1 -H=$wHG:W,$rHG:R -P=6032 --debug=1 --active_failover=1 --retry_down=2 --writer_is_also_reader=0 --log=$MYSQL_TMP_DIR/galera_check-perl.log")
 # The following line works with Golang
 --replace_result $proxysql_scheduler_script SCHEDULER_SCRIPT $proxysql_scheduler_config_dir CONFIG_DIR
---eval INSERT INTO scheduler (id,active,interval_ms,filename,arg1,arg2) values (10,1,3000,"$proxysql_scheduler_script","--configfile=$proxysql_scheduler_config","--configpath=$proxysql_scheduler_config_dir")
+--eval INSERT INTO scheduler (id,active,interval_ms,filename,arg1,arg2) values (10,1,3000,"$proxysql_scheduler_script","--configfile=$proxysql_scheduler_config", "--configpath=$proxysql_scheduler_config_dir")
 
 --source ../include/apply_proxysql_config.inc
 
@@ -75,33 +74,23 @@ CREATE TABLE t1 (a int primary key);
 INSERT INTO t1 VALUES (1), (2), (3);
 
 --echo #
---echo # node_2 kill
+--echo # remove reader from active HG $rHG
 --echo #
---connection node_2
---source include/kill_mysqld.inc
+--connection proxysql_admin
+--eval DELETE FROM mysql_servers where hostgroup_id=$rHG
+--source ../include/apply_proxysql_config.inc
 
 # now let ProxySQL scheduler detect this change and do its job
 --sleep 60
 
-# Reconnect allowing ProxySQL to route to the new backend
---disconnect conn_app_test
---connect(conn_app_test, 127.0.0.1, app_test, test, , 6033)
---connection conn_app_test
-INSERT INTO t1 VALUES (11), (12), (13);
-
-
 #
 # ASSERT 1
 #
-
+--disconnect proxysql_admin
+--connect(proxysql_admin, 127.0.0.1, admin, admin, , 6032)
 --connection proxysql_admin
+
 --eval SELECT * FROM runtime_mysql_servers ORDER BY hostgroup_id, port;
-
---connection conn_app_test
-# verify that writes reached the backend
-SELECT COUNT(*) FROM t1;
-
-
 
 #
 # CLEANUP
@@ -113,6 +102,5 @@ SELECT COUNT(*) FROM t1;
 
 # pxc
 --connection node_2
---source include/start_mysqld.inc
 DROP TABLE t1;
 --source ../include/common_pxc_deinit.inc

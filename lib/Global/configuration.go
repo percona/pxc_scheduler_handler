@@ -2,16 +2,14 @@ package Global
 
 import (
 	"fmt"
-	"github.com/Tusamarco/toml"
-	log "github.com/sirupsen/logrus"
 	"os"
-	"reflect"
 	"strings"
 	"syscall"
+
+	"github.com/Tusamarco/toml"
+	log "github.com/sirupsen/logrus"
 	//"github.com/alexflint/go-arg"
 )
-
-
 
 /*
 Here we have the references objects and methods to deal with the configuration file
@@ -87,52 +85,6 @@ type globalScheduler struct {
 	Performance bool
 }
 
-var Args struct {
-	ConfigFile string `arg:"required" arg:"--configFile" help:"Config file name"`
-	Configpath string `arg:" --configpath" help:"Config path name. if omitted execution directory is used"`
-
-	//Global scheduler conf
-	Debug       bool
-	LogLevel    string
-	LogTarget   string // #stdout | file
-	LogFile     string //"/tmp/pscheduler"
-	Development bool
-	DevInterval int
-	Performance bool
-
-	//type pxcCluster struct {
-	ActiveFailover     int
-	FailBack           bool
-	CheckTimeOut       int
-	ClusterId          int
-	DevelopmentTime    int32
-	LogDir             string
-	MainSegment        int
-	MaxNumWriters      int
-	RetryDown          int
-	RetryUp            int
-	SinglePrimary      bool
-	SslClient          string
-	SslKey             string
-	SslCa              string
-	SslcertificatePath string
-	WriterIsAlsoReader int
-	HgW                int
-	HgR                int
-	BckHgW             int
-	BckHgR             int
-	SingleWriter       int
-	MaxWriters         int
-
-	//ProxySQL configuration class
-	//type proxySql struct {
-	Host      string
-	Password  string
-	Port      int
-	User      string
-	Clustered bool
-}
-
 //Methods to return the config as map
 func GetConfig(path string) Configuration {
 	var config Configuration
@@ -161,12 +113,12 @@ func (conf *Configuration) SanityCheck() {
 
 	//check for HG consistency
 	// here HG and backup HG must match
-	if conf.Pxcluster.HgW + 8000 != conf.Pxcluster.BckHgW || conf.Pxcluster.HgR + 8000 != conf.Pxcluster.BckHgR{
+	if conf.Pxcluster.HgW+8000 != conf.Pxcluster.BckHgW || conf.Pxcluster.HgR+8000 != conf.Pxcluster.BckHgR {
 		log.Error(fmt.Sprintf("Hostgroups and Backup HG do not match. HGw %d - BKHGw %d; HGr %d - BKHGr %d",
 			conf.Pxcluster.HgW,
 			conf.Pxcluster.BckHgW,
 			conf.Pxcluster.HgR,
-			conf.Pxcluster.BckHgR ))
+			conf.Pxcluster.BckHgR))
 		os.Exit(1)
 	}
 
@@ -213,71 +165,3 @@ func InitLog(config Configuration) {
 	}
 
 }
-
-//WIP not use
-func (config *Configuration) AlignWithArgs(osArgs []string) {
-	iargs := len(osArgs) - 1
-	localArgs := make([]string, iargs, 100)
-	iargs = 0
-	for i := 1; i < len(osArgs); i++ {
-		temp := strings.ReplaceAll(osArgs[i], "--", "")
-		localArgs[iargs] = temp
-		iargs++
-	}
-
-	refArgs := reflect.ValueOf(Args)
-	//refGlobal := reflect.ValueOf(config.Global)
-	//refProxy := reflect.ValueOf(&config.Proxysql)
-	//refPxc := reflect.ValueOf(&config.Pxcluster)
-
-
-	//argsArray := make([]string,refArgs.NumField())
-
-
-	fmt.Print("\n")
-	var err error
-	//Now wr set the values from command line to Conf structure
-	for iargs = 0; iargs < len(localArgs) ; iargs++ {
-		value := refArgs.FieldByName(localArgs[iargs])
-		err = ReflectStructField(&config.Pxcluster,localArgs[iargs])
-
-		if err == nil {
-			f :=  reflect.ValueOf(&config.Pxcluster)
-			fType := f.Elem().Type()
-			typeOf := reflect.ValueOf(config.Pxcluster).Type()
-
-			for i := 0 ; i < f.Elem().NumField() ; i++{
-				if f.Elem().Field(i).CanInterface(){
-					name := typeOf.Field(i).Name
-					fmt.Print(name,"  ", localArgs[iargs],"\n")
-					if name == localArgs[iargs]{
-						fieldType := typeOf.Field(i).Type.Name()
-						kValue := reflect.ValueOf(value)
-						fmt.Printf("field type: ", fieldType,"\n")
-						fmt.Printf(" value = %d \n",kValue)
-						if kValue.IsValid() {
-							f.Elem().Field(i).Set(kValue.Convert(fType.Field(i).Type))
-						}
-					}
-				}
-				//fmt.Print(localArgs[iargs], " = ", value, "\n")
-				break
-			}
-		}else{
-			fmt.Print(localArgs[iargs], " Not present in refPxc ",err, "\n")
-		}
-
-	}
-
-
-	// we need to loop for each element
-	//typeOfG := refGlobal.Type()
-
-	//fmt.Print(typeOfG.Field(1).Name)
-
-	//iArgs := refArgs.NumField()
-	//iG := refGlobal.NumField()
-	fmt.Print("\n")
-
-}
-

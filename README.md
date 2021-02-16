@@ -164,7 +164,7 @@ OS = "na"
 Simply pass max 2 arguments 
 
 ```MySQL 
-INSERT  INTO scheduler (id,active,interval_ms,filename,arg1) values (10,0,2000,"/var/lib/proxysql/pxcScheduler","--configfile=config.toml","--configpath=<path to config>");
+INSERT  INTO scheduler (id,active,interval_ms,filename,arg1,arg2) values (10,0,2000,"/var/lib/proxysql/pxcScheduler","--configfile=config.toml","--configpath=<path to config>");
 LOAD SCHEDULER TO RUNTIME;SAVE SCHEDULER TO DISK;
 ```
 

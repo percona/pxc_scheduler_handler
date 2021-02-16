@@ -8,7 +8,7 @@
 #     => node_1 stays reader
 #     => node_3 stays writer
 
---let $proxysql_scheduler_config = writer_to_readonly.toml
+--let $proxysql_scheduler_config = config_writer_is_reader.toml
 --let $action_1_node = node_1
 --let $action_1 = SET GLOBAL read_only=1;
 --let $action_2_node = node_1

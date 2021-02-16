@@ -2,17 +2,18 @@ package main
 
 import (
 	"bufio"
+	"flag"
 	"fmt"
 	"os"
 	"strconv"
 	"time"
-	"flag"
 
 	DO "./lib/DataObjects"
 	Global "./lib/Global"
 	_ "github.com/go-sql-driver/mysql"
 	log "github.com/sirupsen/logrus"
 )
+
 /*
 #######################################
 #
@@ -22,18 +23,17 @@ import (
 # Copyright (C) (2016 - 2021)
 #
 #
-#THIS PROGRAM IS PROVIDED "AS IS" AND WITHOUT ANY EXPRESS OR IMPLIED
-#WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED WARRANTIES OF
-#MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+# THIS PROGRAM IS PROVIDED "AS IS" AND WITHOUT ANY EXPRESS OR IMPLIED
+# WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED WARRANTIES OF
+# MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
 #
-#This program is free software; you can redistribute it and/or modify it under
-#the terms of the GNU General Public License as published by the Free Software
-#Foundation, version 3;
+# This program is free software; you can redistribute it and/or modify it under
+# the terms of the GNU General Public License as published by the Free Software
+# Foundation, version 3;
 #
-#You should have received a copy of the GNU General Public License along with
-#this program; if not, write to the Free Software Foundation, Inc., 59 Temple
-#Place, Suite 330, Boston, MA  02111-1307  USA.
-
+# You should have received a copy of the GNU General Public License along with
+# this program; if not, write to the Free Software Foundation, Inc., 59 Temple
+# Place, Suite 330, Boston, MA  02111-1307  USA.
 #######################################
 */
 /*
@@ -57,16 +57,10 @@ func main() {
 	help := new(Global.HelpText)
 	help.Init()
 
-	//process command line args
-	//arg.MustParse(&Global.Args)
-	//args := Global.Args
-	//fmt.Print(args.ConfigFile)
-	//appPath, _ := os.Getwd()
-
-	flag.StringVar(&configFile,"configfile", "", "Config file name for the script")
-	flag.StringVar(&configPath,"configpath", "", "Config file name for the script")
+	flag.StringVar(&configFile, "configfile", "", "Config file name for the script")
+	flag.StringVar(&configPath, "configpath", "", "Config file path")
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "\n",help.GetHelpText(),"\n")
+		fmt.Fprintf(os.Stderr, "\n%s\n", help.GetHelpText())
 	}
 	flag.Parse()
 
@@ -79,16 +73,16 @@ func main() {
 	var currPath, err = os.Getwd()
 
 	if configPath != "" {
-		if configPath[len(configPath) -1:] == Separator{
+		if configPath[len(configPath)-1:] == Separator {
 			currPath = configPath
-		}else{
+		} else {
 			currPath = configPath + Separator
 		}
-	} else{
+	} else {
 		currPath = currPath + Separator + "config" + Separator
 	}
 
-	if err != nil{
+	if err != nil {
 		fmt.Print("Problem loading the config")
 		os.Exit(1)
 	}
@@ -96,7 +90,6 @@ func main() {
 
 	//osArgs := os.Args
 	// ignore for now WIP config.AlignWithArgs(osArgs)
-
 
 	//Let us do a sanity check on the configuration to prevent most obvious issues
 	config.SanityCheck()

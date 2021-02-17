@@ -6,7 +6,7 @@
 # 2. node_2: SET GLOBAL read_only=0
 #     => node_2 stays reader
 
---let $proxysql_scheduler_config = config_writer_is_reader.toml
+--let $proxysql_scheduler_config = writer_is_reader.toml
 --let $action_1_node = node_2
 --let $action_1 = SET GLOBAL read_only=1;
 --let $action_2_node = node_2

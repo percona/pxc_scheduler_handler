@@ -12,7 +12,7 @@
 #   => node_3 still writer
 #   => node_2 status changed to ONLINE, node removed from hostgroup 9100, node added to reader hostrgroup 101
 
---let $proxysql_scheduler_config = config_writer_is_reader.toml
+--let $proxysql_scheduler_config = writer_is_reader.toml
 
 
 --source include/galera_cluster_3nodes.inc

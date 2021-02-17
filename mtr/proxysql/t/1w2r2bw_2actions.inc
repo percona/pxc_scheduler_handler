@@ -41,12 +41,18 @@
 --source ../include/apply_proxysql_config.inc
 
 # PxC nodes setup
+--replace_result $NODE_MYPORT_1 NODE_MYPORT_1
 --eval INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',$wHG,$NODE_MYPORT_1,10000,1000,'WRITE')
+--replace_result $NODE_MYPORT_1 NODE_MYPORT_1
 --eval INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',$rHG,$NODE_MYPORT_1,100,1000,'READ/WRITE')
+--replace_result $NODE_MYPORT_2 NODE_MYPORT_2
 --eval INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',$rHG,$NODE_MYPORT_2,10000,1000,'READ')
+--replace_result $NODE_MYPORT_3 NODE_MYPORT_3
 --eval INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',$rHG,$NODE_MYPORT_3,10000,1000,'READ')
 
+--replace_result $NODE_MYPORT_2 NODE_MYPORT_2
 --eval INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',8100,$NODE_MYPORT_2,1000,1000,'Backup writer 1')
+--replace_result $NODE_MYPORT_3 NODE_MYPORT_3
 --eval INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',8100,$NODE_MYPORT_3,10000,999,'Backup writer 2')
 
 # scheduler script
@@ -94,6 +100,7 @@ INSERT INTO t1 VALUES (11), (12), (13);
 #
 
 --connection proxysql_admin
+--replace_result $NODE_MYPORT_1 NODE_MYPORT_1 $NODE_MYPORT_2 NODE_MYPORT_2 $NODE_MYPORT_3 NODE_MYPORT_3
 --eval SELECT * FROM runtime_mysql_servers ORDER BY hostgroup_id, port;
 
 --connection conn_app_test
@@ -125,6 +132,7 @@ INSERT INTO t1 VALUES (21), (22), (23);
 #
 
 --connection proxysql_admin
+--replace_result $NODE_MYPORT_1 NODE_MYPORT_1 $NODE_MYPORT_2 NODE_MYPORT_2 $NODE_MYPORT_3 NODE_MYPORT_3
 --eval SELECT * FROM runtime_mysql_servers ORDER BY hostgroup_id, port;
 
 

@@ -1,5 +1,5 @@
 # ProxySQL:
-#   scheduler: active_failover=1 retry_down=2 writer_is_also_reader=0 failBack=false
+#   scheduler: active_failover=1 retry_down=2 writer_is_also_reader=1 failBack=false
 #
 # Scenario:
 # 1. node_3: SET global wsrep_desync=1
@@ -7,9 +7,9 @@
 # 2. node_3: SET global wsrep_desync=0
 #     => node_3 state changes to ONLINE
 
---let $proxysql_scheduler_config = writer_is_not_reader.toml
+--let $proxysql_scheduler_config = writer_is_reader.toml
 --let $action_1_node = node_3
 --let $action_1 = SET global wsrep_desync=1;
 --let $action_2_node = node_3
 --let $action_2 = SET global wsrep_desync=0;
---source 1w2r2bw_2actions.inc
+--source 1w3r2bw_2actions.inc

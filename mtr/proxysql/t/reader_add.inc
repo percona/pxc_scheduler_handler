@@ -1,14 +1,12 @@
-# This is common scenario for 1 writer, 2 reades, 2 backup writers
+# This is common scenario for 1 writer, 2 reades, 2 backup writers, 1 backup reader
 # 1. Setup 3 node PXC cluster
 # 2. Setup ProxySQL 
 #  node_1: reader/backup wrtier weight 1000
 #  node_2: writer
-#  node_3: reader/backup writer weight 999
+#  node_3: reader/backup writer weight 999/backup reader
 # 3. Setup ProxySQL scheduler with config passed in $proxysql_scheduler_config
-# 4. shutdown writer
-#   => node_3 promoted to writer
-#   => node_2 status changed to SHUNED, node moved to hostgroup 9100
-
+# 4. remove all readers from rHG
+# 5. Results depend on WriterIsAlsoReader configuration
 
 --source include/galera_cluster_3nodes.inc
 
@@ -40,19 +38,23 @@
 --source ../include/apply_proxysql_config.inc
 
 # PxC nodes setup
+# writers
 --replace_result $NODE_MYPORT_2 NODE_MYPORT_2
 --eval INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',$wHG,$NODE_MYPORT_2,10000,1000,'WRITE')
---replace_result $NODE_MYPORT_2 NODE_MYPORT_2
---eval INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',$rHG,$NODE_MYPORT_2,100,1000,'READ/WRITE')
+
+# readers
 --replace_result $NODE_MYPORT_1 NODE_MYPORT_1
 --eval INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',$rHG,$NODE_MYPORT_1,10000,1000,'READ')
 --replace_result $NODE_MYPORT_3 NODE_MYPORT_3
 --eval INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',$rHG,$NODE_MYPORT_3,10000,1000,'READ')
 
+# backup writers
 --replace_result $NODE_MYPORT_1 NODE_MYPORT_1
 --eval INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',8100,$NODE_MYPORT_1,1000,1000,'Backup writer 1')
 --replace_result $NODE_MYPORT_3 NODE_MYPORT_3
 --eval INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',8100,$NODE_MYPORT_3,10000,999,'Backup writer 2')
+
+# backup readers
 --replace_result $NODE_MYPORT_3 NODE_MYPORT_3
 --eval INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',8101,$NODE_MYPORT_3,10000,999,'Backup reader 1')
 

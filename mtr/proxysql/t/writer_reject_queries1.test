@@ -1,9 +1,9 @@
-#     scheduler: active_failover=1 retry_down=2 writer_is_also_reader=1 failBack=false
+# scheduler: active_failover=1 retry_down=2 writer_is_also_reader=1 failBack=false
 #
 # Scenario:
 # 1. node_1: SET GLOBAL wsrep_reject_queries=ALL
 #     => node_1 goes to hostgroup 9100
-#     => node_3 promoted to writer
+#     => node_3 promoted to writer, stays reader as well
 # 2. node_1: SET GLOBAL wsrep_reject_queries=NONE
 #     => TODO: what should happen?
 
@@ -12,4 +12,4 @@
 --let $action_1 = SET GLOBAL wsrep_reject_queries=ALL;
 --let $action_2_node = node_1
 --let $action_2 = SET GLOBAL wsrep_reject_queries=NONE;
---source 1w2r2bw_2actions.inc
+--source 1w3r2bw_2actions.inc

@@ -1,17 +1,17 @@
 # ProxySQL:
-#   scheduler: active_failover=1 retry_down=2 writer_is_also_reader=1 failBack=false
+#   scheduler: active_failover=1 retry_down=2 writer_is_also_reader=0 failBack=false
 #
 # Scenario:
 # 1. node_1: set pxc_maint_mode=MAINTENANCE
 #     => node_1 state changes to SOFT_OFFLINE in ProxySQL
-#     => node_3 promoted to writer, not removed from readers
+#     => node_3 promoted to writer, removed from readers
 # 2. node_1: set pxc_maint_mode=DISABLED
-#     => node_1 state changes to ONLINE. Node moved to readers
-#     => node_3 still writer and reader
+#     => node_1 state changes to ONLINE. Node moved to readers only
+#     => node_3 still writer
 
---let $proxysql_scheduler_config = writer_is_reader.toml
+--let $proxysql_scheduler_config = writer_is_not_reader.toml
 --let $action_1_node = node_1
 --let $action_1 = SET global pxc_maint_mode=MAINTENANCE;
 --let $action_2_node = node_1
 --let $action_2 = SET global pxc_maint_mode=DISABLED;
---source 1w3r2bw_2actions.inc
+--source 1w2r2bw_2actions.inc

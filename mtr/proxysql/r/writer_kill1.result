@@ -22,47 +22,49 @@ INSERT INTO mysql_query_rules (rule_id,proxy_port,username,destination_hostgroup
 #
 # Applying ProxySQL configuration
 #
-INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',100,NODE_MYPORT_1,10000,1000,'WRITE');
-INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',101,NODE_MYPORT_1,100,1000,'READ/WRITE');
-INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',101,NODE_MYPORT_2,10000,1000,'READ');
+INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',100,NODE_MYPORT_2,10000,1000,'WRITE');
+INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',101,NODE_MYPORT_2,100,1000,'READ/WRITE');
+INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',101,NODE_MYPORT_1,10000,1000,'READ');
 INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',101,NODE_MYPORT_3,10000,1000,'READ');
-INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',8100,NODE_MYPORT_2,1000,1000,'Backup writer 1');
+INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',8100,NODE_MYPORT_1,1000,1000,'Backup writer 1');
 INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',8100,NODE_MYPORT_3,10000,999,'Backup writer 2');
-INSERT INTO scheduler (id,active,interval_ms,filename,arg1,arg2) values (10,1,3000,"SCHEDULER_SCRIPT","--configfile=writer_is_reader.toml", "--configpath=CONFIG_DIR");
+INSERT INTO scheduler (id,active,interval_ms,filename,arg1,arg2) values (10,1,3000,"SCHEDULER_SCRIPT","--configfile=writer_is_reader.toml","--configpath=CONFIG_DIR");
 #
 # Applying ProxySQL configuration
 #
 CREATE TABLE t1 (a int primary key);
 INSERT INTO t1 VALUES (1), (2), (3);
 #
-# node_3 SET global wsrep_desync=1;
+# node_2 kill
 #
-SET global wsrep_desync=1;;
+# Kill the server
 INSERT INTO t1 VALUES (11), (12), (13);
 SELECT * FROM runtime_mysql_servers ORDER BY hostgroup_id, port;;
 hostgroup_id	hostname	port	gtid_port	status	weight	compression	max_connections	max_replication_lag	use_ssl	max_latency_ms	comment
-100	127.0.0.1	NODE_MYPORT_1	0	ONLINE	10000	0	1000	0	0	0	WRITE
-101	127.0.0.1	NODE_MYPORT_1	0	ONLINE	100	0	1000	0	0	0	READ/WRITE
-101	127.0.0.1	NODE_MYPORT_2	0	ONLINE	10000	0	1000	0	0	0	READ
-101	127.0.0.1	NODE_MYPORT_3	0	OFFLINE_SOFT	10000	0	1000	0	0	0	READ100_W_101_R_retry_up=0;100_W_101_R_retry_down=0;
-8100	127.0.0.1	NODE_MYPORT_2	0	ONLINE	1000	0	1000	0	0	0	Backup writer 1
+100	127.0.0.1	NODE_MYPORT_3	0	ONLINE	10000	0	999	0	0	0	Backup writer 2
+101	127.0.0.1	NODE_MYPORT_1	0	ONLINE	10000	0	1000	0	0	0	READ
+101	127.0.0.1	NODE_MYPORT_3	0	ONLINE	10000	0	1000	0	0	0	READ
+8100	127.0.0.1	NODE_MYPORT_1	0	ONLINE	1000	0	1000	0	0	0	Backup writer 1
 8100	127.0.0.1	NODE_MYPORT_3	0	ONLINE	10000	0	999	0	0	0	Backup writer 2
+9100	127.0.0.1	NODE_MYPORT_2	0	SHUNNED	10000	0	1000	0	0	0	WRITE100_W_101_R_retry_up=0;100_W_101_R_retry_down=1;
+9101	127.0.0.1	NODE_MYPORT_2	0	SHUNNED	100	0	1000	0	0	0	READ/WRITE100_W_101_R_retry_up=0;100_W_101_R_retry_down=1;
 SELECT COUNT(*) FROM t1;
 COUNT(*)
 6
 #
-# node_3 SET global wsrep_desync=0;
+# node_2 back online
 #
-SET global wsrep_desync=0;;
+# restart
 INSERT INTO t1 VALUES (21), (22), (23);
 SELECT * FROM runtime_mysql_servers ORDER BY hostgroup_id, port;;
 hostgroup_id	hostname	port	gtid_port	status	weight	compression	max_connections	max_replication_lag	use_ssl	max_latency_ms	comment
-100	127.0.0.1	NODE_MYPORT_1	0	ONLINE	10000	0	1000	0	0	0	WRITE
-101	127.0.0.1	NODE_MYPORT_1	0	ONLINE	100	0	1000	0	0	0	READ/WRITE
-101	127.0.0.1	NODE_MYPORT_2	0	ONLINE	10000	0	1000	0	0	0	READ
-101	127.0.0.1	NODE_MYPORT_3	0	ONLINE	10000	0	1000	0	0	0	READ100_W_101_R_retry_up=0;100_W_101_R_retry_down=0;
-8100	127.0.0.1	NODE_MYPORT_2	0	ONLINE	1000	0	1000	0	0	0	Backup writer 1
+100	127.0.0.1	NODE_MYPORT_3	0	ONLINE	10000	0	999	0	0	0	Backup writer 2
+101	127.0.0.1	NODE_MYPORT_1	0	ONLINE	10000	0	1000	0	0	0	READ100_W_101_R_retry_up=0;100_W_101_R_retry_down=0;
+101	127.0.0.1	NODE_MYPORT_2	0	ONLINE	100	0	1000	0	0	0	READ/WRITE100_W_101_R_retry_up=0;100_W_101_R_retry_down=0;
+101	127.0.0.1	NODE_MYPORT_3	0	ONLINE	10000	0	1000	0	0	0	READ
+8100	127.0.0.1	NODE_MYPORT_1	0	ONLINE	1000	0	1000	0	0	0	Backup writer 1
 8100	127.0.0.1	NODE_MYPORT_3	0	ONLINE	10000	0	999	0	0	0	Backup writer 2
+9100	127.0.0.1	NODE_MYPORT_2	0	ONLINE	10000	0	1000	0	0	0	WRITE100_W_101_R_retry_up=0;100_W_101_R_retry_down=1;
 SELECT COUNT(*) FROM t1;
 COUNT(*)
 9

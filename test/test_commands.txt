@@ -20,6 +20,10 @@ Commands :
  Command put just selected writer to maintenance: set global pxc_maint_mode = maintenance;
  Results: OK
 
+MTR:
+reader_to_maintenance1.test
+writer_to_maintenance1.test 
+
  ----------------------------------------------------------
  Test : wsrep_desync (or any state <> 4)
  Expectations:
@@ -34,6 +38,10 @@ Commands :
  This is correct given Write HG has 1 node desync should not take place (like if donor).
  For reader HG we have multiple nodes so all good to be desync
 
+MTR:
+reader_desync1.test
+writer_desync1.test
+
  ----------------------------------------------------------
  Test : Read_only = 1
  Expectations: node is removed from writers
@@ -45,6 +53,10 @@ Commands :
  Command on a writer node: set global READ_ONLY = 1;
  Results: fail-over to the next available backup
 
+MTR:
+reader_to_readonly1.test
+writer_to_readonly1.test
+
  ----------------------------------------------------------
  Test : wsrep_reject_queries <> none
  Expectations: node is moved to HG 9000
@@ -55,6 +67,10 @@ Commands :
  Command: on reader: set global wsrep_reject_queries=all;
  Results: reader goes to 9000
 
+MTR:
+reader_reject_queries1.test
+writer_reject_queries1.test
+
  ----------------------------------------------------------
  Test : on SHUNNED
  Expectations: node is moved to HG 9000
@@ -63,6 +79,8 @@ Commands :
 
 on failback online Reader is add back Writer attempt to come back if no writer
 
+MTR:
+writer_kill1.test
 
 ----------------------------------------------------------
 Test : on Crash or network down
@@ -87,6 +105,9 @@ Command: delete from mysql_servers where hostname = '<ip>' and hostgroup_id in (
 Results: node in Backup HGs is inserted back first in 9000 Reader HG, then evaluated and if successful promoted to HGRead
 
 if Failback node is also move back to writer and previous writer moved to offline_soft
+
+MTR:
+reader_add1.test
 
 ****************************************************************
  All tests passed
@@ -114,6 +135,9 @@ on failback
  Command : set global pxc_maint_mode = disabled;
  Results: OK - writer is put to offline soft and old node put back
 
+MTR: 
+reader_to_maintenance2.test
+writer_to_maintenance2.test
 
  ----------------------------------------------------------
  Test : wsrep_desync (or any state <> 4)
@@ -125,6 +149,9 @@ on failback
 Failover
  Command: on writer: set global wsrep_desync=1;
  Results: nodes are swap back
+
+MTR:
+writer_desync2.test
 
  ----------------------------------------------------------
  Test : Read_only = 1
@@ -278,6 +305,8 @@ Commands :
 
  Results: OK
 
+MTR:
+writer_to_maintenance4.test
 
  ----------------------------------------------------------
  Test : wsrep_desync (or any state <> 4)
@@ -341,3 +370,6 @@ Expectations: when a new node comes online and is declared in the 8000 HG, it is
 
 Command: delete from mysql_servers where hostname = '<ip>' and hostgroup_id in (list of active HGs !!!NOT the backup HGs !!!)
 Results: node in Backup HGs is inserted back first in 9000 Reader HG, then evaluated and if successful promoted to HGRead
+
+MTR: 
+reader_add4.test

@@ -6,7 +6,7 @@
 # 3. Setup ProxySQL scheduler with config passed in $proxysql_scheduler_config
 # 4. remove all readers from rHG
 #   => node_3 added back to rHG
-#   => node_2 added to rHG as WriterIsAlsoReader=true
+#   => node_2 NOT added to rHG as WriterIsAlsoReader=false
 
---let $proxysql_scheduler_config = writer_is_reader.toml
+--let $proxysql_scheduler_config = writer_is_not_reader.toml
 --source reader_add.inc

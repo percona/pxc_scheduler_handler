@@ -1,5 +1,5 @@
 # ProxySQL:
-#   scheduler: active_failover=1 retry_down=2 writer_is_also_reader=0
+#   scheduler: active_failover=1 retry_down=2 writer_is_also_reader=1 failBack=1
 #
 # Scenario:
 # 1. node_2: set pxc_maint_mode=MAINTENANCE
@@ -7,9 +7,9 @@
 # 2. node_2: set pxc_maint_mode=DISABLED
 #     => node_2 state changes to ONLINE. Node still in readers
 
---let $proxysql_scheduler_config = config_writer_is_reader.toml
+--let $proxysql_scheduler_config = writer_is_reader_failback.toml
 --let $action_1_node = node_2
 --let $action_1 = SET global pxc_maint_mode=MAINTENANCE;
 --let $action_2_node = node_2
 --let $action_2 = SET global pxc_maint_mode=DISABLED;
---source 1w2r2bw_2actions.inc
+--source 1w3r2bw_2actions.inc

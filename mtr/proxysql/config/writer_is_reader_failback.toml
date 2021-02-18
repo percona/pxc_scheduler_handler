@@ -1,7 +1,7 @@
 
 [pxccluster]
 activeFailover = 1
-failBack = false
+failBack = true
 checkTimeOut = 200
 debug = 1
 mainSegment = 0

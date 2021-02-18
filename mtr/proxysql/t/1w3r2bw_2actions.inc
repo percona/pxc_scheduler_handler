@@ -1,7 +1,7 @@
-# This is common scenario for 1 writer, 2 reades, 2 backup writers
+# This is common scenario for 1 writer, 3 reades, 2 backup writers
 # 1. Setup 3 node PXC cluster
 # 2. Setup ProxySQL 
-#  node_1: writer
+#  node_1: writer/reader
 #  node_2: reader/backup writer weight 1000
 #  node_3: reader/backup writer weight 999
 # 3. Setup ProxySQL scheduler with config passed in $proxysql_scheduler_config
@@ -46,6 +46,8 @@
 --eval INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',$wHG,$NODE_MYPORT_1,10000,1000,'WRITE')
 
 # readers
+--replace_result $NODE_MYPORT_1 NODE_MYPORT_1
+--eval INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',$rHG,$NODE_MYPORT_1,100,1000,'READ/WRITE')
 --replace_result $NODE_MYPORT_2 NODE_MYPORT_2
 --eval INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',$rHG,$NODE_MYPORT_2,10000,1000,'READ')
 --replace_result $NODE_MYPORT_3 NODE_MYPORT_3

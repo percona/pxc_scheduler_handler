@@ -2,7 +2,7 @@
   <configuration default="false" name="proxyPxcScheduler" type="GoApplicationRunConfiguration" factoryName="Go Application">
     <module name="pxc_scheduler" />
     <working_directory value="$PROJECT_DIR$" />
-    <parameters value="-help --configfile=config.toml --configpath=$PROJECT_DIR$/config/" />
+    <parameters value=" --configfile=config.toml --configpath=$PROJECT_DIR$/config/" />
     <kind value="DIRECTORY" />
     <filePath value="$PROJECT_DIR$/proxy_scheduler.go|$PROJECT_DIR$/proxyPxcScheduler.go|$PROJECT_DIR$/proxyPxcScheduler.go" />
     <directory value="$PROJECT_DIR$" />

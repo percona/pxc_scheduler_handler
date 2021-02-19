@@ -29,8 +29,8 @@ port = 6032
 host = "192.168.4.191"
 user = "cluster1"
 password = "clusterpass"
-clustered = false
-initialize = true
+clustered = true
+lockfilepath ="/tmp"
 
 
 [global]
@@ -42,3 +42,5 @@ development = true
 devInterval = 2000
 performance = true
 OS = "na"
+lockfiletimeout = 60 #seconds
+lockclustertimeout = 600 #120 # seconds

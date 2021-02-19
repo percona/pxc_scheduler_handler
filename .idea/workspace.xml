@@ -8,8 +8,14 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="c603b4de-b46a-45fd-bef4-8d20deb405fc" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/runConfigurations/proxyPxcScheduler.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/runConfigurations/proxyPxcScheduler.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/lib/DataObjects/Locker.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/config.toml" beforeDir="false" afterPath="$PROJECT_DIR$/config/config.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/DataObjects/proxySQLObjects.go" beforeDir="false" afterPath="$PROJECT_DIR$/lib/DataObjects/proxySQLObjects.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/Global/configuration.go" beforeDir="false" afterPath="$PROJECT_DIR$/lib/Global/configuration.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/Global/utils.go" beforeDir="false" afterPath="$PROJECT_DIR$/lib/Global/utils.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/Sql/Proxy/sqlobjects.go" beforeDir="false" afterPath="$PROJECT_DIR$/lib/Sql/Proxy/sqlobjects.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pxcScheduler.go" beforeDir="false" afterPath="$PROJECT_DIR$/pxcScheduler.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/.travis.yml" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/.travis.yml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/COMPATIBLE" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/COMPATIBLE" afterDir="false" />
@@ -308,16 +314,16 @@
     <property name="node.js.selected.package.eslint" value="(autodetect)" />
     <property name="node.js.selected.package.tslint" value="(autodetect)" />
     <property name="run.code.analysis.last.selected.profile" value="pProject Default" />
-    <property name="settings.editor.selected.configurable" value="go.sdk" />
+    <property name="settings.editor.selected.configurable" value="project.propVCSSupport.CommitDialog" />
   </component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="D:\work\github\pxc_scheduler" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/lib/DataObjects" />
       <recent name="$PROJECT_DIR$/test" />
       <recent name="$PROJECT_DIR$/lib/Global" />
-      <recent name="$PROJECT_DIR$/lib/DataObjects" />
       <recent name="$PROJECT_DIR$/lib/Sql/proxy" />
       <recent name="D:\work\github\pxc_scheduler\lib" />
     </key>
@@ -357,11 +363,6 @@
           <option name="timeStamp" value="122" />
         </line-breakpoint>
         <line-breakpoint type="DlvLineBreakpoint">
-          <url>file://$PROJECT_DIR$/pxcScheduler.go</url>
-          <line>75</line>
-          <option name="timeStamp" value="127" />
-        </line-breakpoint>
-        <line-breakpoint type="DlvLineBreakpoint">
           <url>file://$PROJECT_DIR$/lib/DataObjects/dataObjects.go</url>
           <line>892</line>
           <option name="timeStamp" value="159" />
@@ -383,25 +384,25 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" type="DlvLineBreakpoint">
           <url>file://$PROJECT_DIR$/pxcScheduler.go</url>
-          <line>73</line>
-          <option name="timeStamp" value="169" />
+          <line>152</line>
+          <option name="timeStamp" value="188" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="DlvLineBreakpoint">
-          <url>file://$PROJECT_DIR$/pxcScheduler.go</url>
-          <line>65</line>
-          <option name="timeStamp" value="170" />
+          <url>file://$PROJECT_DIR$/lib/DataObjects/Locker.go</url>
+          <line>165</line>
+          <option name="timeStamp" value="196" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="DlvLineBreakpoint">
-          <url>file://$PROJECT_DIR$/pxcScheduler.go</url>
-          <line>70</line>
-          <option name="timeStamp" value="172" />
+          <url>file://$PROJECT_DIR$/lib/DataObjects/Locker.go</url>
+          <line>145</line>
+          <option name="timeStamp" value="206" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$PROJECT_DIR$/lib/DataObjects/Locker.go</url>
+          <line>152</line>
+          <option name="timeStamp" value="207" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
-    <watches-manager>
-      <configuration name="GoApplicationRunConfiguration">
-        <watch expression="flag" language="go" />
-      </configuration>
-    </watches-manager>
   </component>
 </project>

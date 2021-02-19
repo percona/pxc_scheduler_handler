@@ -7,8 +7,6 @@ No SQL should be hardcoded in the any other class
 
 
 const(
-
-
 	//get MySQL nodes to process based on the HG
 	//+--------------+---------------+------+-----------+--------------+---------+-------------+-----------------+---------------------+---------+----------------+-------------------------------------------------------------|---------+
 	//| hostgroup_id | hostname      | port | gtid_port | status       | weight  | compression | max_connections | max_replication_lag | use_ssl | max_latency_ms | comment                                                     |ConnUsed|
@@ -16,4 +14,6 @@ const(
 
       //get Variables
     Dml_show_variables="SHOW GLOBAL VARIABLES"
+
+    Dml_select_proxy_servers = "select weight,hostname,port,comment from runtime_proxysql_servers order by weight desc"
 )

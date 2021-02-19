@@ -265,6 +265,12 @@ func (o *OrderedPerfMap) Iterator() func() (*int, *string, PerfObject) {
 	}
 }
 
+func CheckIfPathExists(path string) bool {
+	if _, err := os.Stat(path); !os.IsNotExist(err) {
+		return true
+	}
+	return false
+}
 //=======
 
 func caseInsenstiveFieldByName(v reflect.Value, name string) reflect.Value {
@@ -348,3 +354,5 @@ func ReportPerformance() {
 		}
 	}
 }
+
+

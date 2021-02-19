@@ -1,11 +1,9 @@
 package main
 
 import (
-	"bufio"
 	"flag"
 	"fmt"
 	"os"
-	"strconv"
 	"time"
 
 	DO "./lib/DataObjects"
@@ -46,17 +44,22 @@ func main() {
 	)
 	var devLoopWait = 0
 	var devLoop = 0
-	var lockId string //LockId is compose by clusterID_HG_W_HG_R
+	//var lockId string //LockId is compose by clusterID_HG_W_HG_R
 
 	var configFile string
 	var configPath string
+	locker := new(DO.Locker)
 
-	// By default performance collection is disabled
-	Global.Performance = false
+
 	//initialize help
 	help := new(Global.HelpText)
 	help.Init()
 
+
+	// By default performance collection is disabled
+	Global.Performance = false
+
+	//Manage config and parameters from conf file [start]
 	flag.StringVar(&configFile, "configfile", "", "Config file name for the script")
 	flag.StringVar(&configPath, "configpath", "", "Config file path")
 	flag.Usage = func() {
@@ -88,29 +91,39 @@ func main() {
 	}
 	var config = Global.GetConfig(currPath + configFile)
 
-	//osArgs := os.Args
-	// ignore for now WIP config.AlignWithArgs(osArgs)
-
 	//Let us do a sanity check on the configuration to prevent most obvious issues
 	config.SanityCheck()
+	//Manage config and parameters from conf file [END]
 
-	// Set lock file
-	lockId = strconv.Itoa(config.Pxcluster.ClusterId) +
-		"_HG_" + strconv.Itoa(config.Pxcluster.HgW) +
-		"_W_HG_" + strconv.Itoa(config.Pxcluster.HgR) +
-		"_R"
 
-	if !config.Global.Development {
-		if !setLockFile(lockId) {
+	//Initialize the locker
+	if !locker.Init(&config){
+		log.Error("Cannot initialize Locker")
+		os.Exit(1)
+	}
+
+	//if !config.Global.Development {
+	//	if !locker.SetLockFile() {
+	//		fmt.Print("Cannot create a lock, exit")
+	//		os.Exit(1)
+	//	}
+	//} else {
+	//	devLoop = 2
+	//	devLoopWait = config.Global.DevInterval
+	//}
+
+	for i := 0; i <= devLoop; {
+		//In case we have development mode active then loop here
+		//TODO devlop will become daemon mode
+		if config.Global.Development {
+			devLoop = 2
+			devLoopWait = config.Global.DevInterval
+		}
+		//set the locker on file
+		if !locker.SetLockFile() {
 			fmt.Print("Cannot create a lock, exit")
 			os.Exit(1)
 		}
-	} else {
-		devLoop = 2
-		devLoopWait = config.Global.DevInterval
-	}
-
-	for i := 0; i <= devLoop; {
 
 		//initialize the log system
 		Global.InitLog(config)
@@ -127,36 +140,29 @@ func main() {
 			Global.SetPerformanceObj("main", true, log.ErrorLevel)
 		}
 		// create the two main containers the ProxySQL cluster and at least ONE ProxySQL node
-		proxysqlCluster := new(DO.ProxySQLCluster)
-		proxysqlNode := new(DO.ProxySQLNode)
+		proxysqlNode := locker.MyServer
 
 		/*
 			TODO the check against a cluster require a PRE-phase to align the nodes and an AFTER to be sure nodes settings are distributed.
 			Not yet implemented
 		*/
 		if config.Proxysql.Clustered {
-			proxysqlCluster.Active = true
-			proxysqlCluster.User = config.Proxysql.User
-			proxysqlCluster.Password = config.Proxysql.Password
-			lockTime := time.Now().UnixNano()
-			log.Debug("Lock time ", lockTime)
 
-			nodes := proxysqlCluster.GetProxySQLnodes()
-			log.Info(" Number of ProxySQL cluster nodes: ", len(nodes))
-
-			// TODO just add the definition of which node we will use (always prefer local) to the proxysql node to continue
-
-		}
-		{
-			//ProxySQL Node work start here
-			if proxysqlNode.Init(config) {
-				if log.GetLevel() == log.DebugLevel {
-					log.Debug("ProxySQL node initialized ")
-				}
-			} else {
-				log.Error("Initialization failed")
+			if locker.CheckClusterLock() != nil{
+				//our node has the lock
+				initProxySQLNode(proxysqlNode, config)
+			}else {
+			//	Another node has the lock we must exit
 				os.Exit(1)
 			}
+		}else{
+			initProxySQLNode(proxysqlNode, config)
+		}
+
+		if proxysqlNode.GetDataCluster(config) {
+			log.Debug("PXC cluster data nodes initialized ")
+		} else {
+			log.Error("Initialization failed")
 		}
 
 		/*
@@ -202,46 +208,27 @@ func main() {
 			i++
 		}
 		log.Info("")
+		locker.RemoveLockFile()
 	}
-	if !config.Global.Development {
-		removeLockFile(lockId)
-	}
+	//if !config.Global.Development {
+	//	locker.RemoveLockFile()
+	//}
 
 }
 
-func setLockFile(lockId string) bool {
-
-	if _, err := os.Stat("/tmp/" + lockId); err == nil {
-		fmt.Printf("A lock file named: /tmp/%s  already exists.\n If this is a refuse of a dirty execution remove it manually to have the check able to run\n", lockId)
-		return false
+func initProxySQLNode(proxysqlNode *DO.ProxySQLNode, config Global.Configuration) {
+	//ProxySQL Node work start here
+	if proxysqlNode.Init(&config) {
+		if log.GetLevel() == log.DebugLevel {
+			log.Debug("ProxySQL node initialized ")
+			//if proxysqlNode.GetDataCluster(config) {
+			//	log.Debug("PXC cluster data nodes initialized ")
+			//} else {
+			//	log.Error("Initialization failed")
+			//}
+		}
 	} else {
-		sampledata := []string{"PID:" + strconv.Itoa(os.Getpid()),
-			"Time:" + strconv.FormatInt(time.Now().Unix(), 10),
-		}
-
-		file, err := os.OpenFile("/tmp/"+lockId, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-
-		if err != nil {
-			fmt.Printf("failed creating lock file: %s", err)
-		}
-
-		datawriter := bufio.NewWriter(file)
-
-		for _, data := range sampledata {
-			_, _ = datawriter.WriteString(data + "\n")
-		}
-
-		datawriter.Flush()
-		file.Close()
+		log.Error("Initialization failed")
+		os.Exit(1)
 	}
-
-	return true
-}
-
-func removeLockFile(lockId string) bool {
-	e := os.Remove("/tmp/" + lockId)
-	if e != nil {
-		log.Fatalf("Cannot remove lock file %s", e)
-	}
-	return true
 }

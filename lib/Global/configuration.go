@@ -71,7 +71,7 @@ type proxySql struct {
 	Port       int
 	User       string
 	Clustered  bool
-	Initialize bool
+	LockFilePath string
 }
 
 //Global scheduler conf
@@ -83,6 +83,9 @@ type globalScheduler struct {
 	Development bool
 	DevInterval int
 	Performance bool
+	LockFileTimeout int64
+	LockClusterTimeout int64
+
 }
 
 //Methods to return the config as map
@@ -119,6 +122,12 @@ func (conf *Configuration) SanityCheck() {
 			conf.Pxcluster.BckHgW,
 			conf.Pxcluster.HgR,
 			conf.Pxcluster.BckHgR))
+		os.Exit(1)
+	}
+
+	//Check for correct LockFilePath
+	if conf.Proxysql.LockFilePath =="" || !CheckIfPathExists(conf.Proxysql.LockFilePath){
+		log.Error(fmt.Sprintf("LockFilePath is either invalid or not accessible currently set to: |%s|",conf.Proxysql.LockFilePath))
 		os.Exit(1)
 	}
 

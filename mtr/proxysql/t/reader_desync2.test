@@ -1,0 +1,14 @@
+# scheduler: active_failover=1 retry_down=2 writer_is_also_reader=1 failBack=true
+#
+# Scenario:
+# 1. node_3: SET global wsrep_desync=1
+#     => node_3 state  change to SOFT_OFFLINE
+# 2. node_3: SET global wsrep_desync=0
+#     => node_3  state changes to ONLINE.
+
+--let $proxysql_scheduler_config = writer_is_reader_failback.toml
+--let $action_1_node = node_3
+--let $action_1 = SET global wsrep_desync=1;
+--let $action_2_node = node_3
+--let $action_2 = SET global wsrep_desync=0;
+--source 1w3r2bw_2actions.inc

@@ -29,40 +29,40 @@ INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,com
 INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',8100,NODE_MYPORT_1,3,1000,'Backup writer 1');
 INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',8100,NODE_MYPORT_2,2,1000,'Backup writer 2');
 INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',8100,NODE_MYPORT_3,1,999,'Backup writer 3');
-INSERT INTO scheduler (id,active,interval_ms,filename,arg1,arg2) values (10,1,3000,"SCHEDULER_SCRIPT","--configfile=writer_is_reader.toml", "--configpath=CONFIG_DIR");
+INSERT INTO scheduler (id,active,interval_ms,filename,arg1,arg2) values (10,1,3000,"SCHEDULER_SCRIPT","--configfile=writer_is_reader_failback.toml", "--configpath=CONFIG_DIR");
 #
 # Applying ProxySQL configuration
 #
 CREATE TABLE t1 (a int primary key);
 INSERT INTO t1 VALUES (1), (2), (3);
 #
-# node_1 SET global wsrep_desync=1;
+# node_3 SET GLOBAL wsrep_reject_queries=ALL;
 #
-SET global wsrep_desync=1;;
+SET GLOBAL wsrep_reject_queries=ALL;;
 INSERT INTO t1 VALUES (11), (12), (13);
 SELECT * FROM runtime_mysql_servers ORDER BY hostgroup_id, port;;
 hostgroup_id	hostname	port	gtid_port	status	weight	compression	max_connections	max_replication_lag	use_ssl	max_latency_ms	comment
 100	127.0.0.1	NODE_MYPORT_1	0	ONLINE	3	0	1000	0	0	0	WRITE
-101	127.0.0.1	NODE_MYPORT_1	0	OFFLINE_SOFT	100	0	1000	0	0	0	READ/WRITE100_W_101_R_retry_up=0;100_W_101_R_retry_down=0;
+101	127.0.0.1	NODE_MYPORT_1	0	ONLINE	100	0	1000	0	0	0	READ/WRITE
 101	127.0.0.1	NODE_MYPORT_2	0	ONLINE	10000	0	1000	0	0	0	READ
-101	127.0.0.1	NODE_MYPORT_3	0	ONLINE	10000	0	1000	0	0	0	READ
 8100	127.0.0.1	NODE_MYPORT_1	0	ONLINE	3	0	1000	0	0	0	Backup writer 1
 8100	127.0.0.1	NODE_MYPORT_2	0	ONLINE	2	0	1000	0	0	0	Backup writer 2
 8100	127.0.0.1	NODE_MYPORT_3	0	ONLINE	1	0	999	0	0	0	Backup writer 3
+9101	127.0.0.1	NODE_MYPORT_3	0	ONLINE	10000	0	1000	0	0	0	READ100_W_101_R_retry_up=0;100_W_101_R_retry_down=0;
 SELECT COUNT(*) FROM t1;
 COUNT(*)
 6
 #
-# node_1 SET global wsrep_desync=0;
+# node_3 SET GLOBAL wsrep_reject_queries=NONE;
 #
-SET global wsrep_desync=0;;
+SET GLOBAL wsrep_reject_queries=NONE;;
 INSERT INTO t1 VALUES (21), (22), (23);
 SELECT * FROM runtime_mysql_servers ORDER BY hostgroup_id, port;;
 hostgroup_id	hostname	port	gtid_port	status	weight	compression	max_connections	max_replication_lag	use_ssl	max_latency_ms	comment
 100	127.0.0.1	NODE_MYPORT_1	0	ONLINE	3	0	1000	0	0	0	WRITE
-101	127.0.0.1	NODE_MYPORT_1	0	ONLINE	100	0	1000	0	0	0	READ/WRITE100_W_101_R_retry_up=0;100_W_101_R_retry_down=0;
+101	127.0.0.1	NODE_MYPORT_1	0	ONLINE	100	0	1000	0	0	0	READ/WRITE
 101	127.0.0.1	NODE_MYPORT_2	0	ONLINE	10000	0	1000	0	0	0	READ
-101	127.0.0.1	NODE_MYPORT_3	0	ONLINE	10000	0	1000	0	0	0	READ
+101	127.0.0.1	NODE_MYPORT_3	0	ONLINE	10000	0	1000	0	0	0	READ100_W_101_R_retry_up=0;100_W_101_R_retry_down=0;
 8100	127.0.0.1	NODE_MYPORT_1	0	ONLINE	3	0	1000	0	0	0	Backup writer 1
 8100	127.0.0.1	NODE_MYPORT_2	0	ONLINE	2	0	1000	0	0	0	Backup writer 2
 8100	127.0.0.1	NODE_MYPORT_3	0	ONLINE	1	0	999	0	0	0	Backup writer 3

@@ -2,10 +2,11 @@ package DataObjects
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"regexp"
 	"strings"
-
+	SQL "../Sql/Proxy"
 	Global "../Global"
 	//"github.com/go-sql-driver/mysql"
 	log "github.com/sirupsen/logrus"
@@ -15,6 +16,9 @@ import (
 )
 
 type (
+	//Locker is the Object handling the Lock at cluster level and the local process for the node demanded to run the scheduler
+	//Locker initialize also the ProxySQL node that will execute the actions
+
 	Locker struct {
 		MyServerIp          string
 		MyServerPort        int
@@ -71,14 +75,19 @@ func (locker *Locker) CheckFileLock() *ProxySQLNode{
 // we will check if the node were we are has a lock or if can acquire one.
 // If not we will return nil to indicate program must exit given either there is already another node holding the lock
 // or this node is not in a good state to acquire a lock
+// Outside call To get and check the active list of ProxySQL server we call ProxySQLCLuster.GetProxySQLnodes
+// All the DB operations are done connecting locally to the ProxySQL node running the scheduler
+
 func (locker *Locker) CheckClusterLock( ) *ProxySQLNode{
 	//TODO
 	// 1 get connection
 	// 2 get all we need from ProxySQL
 	// 3 put the lock if we can
+	Global.SetPerformanceObj("Cluster lock", true, log.InfoLevel)
 	proxySQLCluster := new(ProxySQLCluster)
 	if !locker.MyServer.IsInitialized {
 		if !locker.MyServer.Init(locker.myConfig){
+			Global.SetPerformanceObj("Cluster lock", false, log.InfoLevel)
 			return nil
 		}
 	}
@@ -91,33 +100,43 @@ func (locker *Locker) CheckClusterLock( ) *ProxySQLNode{
 		if proxySQLCluster.GetProxySQLnodes(locker.MyServer) && len(proxySQLCluster.Nodes) > 0{
 			if nodes, ok := locker.findLock(proxySQLCluster.Nodes); ok && nodes != nil {
 				if locker.PushSchedulerLock(nodes){
+					Global.SetPerformanceObj("Cluster lock", false, log.InfoLevel)
 					return locker.MyServer
 				}else{
+					Global.SetPerformanceObj("Cluster lock", false, log.InfoLevel)
 					return nil
 				}
 			}else{
 				log.Info(fmt.Sprintf("Cannot put a lock on the cluster for this scheduler %s another node hold the lock and acting",locker.MyServer.Dns))
+				Global.SetPerformanceObj("Cluster lock", false, log.InfoLevel)
 				return nil
 			}
 		}
 	}
 
-	log.Info("")
+	Global.SetPerformanceObj("Cluster lock", false, log.InfoLevel)
 	return locker.MyServer
 }
-
+/*
+Find lock method review all the nodes existing in the Proxysql for an active LOck
+it checks only nodes that are reachable.
+Checks for:
+	- existing log locally
+	- lock on another node
+	- lock time comparing it with lockclustertimeout parameter
+ */
 func (locker *Locker) findLock(nodes map[string]ProxySQLNode)  (map[string]ProxySQLNode,bool){
 	lockText := ""
-	//isMyNodeLocking :=false
-	//isLockTimeoutExceeded := false
 	winningNode :=  ""
 	lockHeader := "#LOCK_" + locker.ClusterLockId +"_"
-	log.Debug("Using lock ID: ", lockHeader)
+	lockTail := "_LOCK#"
 	lockHeaderLen := len(lockHeader)
+	log.Debug("Using lock ID: ", lockHeader)
+	//Capture the current time
 	locker.ClusterCurrentLockTime = time.Now().UnixNano()
 	log.Debug("Locker time: ", locker.ClusterCurrentLockTime)
 
-	//let us process the nodes to identify if we have a lock, where and if is expired
+	//let us process the nodes to identify if we have a lock, where, and if is expired
 	for _, node := range nodes {
 		lockText = node.Comment
 
@@ -127,15 +146,16 @@ func (locker *Locker) findLock(nodes map[string]ProxySQLNode)  (map[string]Proxy
 			node.HoldLock = true
 
 			startIdx := strings.Index(node.Comment, lockHeader)
-			endIdx := strings.Index(node.Comment, "_LOCK#")
-			lockText := strings.ReplaceAll(node.Comment[startIdx + lockHeaderLen : endIdx], "#LOCK_", "")
+			endIdx := strings.Index(node.Comment, lockTail)
+			lockText := node.Comment[startIdx + lockHeaderLen : endIdx]
 
 			log.Debug(fmt.Sprintf("Cluster Node %s has a scheduler lock ", node.Dns))
 
 			//get LOCK time and assign as winning node the node that has be the more recent one
 			node.LastLockTime = int64(Global.ToInt(lockText))
 
-			//Also if the time is not expired I will remove the lock text from comment for my node, given if the lock on another node is active I will not do a thing. But if is not I will have the node ready
+			//Also if the time is not expired I will remove the lock text from comment for my node, given if the lock on another node is active I will not do a thing.
+			//But if is not I will have the comment in the node ready
 			//trim some double spaces to be sure we have a clean string
 			node.Comment = node.Comment[:startIdx] + node.Comment[endIdx+6:]
 			space := regexp.MustCompile(`\s+`)
@@ -149,6 +169,7 @@ func (locker *Locker) findLock(nodes map[string]ProxySQLNode)  (map[string]Proxy
 				node.IsLockExpired = true
 			}
 
+			// in case of multiple locks, the node with the most recent lock time wins
 			if node.LastLockTime < locker.ClusterLastLockTime && !node.IsLockExpired {
 				locker.ClusterLastLockTime = node.LastLockTime
 				winningNode = node.Dns
@@ -156,22 +177,75 @@ func (locker *Locker) findLock(nodes map[string]ProxySQLNode)  (map[string]Proxy
 				locker.ClusterLastLockTime = node.LastLockTime
 				winningNode = node.Dns
 			}
-
-
-			// if my node is the winner I will ad it back at the end of the comment
-			//nodes[node.Dns] = node
 		}
 		nodes[node.Dns] = node
 	}
+
+	// My ProxySQL node is the winner and I can push a lock on it
+	// Else I exit without doing a bit
 	if winningNode == "" || winningNode == locker.MyServer.Dns{
+		node :=  nodes[locker.MyServer.Dns]
+		if node.Dns != "" {
+			node.Comment = node.Comment + " " + lockHeader + strconv.FormatInt(locker.ClusterCurrentLockTime, 10) + lockTail
+			nodes[locker.MyServer.Dns] = node
+			log.Debug(fmt.Sprint("Lock acquired by node %s Current time %d", locker.MyServer.Dns, locker.ClusterCurrentLockTime))
+		}
+
 		return  nodes, true
 	}
 	return nil,false
 
 }
-
+// We are ready to submit our changes. As always all is executed in a transaction
+// TODO SHOULD we remove the proxysql node that doesn't work ????
 func (locker *Locker) PushSchedulerLock(nodes map[string]ProxySQLNode) bool {
+	if len(nodes) <= 0 {
+		return true
+	}
 
+	if Global.Performance {
+		Global.SetPerformanceObj("Execute SQL changes - ProxySQL cluster LOCK ("+ locker.ClusterLockId +")" , true,log.DebugLevel)
+	}
+	//We will execute all the commands inside a transaction if any error we will roll back all
+	ctx := context.Background()
+	tx, err := locker.MyServer.Connection.BeginTx(ctx, nil)
+	if err != nil {
+		log.Fatal("Error in creating transaction to push changes ", err)
+	}
+	for key, node := range nodes {
+		if node.Dns != "" {
+			sqlAction := strings.ReplaceAll(SQL.Dml_update_comment_proxy_servers,"?", node.Comment) + " where hostname='" + node.Ip + "' and port= " + strconv.Itoa(node.Port)
+			_, err = tx.ExecContext(ctx, sqlAction)
+			if err != nil {
+				tx.Rollback()
+				log.Fatal("Error executing SQL: ", sqlAction, " for node: ", key, " Rollback and exit")
+				log.Error(err)
+				return false
+			}
+		}
+	}
+	err = tx.Commit()
+	if err != nil {
+		log.Fatal("Error IN COMMIT exit")
+		return false
+
+	} else {
+		_, err = locker.MyServer.Connection.Exec("LOAD proxysql servers to RUN ")
+		if err != nil {
+			log.Fatal("Cannot load new proxysql configuration to RUN ")
+			return false
+		} else {
+			_, err = locker.MyServer.Connection.Exec("save proxysql servers to disk ")
+			if err != nil {
+				log.Fatal("Cannot save new proxysql configuration to DISK ")
+				return false
+			}
+		}
+
+	}
+	if Global.Performance {
+		Global.SetPerformanceObj("Execute SQL changes - ProxySQL cluster LOCK ("+ locker.ClusterLockId +")" , false,log.DebugLevel)
+	}
 
 	return true
 }

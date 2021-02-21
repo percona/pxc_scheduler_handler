@@ -24,6 +24,9 @@ type ProxySQLCluster struct {
 	Password string
 }
 
+// This method in ProxySQL Cluster Object is responsible for getting the list of ACTIVE ProxySQL servers.
+// Interestingly ProxySQL has not clue if a ProxySQL nodes ur down. Or at least is not reported in the proxysql_server tables or any stats table
+// Given that we check if nodes are reachable opening a connection and closing it
 func (cluster ProxySQLCluster) GetProxySQLnodes(myNode *ProxySQLNode) bool {
 	//nodes := make(map[int]*ProxySQLNode)
 
@@ -48,8 +51,11 @@ func (cluster ProxySQLCluster) GetProxySQLnodes(myNode *ProxySQLNode) bool {
 		newNode.User = cluster.User
 		newNode.Password = cluster.Password
 
-		//TODO given Proxysql is NOT removing a non healthy node from proxySQL_cluster I must add a step here to check and eventually remove failing ProxySQL nodes
+		// Given Proxysql is NOT removing a non healthy node from proxySQL_cluster I must add a step here to check and eventually remove failing ProxySQL nodes
 		if newNode.GetConnection(){
+			if newNode.Dns != myNode.Dns{
+				newNode.CloseConnection()
+			}
 			cluster.Nodes[newNode.Dns] = *newNode
 		}else{
 			log.Error(fmt.Sprintf("ProxySQL Node %s is down or not reachable PLEASE REMOVE IT from the proxysql_servers table OR fix the issue", newNode.Dns))
@@ -509,7 +515,7 @@ func (node *ProxySQLNode) executeSQLChanges(SQLActionString []string) bool {
 			log.Fatal("Cannot load new mysql configuration to RUN ")
 			return false
 		} else {
-			_, err = node.Connection.Exec("LOAD mysql servers to RUN ")
+			_, err = node.Connection.Exec("SAVE mysql servers to DISK ")
 			if err != nil {
 				log.Fatal("Cannot save new mysql configuration to DISK ")
 				return false

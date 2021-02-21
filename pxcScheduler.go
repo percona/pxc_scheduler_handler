@@ -95,24 +95,13 @@ func main() {
 	config.SanityCheck()
 	//Manage config and parameters from conf file [END]
 
-
-	//Initialize the locker
-	if !locker.Init(&config){
-		log.Error("Cannot initialize Locker")
-		os.Exit(1)
-	}
-
-	//if !config.Global.Development {
-	//	if !locker.SetLockFile() {
-	//		fmt.Print("Cannot create a lock, exit")
-	//		os.Exit(1)
-	//	}
-	//} else {
-	//	devLoop = 2
-	//	devLoopWait = config.Global.DevInterval
-	//}
-
 	for i := 0; i <= devLoop; {
+		//Initialize the locker
+		if !locker.Init(&config){
+			log.Error("Cannot initialize Locker")
+			os.Exit(1)
+		}
+
 		//In case we have development mode active then loop here
 		//TODO devlop will become daemon mode
 		if config.Global.Development {

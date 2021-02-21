@@ -16,4 +16,7 @@ const(
     Dml_show_variables="SHOW GLOBAL VARIABLES"
 
     Dml_select_proxy_servers = "select weight,hostname,port,comment from runtime_proxysql_servers order by weight desc"
+
+	Dml_delete_proxy_servers = "delete from proxysql_servers where hostname = '?1' and port = ?2 "
+	Dml_update_comment_proxy_servers = "update proxysql_servers set comment ='?'"
 )

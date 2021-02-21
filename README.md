@@ -202,7 +202,53 @@ You can define IF you want to have multiple writers. Default is 1 writer only (I
 
 
 ## Working with ProxySQL cluster
-WIP
+Working with ProxySQL cluster is a real challenge give A LOT of things that should be there are not. 
+
+ProxySQL do not even has idea if a ProxySQL cluster node is up or down. To be precise it knows internally but do not expose this at any level, only as very noisy log entry.
+Given this the script must not only get the list of ProxySQL nodes but validate them. 
+
+In terms of checks we do:
+We check if the node were we are has a lock or if can acquire one.
+If not we will return nil to indicate the program must exit given either there is already another node holding the lock or this node is not in a good state to acquire a lock.
+All the DB operations are done connecting locally to the ProxySQL node running the scheduler.
+
+Interestingly ProxySQL has not clue if a ProxySQL nodes ur down. Or at least is not reported in the proxysql_server tables or any stats table
+Given that we check if nodes are reachable opening a connection and closing it.
+
+Find lock method review all the nodes existing in the Proxysql for an active Lock it checks only nodes that are reachable.
+Checks for:
+- an existing lock locally
+- lock on another node
+- lock time comparing it with lockclustertimeout parameter
+
+__Related Parameters__
+
+```editorconfig
+[proxysql]
+clustered = true
+
+[global]<br>
+lockfiletimeout = 60 #seconds 
+lockclustertimeout = 600 # seconds
+```
+
+
+ProxySQL Documentation reports:
+```
+TODO
+ - add support for MySQL Group Replication
+ - add support for Scheduler
+Roadmap
+This is an overview of the features related to clustering, and not a complete list. None the following is impletemented yet.
+Implementation may be different than what is listed right now:
+ - support for master election: the word master was intentionally chosen instead of leader
+ - only master proxy is writable/configurable
+ - implementation of MySQL-like replication from master to slaves, allowing to push configuration in real-time instead of pulling it
+ - implementation of MySQL-like replication from master to candidate-masters
+ - implementation of MySQL-like replication from candidate-masters to slaves
+ - creation of a quorum with only candidate-masters: normal slaves are not part of the quorum
+```
+None of the above is implemented 
 
 ## Download and compile from source
 Once you have GO installed and running (at least version 1.15.8)
@@ -233,6 +279,7 @@ The script will auto-loop as if call by the scheduler.
 
 ![function flow](./docs/flow-Funtions-calls-flow.png "Function flow")
 
+<!--
 ![overview](./docs/flow-overall.png "overview")
-
 ![nodes check](./docs/flow-check_nodes.png "Nodes check")
+-->

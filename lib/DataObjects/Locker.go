@@ -121,7 +121,7 @@ func (locker *Locker) CheckClusterLock( ) *ProxySQLNode{
 Find lock method review all the nodes existing in the Proxysql for an active LOck
 it checks only nodes that are reachable.
 Checks for:
-	- existing log locally
+	- existing lock locally
 	- lock on another node
 	- lock time comparing it with lockclustertimeout parameter
  */

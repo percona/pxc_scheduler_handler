@@ -126,9 +126,14 @@ func (conf *Configuration) SanityCheck() {
 	}
 
 	//Check for correct LockFilePath
-	if conf.Proxysql.LockFilePath =="" || !CheckIfPathExists(conf.Proxysql.LockFilePath){
-		log.Error(fmt.Sprintf("LockFilePath is either invalid or not accessible currently set to: |%s|",conf.Proxysql.LockFilePath))
-		os.Exit(1)
+	if conf.Proxysql.LockFilePath == "" {
+		log.Warn(fmt.Sprintf("LockFilePath is invalid. Currently set to: |%s|  I will set to /tmp/ ",conf.Proxysql.LockFilePath))
+		conf.Proxysql.LockFilePath = "/tmp"
+		if !CheckIfPathExists(conf.Proxysql.LockFilePath){
+			log.Error(fmt.Sprintf("LockFilePath is not accessible currently set to: |%s|",conf.Proxysql.LockFilePath))
+			os.Exit(1)
+		}
+
 	}
 
 }

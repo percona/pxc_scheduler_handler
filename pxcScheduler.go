@@ -89,13 +89,14 @@ func main() {
 		fmt.Print("Problem loading the config")
 		os.Exit(1)
 	}
-	var config = Global.GetConfig(currPath + configFile)
-
-	//Let us do a sanity check on the configuration to prevent most obvious issues
-	config.SanityCheck()
-	//Manage config and parameters from conf file [END]
 
 	for i := 0; i <= devLoop; {
+		//Return our full configuration from file
+		var config = Global.GetConfig(currPath + configFile)
+
+		//Let us do a sanity check on the configuration to prevent most obvious issues
+		config.SanityCheck()
+
 		//Initialize the locker
 		if !locker.Init(&config){
 			log.Error("Cannot initialize Locker")

@@ -188,7 +188,7 @@ func (locker *Locker) findLock(nodes map[string]ProxySQLNode)  (map[string]Proxy
 		if node.Dns != "" {
 			node.Comment = node.Comment + " " + lockHeader + strconv.FormatInt(locker.ClusterCurrentLockTime, 10) + lockTail
 			nodes[locker.MyServer.Dns] = node
-			log.Debug(fmt.Sprint("Lock acquired by node %s Current time %d", locker.MyServer.Dns, locker.ClusterCurrentLockTime))
+			log.Debug(fmt.Sprintf("Lock acquired by node %s Current time %d", locker.MyServer.Dns, locker.ClusterCurrentLockTime))
 		}
 
 		return  nodes, true

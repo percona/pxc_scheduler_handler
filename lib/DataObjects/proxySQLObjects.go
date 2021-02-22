@@ -10,7 +10,6 @@ import (
 	"../Global"
 	SQL "../Sql/Proxy"
 	"fmt"
-	"os"
 )
 
 /*
@@ -24,11 +23,49 @@ type ProxySQLCluster struct {
 	Password string
 }
 
-func (cluster ProxySQLCluster) GetProxySQLnodes() []ProxySQLNode {
-	var nodes []ProxySQLNode
+// This method in ProxySQL Cluster Object is responsible for getting the list of ACTIVE ProxySQL servers.
+// Interestingly ProxySQL has not clue if a ProxySQL nodes ur down. Or at least is not reported in the proxysql_server tables or any stats table
+// Given that we check if nodes are reachable opening a connection and closing it
+func (cluster ProxySQLCluster) GetProxySQLnodes(myNode *ProxySQLNode) bool {
+	//nodes := make(map[int]*ProxySQLNode)
 
-	return nodes
+	recordset, err := myNode.Connection.Query(SQL.Dml_select_proxy_servers)
+	if err != nil {
+		log.Error(err.Error())
+		//os.Exit(1)
+	}
+
+	for recordset.Next() {
+		var weight int
+		var hostname string
+		var port int
+		var comment string
+		recordset.Scan(&weight, &hostname, &port, &comment)
+		var newNode = new(ProxySQLNode)
+		newNode.Ip = hostname
+		newNode.Weight = weight
+		newNode.Port = port
+		newNode.Comment = comment
+		newNode.Dns = newNode.Ip + ":" + strconv.Itoa(newNode.Port)
+		newNode.User = cluster.User
+		newNode.Password = cluster.Password
+
+		// Given Proxysql is NOT removing a non healthy node from proxySQL_cluster I must add a step here to check and eventually remove failing ProxySQL nodes
+		if newNode.GetConnection(){
+			if newNode.Dns != myNode.Dns{
+				newNode.CloseConnection()
+			}
+			cluster.Nodes[newNode.Dns] = *newNode
+		}else{
+			log.Error(fmt.Sprintf("ProxySQL Node %s is down or not reachable PLEASE REMOVE IT from the proxysql_servers table OR fix the issue", newNode.Dns))
+		}
+
+	}
+
+
+	return true
 }
+
 
 /*
 ProxySQL Node
@@ -47,6 +84,12 @@ type ProxySQLNode struct {
 	Connection      *sql.DB
 	MySQLCluster    *DataCluster
 	Variables       map[string]string
+	IsInitialized   bool
+	Weight 			int
+	HoldLock		bool
+	IsLockExpired   bool
+	LastLockTime	int64
+	Comment 		string
 }
 
 type Hostgroup struct {
@@ -63,13 +106,13 @@ Methods
 /*
 Init the proxySQL node
 */
-func (node *ProxySQLNode) Init(config Global.Configuration) bool {
+func (node *ProxySQLNode) Init(config *Global.Configuration) bool {
 	if Global.Performance {
 		Global.SetPerformanceObj("proxysql_init", true,log.InfoLevel)
 	}
 	node.User = config.Proxysql.User
 	node.Password = config.Proxysql.Password
-	node.Dns = config.Proxysql.Host
+	node.Dns = config.Proxysql.Host + ":" + strconv.Itoa(config.Proxysql.Port)
 	node.Port = config.Proxysql.Port
 
 	//Establish connection to the destination Proxysql node
@@ -77,7 +120,8 @@ func (node *ProxySQLNode) Init(config Global.Configuration) bool {
 	} else {
 		log.Error("Cannot connect to indicated Proxy.\n")
 		log.Info("Host: "+config.Proxysql.Host, " Port: ", config.Proxysql.Port, " User: "+config.Proxysql.User)
-		os.Exit(1)
+		return false
+		//os.Exit(1)
 	}
 	//Retrieve all variables from Proxy
 	if !node.getVariables() {
@@ -86,10 +130,10 @@ func (node *ProxySQLNode) Init(config Global.Configuration) bool {
 	}
 
 	//initiate the cluster and all the related nodes
-	if !node.GetDataCluster(config) {
-		log.Error("Cannot load Data cluster from Proxy.\n")
-		return false
-	}
+	//if !node.GetDataCluster(config) {
+	//	log.Error("Cannot load Data cluster from Proxy.\n")
+	//	return false
+	//}
 
 	//calculate the performance
 	if Global.Performance {
@@ -97,12 +141,16 @@ func (node *ProxySQLNode) Init(config Global.Configuration) bool {
 	}
 
 	if node.Connection != nil {
+		node.IsInitialized = true
 		return true
 	} else {
+		node.IsInitialized = false
 		return false
 	}
 
 }
+
+
 
 /*
 Retrieve ProxySQL variables and store them internally in a map
@@ -113,7 +161,8 @@ func (node *ProxySQLNode) getVariables() bool {
 	recordset, err := node.Connection.Query(SQL.Dml_show_variables)
 	if err != nil {
 		log.Error(err.Error())
-		os.Exit(1)
+		return false
+		//os.Exit(1)
 	}
 
 	for recordset.Next() {
@@ -128,7 +177,8 @@ func (node *ProxySQLNode) getVariables() bool {
 		node.MonitorPassword = node.Variables["mysql-monitor_password"]
 	} else {
 		log.Error("ProxySQL Monitor user not declared correctly please check variables mysql-monitor_username|mysql-monitor_password")
-		os.Exit(1)
+		return false
+		//os.Exit(1)
 	}
 	return true
 }
@@ -146,7 +196,7 @@ func (node *ProxySQLNode) GetConnection() bool {
 	//dns := node.User + ":" + node.Password + "@tcp(" + node.Dns + ":"+ strconv.Itoa(node.Port) +")/admin" //
 	//if log.GetLevel() == log.DebugLevel {log.Debug(dns)}
 
-	db, err := sql.Open("mysql", node.User+":"+node.Password+"@tcp("+node.Dns+":"+strconv.Itoa(node.Port)+")/main?timeout=1s")
+	db, err := sql.Open("mysql", node.User+":"+node.Password+"@tcp(" + node.Dns + ")/main?timeout=1s")
 
 	//defer db.Close()
 	node.Connection = db
@@ -160,6 +210,7 @@ func (node *ProxySQLNode) GetConnection() bool {
 	err = db.Ping()
 	if err != nil {
 		err.Error()
+		log.Error(err)
 		return false
 	}
 
@@ -317,7 +368,8 @@ func (node *ProxySQLNode) ProcessChanges() bool {
 
 	if !node.executeSQLChanges(SQLActionString) {
 		log.Fatal("Cannot apply changes error in SQL execution in ProxySQL, Exit with error")
-		os.Exit(1)
+		return false
+		//os.Exit(1)
 	}
 	return true
 }
@@ -466,7 +518,7 @@ func (node *ProxySQLNode) executeSQLChanges(SQLActionString []string) bool {
 			log.Fatal("Cannot load new mysql configuration to RUN ")
 			return false
 		} else {
-			_, err = node.Connection.Exec("LOAD mysql servers to RUN ")
+			_, err = node.Connection.Exec("SAVE mysql servers to DISK ")
 			if err != nil {
 				log.Fatal("Cannot save new mysql configuration to DISK ")
 				return false

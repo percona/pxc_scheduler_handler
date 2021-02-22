@@ -36,7 +36,7 @@ type pxcCluster struct {
 	FailBack           bool
 	CheckTimeOut       int
 	ClusterId          int
-	Debug              int
+	Debug              int //Deprecated: this is redundant and not in use
 	Development        bool
 	DevelopmentTime    int32
 	Host               string
@@ -71,7 +71,7 @@ type proxySql struct {
 	Port       int
 	User       string
 	Clustered  bool
-	Initialize bool
+	LockFilePath string
 }
 
 //Global scheduler conf
@@ -83,6 +83,9 @@ type globalScheduler struct {
 	Development bool
 	DevInterval int
 	Performance bool
+	LockFileTimeout int64
+	LockClusterTimeout int64
+
 }
 
 //Methods to return the config as map
@@ -95,20 +98,19 @@ func GetConfig(path string) Configuration {
 	return config
 }
 
-func (conf *Configuration) SanityCheck() {
+func (conf *Configuration) SanityCheck() bool{
 	//check for single primary and writer is also reader
 	if conf.Pxcluster.MaxNumWriters > 1 &&
 		conf.Pxcluster.SinglePrimary {
 		log.Error("Configuration error cannot have SinglePrimary true and MaxNumWriter >1")
-
-		os.Exit(1)
+		return false
+		//os.Exit(1)
 	}
 
 	if conf.Pxcluster.WriterIsAlsoReader != 1 && (conf.Pxcluster.MaxWriters > 1 || !conf.Pxcluster.SinglePrimary) {
 		log.Error("Configuration error cannot have WriterIsAlsoReader NOT = 1 and use more than one Writer")
-
-		os.Exit(1)
-
+		return false
+		//os.Exit(1)
 	}
 
 	//check for HG consistency
@@ -119,8 +121,23 @@ func (conf *Configuration) SanityCheck() {
 			conf.Pxcluster.BckHgW,
 			conf.Pxcluster.HgR,
 			conf.Pxcluster.BckHgR))
-		os.Exit(1)
+		return false
+		//os.Exit(1)
 	}
+
+	//Check for correct LockFilePath
+	if conf.Proxysql.LockFilePath == "" {
+		log.Warn(fmt.Sprintf("LockFilePath is invalid. Currently set to: |%s|  I will set to /tmp/ ",conf.Proxysql.LockFilePath))
+		conf.Proxysql.LockFilePath = "/tmp"
+		if !CheckIfPathExists(conf.Proxysql.LockFilePath){
+			log.Error(fmt.Sprintf("LockFilePath is not accessible currently set to: |%s|",conf.Proxysql.LockFilePath))
+			return false
+			//os.Exit(1)
+		}
+
+	}
+
+	return true
 
 }
 
@@ -154,7 +171,6 @@ func InitLog(config Configuration) {
 		log.SetLevel(log.ErrorLevel)
 	}
 
-	//log.SetFormatter(&log.JSONFormatter{}) <-- future for Kafaka
 	if log.GetLevel() == log.DebugLevel {
 		log.Debug("Testing the log")
 		log.Info("Testing the log")

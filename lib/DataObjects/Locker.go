@@ -267,7 +267,8 @@ func (locker *Locker)SetLockFile() bool {
 		file, err := os.OpenFile(fullFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 
 		if err != nil {
-			fmt.Printf("failed creating lock file: %s", err)
+			fmt.Sprintln("failed creating lock file: %s", err)
+			return false
 		}
 
 		datawriter := bufio.NewWriter(file)

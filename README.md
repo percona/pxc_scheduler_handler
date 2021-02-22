@@ -212,9 +212,6 @@ We check if the node were we are has a lock or if can acquire one.
 If not we will return nil to indicate the program must exit given either there is already another node holding the lock or this node is not in a good state to acquire a lock.
 All the DB operations are done connecting locally to the ProxySQL node running the scheduler.
 
-Interestingly ProxySQL has not clue if a ProxySQL nodes ur down. Or at least is not reported in the proxysql_server tables or any stats table
-Given that we check if nodes are reachable opening a connection and closing it.
-
 Find lock method review all the nodes existing in the Proxysql for an active Lock it checks only nodes that are reachable.
 Checks for:
 - an existing lock locally

@@ -284,7 +284,7 @@ func (locker *Locker)SetLockFile() bool {
 }
 
 func (locker *Locker)RemoveLockFile() bool {
-	e := os.Remove("/tmp/" + locker.FileLock)
+	e := os.Remove(locker.FileLockPath + string(os.PathSeparator) + locker.FileLock)
 	if e != nil {
 		log.Fatalf("Cannot remove lock file %s", e)
 	}

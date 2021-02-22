@@ -36,7 +36,7 @@ type pxcCluster struct {
 	FailBack           bool
 	CheckTimeOut       int
 	ClusterId          int
-	Debug              int
+	Debug              int //Deprecated: this is redundant and not in use
 	Development        bool
 	DevelopmentTime    int32
 	Host               string

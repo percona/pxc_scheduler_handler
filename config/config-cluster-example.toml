@@ -21,12 +21,15 @@ retryDown = 2
 clusterId = 10
 
 
+
+
+
 [proxysql]
 port = 6032
 host = "127.0.0.1"
 user = "admin"
 password = "admin"
-clustered = false
+clustered = true
 lockfilepath ="/var/run/"
 
 

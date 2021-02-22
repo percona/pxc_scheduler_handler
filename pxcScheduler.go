@@ -99,6 +99,11 @@ func main() {
 			os.Exit(1)
 		}
 
+		//initialize the log system
+		if !Global.InitLog(config){
+			fmt.Println("Not able to initialize log system exiting")
+			os.Exit(1)
+		}
 		//Initialize the locker
 		if !locker.Init(&config){
 			log.Error("Cannot initialize Locker")
@@ -117,11 +122,7 @@ func main() {
 			os.Exit(1)
 		}
 
-		//initialize the log system
-		if !Global.InitLog(config){
-			fmt.Println("Not able to initialize log system exiting")
-			os.Exit(1)
-		}
+
 		//should we track performance or not
 		Global.Performance = config.Global.Performance
 

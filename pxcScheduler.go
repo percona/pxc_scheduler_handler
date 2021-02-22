@@ -205,13 +205,16 @@ func main() {
 			Global.ReportPerformance()
 		}
 
+		//remove lock and wait
+		locker.RemoveLockFile()
+
 		if config.Global.Development {
 			time.Sleep(time.Duration(devLoopWait) * time.Millisecond)
 		} else {
 			i++
 		}
 		log.Info("")
-		locker.RemoveLockFile()
+
 	}
 	//if !config.Global.Development {
 	//	locker.RemoveLockFile()

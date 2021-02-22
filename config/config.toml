@@ -27,14 +27,14 @@ host = "127.0.0.1"
 user = "admin"
 password = "admin"
 clustered = false
-lockfilepath ="/var/run/"
+lockfilepath ="/var/run/proxysql_scheduler"
 
 
 [global]
 debug = true
 logLevel = "info"
 logTarget = "file" #stdout | file
-logFile = "/var/log/pscheduler.log"
+logFile = "/var/log/proxysql_scheduler/pscheduler.log"
 development = false
 devInterval = 2000
 performance = true

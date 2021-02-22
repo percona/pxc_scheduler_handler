@@ -142,7 +142,7 @@ func (conf *Configuration) SanityCheck() bool{
 }
 
 //initialize the log
-func InitLog(config Configuration) {
+func InitLog(config Configuration) bool{
 	//var ilog = logrus.New()
 	if strings.ToLower(config.Global.LogTarget) == "stdout" {
 		log.SetOutput(os.Stdout)
@@ -153,7 +153,9 @@ func InitLog(config Configuration) {
 		if err == nil {
 			log.SetOutput(file)
 		} else {
-			log.Error("Failed to log to file, using default stderr")
+			log.Error("Error logging to file ",err.Error())
+			//log.Error("Failed to log to file, using default stderr")
+			return false
 		}
 	}
 
@@ -179,5 +181,5 @@ func InitLog(config Configuration) {
 		log.SetLevel(log.DebugLevel)
 		log.Debug("Log initialized")
 	}
-
+	return true
 }

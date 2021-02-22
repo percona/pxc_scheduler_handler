@@ -118,7 +118,10 @@ func main() {
 		}
 
 		//initialize the log system
-		Global.InitLog(config)
+		if !Global.InitLog(config){
+			fmt.Println("Not able to initialize log system exiting")
+			os.Exit(1)
+		}
 		//should we track performance or not
 		Global.Performance = config.Global.Performance
 

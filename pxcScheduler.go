@@ -113,7 +113,7 @@ func main() {
 		}
 		//set the locker on file
 		if !locker.SetLockFile() {
-			fmt.Print("Cannot create a lock, exit")
+			fmt.Println("Cannot create a lock, exit")
 			os.Exit(1)
 		}
 

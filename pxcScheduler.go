@@ -95,7 +95,9 @@ func main() {
 		var config = Global.GetConfig(currPath + configFile)
 
 		//Let us do a sanity check on the configuration to prevent most obvious issues
-		config.SanityCheck()
+		if !config.SanityCheck(){
+			os.Exit(1)
+		}
 
 		//Initialize the locker
 		if !locker.Init(&config){
@@ -140,19 +142,28 @@ func main() {
 
 			if locker.CheckClusterLock() != nil{
 				//our node has the lock
-				initProxySQLNode(proxysqlNode, config)
+				if !initProxySQLNode(proxysqlNode, config){
+					locker.RemoveLockFile()
+					os.Exit(1)
+				}
 			}else {
 			//	Another node has the lock we must exit
+				locker.RemoveLockFile()
 				os.Exit(1)
 			}
 		}else{
-			initProxySQLNode(proxysqlNode, config)
+			if !initProxySQLNode(proxysqlNode, config){
+				locker.RemoveLockFile()
+				os.Exit(1)
+			}
 		}
 
 		if proxysqlNode.GetDataCluster(config) {
 			log.Debug("PXC cluster data nodes initialized ")
 		} else {
 			log.Error("Initialization failed")
+			locker.RemoveLockFile()
+			os.Exit(1)
 		}
 
 		/*
@@ -173,7 +184,10 @@ func main() {
 		proxysqlNode.ActionNodeList = proxysqlNode.MySQLCluster.GetActionList()
 
 		// Once we have the Map we translate it into SQL commands to process
-		proxysqlNode.ProcessChanges()
+		if !proxysqlNode.ProcessChanges(){
+			locker.RemoveLockFile()
+			os.Exit(1)
+		}
 
 		/*
 			Final cleanup
@@ -188,7 +202,6 @@ func main() {
 
 		if Global.Performance {
 			Global.SetPerformanceObj("main", false, log.ErrorLevel)
-			Global.PerformanceMapOrdered.Get("pippo")
 			Global.ReportPerformance()
 		}
 
@@ -206,19 +219,15 @@ func main() {
 
 }
 
-func initProxySQLNode(proxysqlNode *DO.ProxySQLNode, config Global.Configuration) {
+func initProxySQLNode(proxysqlNode *DO.ProxySQLNode, config Global.Configuration) bool{
 	//ProxySQL Node work start here
 	if proxysqlNode.Init(&config) {
 		if log.GetLevel() == log.DebugLevel {
 			log.Debug("ProxySQL node initialized ")
-			//if proxysqlNode.GetDataCluster(config) {
-			//	log.Debug("PXC cluster data nodes initialized ")
-			//} else {
-			//	log.Error("Initialization failed")
-			//}
 		}
+		return true
 	} else {
 		log.Error("Initialization failed")
-		os.Exit(1)
+		return false
 	}
 }

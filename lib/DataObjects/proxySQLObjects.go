@@ -10,7 +10,6 @@ import (
 	"../Global"
 	SQL "../Sql/Proxy"
 	"fmt"
-	"os"
 )
 
 /*
@@ -33,7 +32,7 @@ func (cluster ProxySQLCluster) GetProxySQLnodes(myNode *ProxySQLNode) bool {
 	recordset, err := myNode.Connection.Query(SQL.Dml_select_proxy_servers)
 	if err != nil {
 		log.Error(err.Error())
-		os.Exit(1)
+		//os.Exit(1)
 	}
 
 	for recordset.Next() {
@@ -121,7 +120,8 @@ func (node *ProxySQLNode) Init(config *Global.Configuration) bool {
 	} else {
 		log.Error("Cannot connect to indicated Proxy.\n")
 		log.Info("Host: "+config.Proxysql.Host, " Port: ", config.Proxysql.Port, " User: "+config.Proxysql.User)
-		os.Exit(1)
+		return false
+		//os.Exit(1)
 	}
 	//Retrieve all variables from Proxy
 	if !node.getVariables() {
@@ -161,7 +161,8 @@ func (node *ProxySQLNode) getVariables() bool {
 	recordset, err := node.Connection.Query(SQL.Dml_show_variables)
 	if err != nil {
 		log.Error(err.Error())
-		os.Exit(1)
+		return false
+		//os.Exit(1)
 	}
 
 	for recordset.Next() {
@@ -176,7 +177,8 @@ func (node *ProxySQLNode) getVariables() bool {
 		node.MonitorPassword = node.Variables["mysql-monitor_password"]
 	} else {
 		log.Error("ProxySQL Monitor user not declared correctly please check variables mysql-monitor_username|mysql-monitor_password")
-		os.Exit(1)
+		return false
+		//os.Exit(1)
 	}
 	return true
 }
@@ -366,7 +368,8 @@ func (node *ProxySQLNode) ProcessChanges() bool {
 
 	if !node.executeSQLChanges(SQLActionString) {
 		log.Fatal("Cannot apply changes error in SQL execution in ProxySQL, Exit with error")
-		os.Exit(1)
+		return false
+		//os.Exit(1)
 	}
 	return true
 }

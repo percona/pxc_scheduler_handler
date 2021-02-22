@@ -158,7 +158,8 @@ func (cluster *DataCluster) init(config Global.Configuration, connectionProxy *s
 			path, err := os.Getwd()
 			if err != nil {
 				log.Error(err.Error())
-				os.Exit(1)
+				return false
+				//os.Exit(1)
 			}
 			ssl.sslCertificatePath = path
 		}
@@ -192,7 +193,8 @@ func (cluster *DataCluster) init(config Global.Configuration, connectionProxy *s
 		// Consolidate HGs is required to calculate the real status BY HG of the size of the group and other info
 		if !cluster.consolidateHGs() {
 			log.Fatal("Cannot load Hostgroups in cluster object. Exiting")
-			os.Exit(1)
+			return false
+			//os.Exit(1)
 		}
 	}
 
@@ -277,7 +279,8 @@ func (cluster *DataCluster) loadNodes(connectionProxy *sql.DB) bool {
 
 	if err != nil {
 		log.Error(err.Error())
-		os.Exit(1)
+		return false
+		//os.Exit(1)
 	}
 	//select hostgroup_id, hostname,port,gtid_port, status,weight, compression,max_connections, max_replication_lag,use_ssl,max_latency_ms,comment
 	for recordset.Next() {

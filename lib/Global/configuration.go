@@ -1,8 +1,10 @@
 package Global
 
 import (
+	"bytes"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"syscall"
 
@@ -143,9 +145,20 @@ func (conf *Configuration) SanityCheck() bool{
 
 //initialize the log
 func InitLog(config Configuration) bool{
-	//var ilog = logrus.New()
+
+	//set a consistent output for the log no matter if file or stdout
+	formatter := LogFormat{}
+	formatter.TimestampFormat = "2006-01-02 15:04:05"
+	log.SetFormatter(&formatter)
+
 	if strings.ToLower(config.Global.LogTarget) == "stdout" {
 		log.SetOutput(os.Stdout)
+
+		//log.SetFormatter(&log.TextFormatter{
+		//	DisableColors: true,
+		//	FullTimestamp: true,
+		//})
+
 	} else if strings.ToLower(config.Global.LogTarget) == "file" &&
 		config.Global.LogFile != "" {
 		//try to initialize the log on file if it fails it will redirect to stdout
@@ -182,4 +195,66 @@ func InitLog(config Configuration) bool{
 		log.Debug("Log initialized")
 	}
 	return true
+}
+
+type LogFormat struct {
+	TimestampFormat string
+}
+func (f *LogFormat) Format(entry *log.Entry) ([]byte, error) {
+	var b *bytes.Buffer
+
+	if entry.Buffer != nil {
+		b = entry.Buffer
+	} else {
+		b = &bytes.Buffer{}
+	}
+
+	b.WriteString("\x1b["+ strconv.Itoa(getColorByLevel(entry.Level)) +"m")
+	b.WriteByte('[')
+	b.WriteString(strings.ToUpper(entry.Level.String()))
+	b.WriteString("]")
+	b.WriteString("\x1b[0m")
+	b.WriteByte(':')
+	b.WriteString(entry.Time.Format(f.TimestampFormat))
+
+	if entry.Message != "" {
+		b.WriteString(" - ")
+		b.WriteString(entry.Message)
+	}
+
+	if len(entry.Data) > 0 {
+		b.WriteString(" || ")
+	}
+	for key, value := range entry.Data {
+		b.WriteString(key)
+		b.WriteByte('=')
+		b.WriteByte('{')
+		fmt.Fprint(b, value)
+		b.WriteString("}, ")
+	}
+
+	b.WriteByte('\n')
+	return b.Bytes(), nil
+}
+const (
+	colorRed    = 31
+	colorYellow = 33
+	colorBlue   = 36
+	colorGray   = 34 //37
+	paniclevel  = 35
+)
+
+func getColorByLevel(level log.Level) int {
+	switch level {
+	case log.DebugLevel:
+		return colorGray
+	case log.WarnLevel:
+		return colorYellow
+	case log.ErrorLevel:
+		return colorRed
+	case log.PanicLevel, log.FatalLevel:
+		return paniclevel
+	default:
+		return colorBlue
+	}
 }

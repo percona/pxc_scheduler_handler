@@ -117,19 +117,21 @@ debug = true
 logLevel = "debug"
 logTarget = "stdout" #stdout | file
 logFile = "/Users/marcotusa/work/temp/pscheduler.log"
-development = true
-devInterval = 2000
+daemonize = true
+daemonInterval = 2000
 performance = true
 OS = "na"
 ```
 
 - debug : [false] will active some additional features to debug locally as more verbose logs
-- development : [false] Will allow the script to run in a loop without the need to be call by ProxySQL scheduler 
-- devInterval : Define in ms the time for looping when in development mode
+- daemonize : [false] Will allow the script to run in a loop without the need to be call by ProxySQL scheduler 
+- daemonInterval : Define in ms the time for looping when in daemon mode
 - loglevel : [error] Define the log level to be used 
 - logTarget : [stdout] Can be either a file or stdout 
 - logFile : In case file for loging define the target 
 - OS : for future use
+-  lockfiletimeout  Time ins seconds after which the file lock is considered expired [local instance lock]
+-  lockclustertimeout Time in seconds after which the cluster lock is considered expired
 
 #### ProxySQL
 - port : [6032] Port used to connect 

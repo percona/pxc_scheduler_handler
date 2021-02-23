@@ -33,10 +33,10 @@ lockfilepath ="/var/run/proxysql_scheduler"
 [global]
 debug = true
 logLevel = "info"
-logTarget = "file" #stdout | file
+logTarget = "stdout" #stdout | file
 logFile = "/var/log/proxysql_scheduler/pscheduler.log"
-development = false
-devInterval = 2000
+daemonize = false
+daemonInterval = 2000
 performance = true
 OS = "na"
 lockfiletimeout = 60 #seconds

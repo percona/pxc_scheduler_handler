@@ -42,8 +42,8 @@ func main() {
 	const (
 		Separator = string(os.PathSeparator)
 	)
-	var devLoopWait = 0
-	var devLoop = 0
+	var daemonLoopWait = 0
+	var daemonLoop = 0
 	//var lockId string //LockId is compose by clusterID_HG_W_HG_R
 
 	var configFile string
@@ -90,7 +90,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	for i := 0; i <= devLoop; {
+	for i := 0; i <= daemonLoop; {
 		//Return our full configuration from file
 		var config = Global.GetConfig(currPath + configFile)
 
@@ -111,10 +111,9 @@ func main() {
 		}
 
 		//In case we have development mode active then loop here
-		//TODO devlop will become daemon mode
-		if config.Global.Development {
-			devLoop = 2
-			devLoopWait = config.Global.DevInterval
+		if config.Global.Daemonize {
+			daemonLoop = 2
+			daemonLoopWait = config.Global.DaemonInterval
 		}
 		//set the locker on file
 		if !locker.SetLockFile() {
@@ -212,8 +211,8 @@ func main() {
 		//remove lock and wait
 		locker.RemoveLockFile()
 
-		if config.Global.Development {
-			time.Sleep(time.Duration(devLoopWait) * time.Millisecond)
+		if config.Global.Daemonize {
+			time.Sleep(time.Duration(daemonLoopWait) * time.Millisecond)
 		} else {
 			i++
 		}

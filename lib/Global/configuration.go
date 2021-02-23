@@ -82,8 +82,8 @@ type globalScheduler struct {
 	LogLevel    string
 	LogTarget   string // #stdout | file
 	LogFile     string //"/tmp/pscheduler"
-	Development bool
-	DevInterval int
+	Daemonize   bool
+	DaemonInterval int
 	Performance bool
 	LockFileTimeout int64
 	LockClusterTimeout int64

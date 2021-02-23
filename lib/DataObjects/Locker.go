@@ -51,7 +51,7 @@ func (locker *Locker) Init(config *Global.Configuration) bool{
 	locker.MyServer = MyServer
 	locker.MyServer.Ip = locker.MyServerIp
 	locker.FileLockPath = config.Proxysql.LockFilePath
-	locker.isLooped = config.Global.Development
+	locker.isLooped = config.Global.Daemonize
 	locker.LockFileTimeout = config.Global.LockFileTimeout
 	locker.LockClusterTimeout = config.Global.LockClusterTimeout
 

@@ -229,7 +229,8 @@ clustered = true
 lockfiletimeout = 60 #seconds 
 lockclustertimeout = 600 # seconds
 ```
-
+Last important thing. WHen using Proxysql in cluster mode the address indicated in the `[proxysql]` section `host` __MUST__ be the same reported in the `proxysql_servers` table or the cluster operations will fail.
+The user/password as well must be the same used for the cluster, or be able to access proxysql from another node (admin/admin will not work). 
 
 ProxySQL Documentation reports:
 ```

@@ -250,7 +250,7 @@ Implementation may be different than what is listed right now:
 None of the above is implemented 
 
 ## Download and compile from source
-Once you have GO installed and running (version 1.15.8 is recommended)
+Once you have GO installed and running (version 1.15.8 is recommended. Version 1.16 is not supported yet)
 
 Clone from github: `git clone https://github.com/Tusamarco/proxysql_scheduler.git`
 

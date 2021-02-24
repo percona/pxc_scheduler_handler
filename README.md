@@ -145,7 +145,6 @@ OS = "na"
 - activeFailover : [1] Failover method
 - failBack : [false] If we should fail-back automatically or wait for manual intervention 
 - checkTimeOut : [4000] This is one of the most important settings. When checking the Backend node (MySQL), it is possible that the node will not be able to answer in a consistent amount of time, due the different level of load. If this exceeds the Timeout, a warning will be print in the log, and the node will not be processed. Parsing the log it is possible to identify which is the best value for checkTimeOut to satisfy the need of speed and at the same time to give the nodes the time they need to answer.
-- debug : [0] Some additional debug specific for the pxc cluster
 - mainSegment : [1] This is another very important value to set, it defines which is the MAIN segment for failover
 - sslClient : "client-cert.pem" In case of use of SSL for backend we need to be able to use the right credential
 - sslKey : "client-key.pem" In case of use of SSL for backend we need to be able to use the right credential
@@ -226,7 +225,7 @@ __Related Parameters__
 [proxysql]
 clustered = true
 
-[global]<br>
+[global]
 lockfiletimeout = 60 #seconds 
 lockclustertimeout = 600 # seconds
 ```
@@ -250,7 +249,7 @@ Implementation may be different than what is listed right now:
 None of the above is implemented 
 
 ## Download and compile from source
-Once you have GO installed and running (at least version 1.15.8)
+Once you have GO installed and running (version 1.15.8 is recommended)
 
 Clone from github: `git clone https://github.com/Tusamarco/proxysql_scheduler.git`
 
@@ -269,7 +268,7 @@ First thing to do then is to run `./proxysql_scheduler --help`
 to navigate the parameters.
 
 Then adjust the config file in `./config/config.toml` better to do a copy and modify for what u need
-Then to test it OUTSIDE the ProxySQL scheduler script, in the config file `[Global]` section change `development=false` to `true`. 
+Then to test it OUTSIDE the ProxySQL scheduler script, in the config file `[Global]` section change `daemonize=false` to `true`. 
 The script will auto-loop as if call by the scheduler. 
 
  

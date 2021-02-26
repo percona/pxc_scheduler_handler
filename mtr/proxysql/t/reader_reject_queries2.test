@@ -4,7 +4,7 @@
 # 1. node_3: SET GLOBAL wsrep_reject_queries=ALL
 #     => node_3 goes to hostgroup 9101
 # 2. node_3: SET GLOBAL wsrep_reject_queries=NONE
-#     => node_3 goes back to readers
+#     => node_3 goes back hostgroup 101
 
 --let $proxysql_scheduler_config = writer_is_reader_failback.toml
 --let $action_1_node = node_3

@@ -1,0 +1,12 @@
+# 1. Setup 3 node PXC cluster
+# 2. Setup ProxySQL 
+#  node_1: reader
+#  node_2: writer/backup writer weight 2
+#  node_3: reader/backup reader
+# 3. Setup ProxySQL scheduler with config passed in $proxysql_scheduler_config
+# 4. remove all writers from wHG
+#   => node_2 added back to wHG
+#   => node_2 NOT added to rHG as WriterIsAlsoReader=false
+
+--let $proxysql_scheduler_config = writer_is_not_reader.toml
+--source reader_add.inc

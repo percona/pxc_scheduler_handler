@@ -1,8 +1,8 @@
 # 1. Setup 3 node PXC cluster
 # 2. Setup ProxySQL 
-#  node_1: reader/backup wrtier weight 1
-#  node_2: reader/backup writer weight 2
-#  node_3: writer
+#  node_1:          backup reader / backup wrtier
+#  node_2: reader / backup reader / backup writer
+#  node_3: writer / backup reader / backup writer
 # 3. Setup ProxySQL scheduler with config passed in $proxysql_scheduler_config
 # 4. shutdown writer
 #   => node_2 promoted to writer, removed from readers
@@ -16,4 +16,9 @@
 --let $node_2_bwr_priority = 2
 --let $node_3_bwr_priority = 3
 
---source writer_kill.inc
+--let $node_1_brd_priority = 1
+--let $node_2_brd_priority = 2
+--let $node_3_brd_priority = 3
+
+--let $node_to_kill=node_3
+--source pxc_node_kill.inc

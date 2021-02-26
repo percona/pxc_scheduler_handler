@@ -1,16 +1,16 @@
-# This is common scenario for 1 writer, 3 reades, 3 backup writers
-# When node_3 is killed and then started again
+# This is common scenario for 1 writer, 1 reades, 3 backup writers, 3 backup readers
+# When $node_to_kill is killed and then started again
 # We cannot use the node_1 for this as it is used to boostrap the cluster (and 
 # handling this in MTR is more problematic)
 #
 # 1. Setup 3 node PXC cluster
 # 2. Setup ProxySQL 
-#  node_3: writer/reader / backup writer
-#  node_2: reader / backup writer
-#  node_1: reader / baclup writer
+#  node_1:          backup reader / backup wrtier
+#  node_2: reader / backup reader / backup writer
+#  node_3: writer / backup reader / backup writer
 # 3. Setup ProxySQL scheduler with config passed in $proxysql_scheduler_config
-# 4. shutdown node_3
-# 5. start node_3
+# 4. shutdown $node_to_kill
+# 5. start $node_to_kill
 
 --source include/galera_cluster_3nodes.inc
 
@@ -47,12 +47,8 @@
 --eval INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',$wHG,$NODE_MYPORT_3,$node_3_bwr_priority,1000,'WRITE')
 
 # readers
---replace_result $NODE_MYPORT_3 NODE_MYPORT_3
---eval INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',$rHG,$NODE_MYPORT_3,100,1000,'READ/WRITE')
 --replace_result $NODE_MYPORT_2 NODE_MYPORT_2
---eval INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',$rHG,$NODE_MYPORT_2,10000,1000,'READ')
---replace_result $NODE_MYPORT_1 NODE_MYPORT_1
---eval INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',$rHG,$NODE_MYPORT_1,10000,1000,'READ')
+--eval INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',$rHG,$NODE_MYPORT_2,$node_2_brd_priority,1000,'READ')
 
 # backup writers
 --replace_result $NODE_MYPORT_1 NODE_MYPORT_3
@@ -61,6 +57,15 @@
 --eval INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',8100,$NODE_MYPORT_2,$node_2_bwr_priority,1000,'Backup writer 2')
 --replace_result $NODE_MYPORT_3 NODE_MYPORT_1
 --eval INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',8100,$NODE_MYPORT_1,$node_1_bwr_priority,1000,'Backup writer 1')
+
+# backup readers
+--replace_result $NODE_MYPORT_3 NODE_MYPORT_3
+--eval INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',8101,$NODE_MYPORT_3,$node_3_brd_priority,1000,'Backup reader 3')
+--replace_result $NODE_MYPORT_2 NODE_MYPORT_2
+--eval INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',8101,$NODE_MYPORT_2,$node_2_brd_priority,1000,'Backup reader 2')
+--replace_result $NODE_MYPORT_1 NODE_MYPORT_1
+--eval INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',8101,$NODE_MYPORT_1,$node_1_brd_priority,1000,'Backup reader 1')
+
 
 # scheduler script
 # allow scheduler script to write its logs
@@ -87,9 +92,9 @@ CREATE TABLE t1 (a int primary key);
 INSERT INTO t1 VALUES (1), (2), (3);
 
 --echo #
---echo # node_3 kill
+--echo # $node_to_kill kill
 --echo #
---connection node_3
+--connection $node_to_kill
 --source include/kill_mysqld.inc
 
 # now let ProxySQL scheduler detect this change and do its job
@@ -120,9 +125,9 @@ SELECT COUNT(*) FROM t1;
 #
 
 --echo #
---echo # node_3 back online
+--echo # $node_to_kill back online
 --echo #
---connection node_3
+--connection $node_to_kill
 --source include/start_mysqld.inc
 --source include/wait_wsrep_ready.inc
 

@@ -28,12 +28,14 @@ It also makes possible to isolate the Primary Writer from READS (when read/write
 ProxySQL_checker leverage the HostGroup concept existing in ProxySQL to identify 3 main set of HGs, the set that needs to be handled (your pair of HGs for R/W) , the set used for configuration (the ones in the 8XXX range) and a special set use to isolate the nodes when not active (in the 9XXX range).
 
 To clarify, let assume you have your PXC cluster compose by 3 Nodes, and you have already set query rules to split traffic R/W with the following HGs:
-10 is the ID for the HG dealing with Writes
-11 is the ID for the HG dealing with Reads
+* 10 is the ID for the HG dealing with Writes
+* 11 is the ID for the HG dealing with Reads
+
 What you need to add is 2 CONFIGURATION HGs that as ID have the ID from your HG + 8000.
 In our example:
-8010 is the ID for the configuration HG for HG 10
-8011 is the ID for the configuration HG for HG 11
+* 8010 is the ID for the configuration HG for HG 10
+* 8011 is the ID for the configuration HG for HG 11
+
 The settings used in the 8XXX HGs like weight, use of SSL etc. are used as templates when in the need to deal with the nodes in the managed HGs (10, 11). This is it, settings in 8010/11 are persistent, the ones in 10/11 are not.
 
 

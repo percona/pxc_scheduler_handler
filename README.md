@@ -24,7 +24,7 @@ Node states:
 
 It also makes possible to isolate the Primary Writer from READS (when read/write split is in place in ProxySQL), such that reads will be redirect only to READ HostGroup.
 
-###Understand the HGs relation
+### Understand the HGs relation
 ProxySQL_checker leverage the HostGroup concept existing in ProxySQL to identify 3 main set of HGs, the set that needs to be handled (your pair of HGs for R/W) , the set used for configuration (the ones in the 8XXX range) and a special set use to isolate the nodes when not active (in the 9XXX range).
 
 To clarify, let assume you have your PXC cluster compose by 3 Nodes, and you have already set query rules to split traffic R/W with the following HGs:
@@ -37,7 +37,7 @@ In our example:
 The settings used in the 8XXX HGs like weight, use of SSL etc. are used as templates when in the need to deal with the nodes in the managed HGs (10, 11). This is it, settings in 8010/11 are persistent, the ones in 10/11 are not.
 
 
-##Failover
+## Failover
 A fail-over will occur anytime a Primary writer node will need to be demoted. This can be for planned maintenance as well as a node crash. To be able to fail-over ProxySQL_checker require to have valid Node(s) in the corresponding 8XXX HostGroup (8000 + original HG id).
 Given that assume we have:
 ```editorconfig
@@ -48,12 +48,12 @@ node6 : 192.168.4.233
 If node4 will fail/maintenance,  ProxySQL_checker will choose the next one with higher weight in the 8XXX corresponding HGs.
 Actions will also be different if the Node is going down because a crash or maintenance. In case of the latter the Node will be set as OFFLINE_SOFT to allow existing connections to end their work. In other cases, the node will be moved to HG 9XXX which is the special HG to isolate non active nodes.
 
-###Failback
+### Failback
 ProxySQL_checker by default IS NOT doing failback, this is by design. Nevertheless, if the option is activated in the config file, ProxySQL_checker will honor that.
 What is a failback? Assume you have only ONE writer (Primary writer) elected because its weight is the highest in the 8XXX writer HG. If this node is removed another will take its place. When the original Node will come back and failback is active, this node will be re-elected as Primary, while the one who take its place is moved to OFFLINE_SOFT.
 Why failback is bad? Because with automatic failback, your resurrecting node will be immediately move to production. This is not a good practice when in real production environment, because normally is better to warmup the Buffer-Pool to reduce the access to storage layer, and then move the node as Primary writer.
 
-##Other notes about how nodes are managed
+## Other notes about how nodes are managed
 If a node is the only one in a segment, the check will behave accordingly. IE if a node is the only one in the MAIN segment, it will not put the node in OFFLINE_SOFT when the node become donor to prevent the cluster to become unavailable for the applications. As mention is possible to declare a segment as MAIN, quite useful when managing prod and DR site.
 
 The check can be configure to perform retry in a X interval. Where X is the time define in the ProxySQL scheduler. As such if the check is set to have 2 retry for UP and 4 for down, it will loop that number before doing anything.
@@ -79,7 +79,7 @@ Checks for:
 - lock on another node
 - lock time comparing it with lockclustertimeout parameter
 
-###Related Parameters
+### Related Parameters
 
 ```editorconfig
 [proxysql]

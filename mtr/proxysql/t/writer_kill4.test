@@ -5,13 +5,13 @@
 #  node_3: writer
 # 3. Setup ProxySQL scheduler with config passed in $proxysql_scheduler_config
 # 4. shutdown writer
-#   => node_2 promoted to writer, stays reader
+#   => node_2 promoted to writer, removed from readers
 #   => node_3 status changed to SHUNED, node moved to hostgroup 9100
 # 5. relaunch writer
-#   => node_2 still writer and reader because there is no FailBack
+#   => node_2 still writer because there is no FailBack
 #   => node_3 status changed to ONLINE, node removed from hostgroup 9100, node added to reader hostrgroup 101
 
---let $proxysql_scheduler_config = writer_is_reader.toml
+--let $proxysql_scheduler_config = writer_is_not_reader.toml
 --let $node_1_bwr_priority = 1
 --let $node_2_bwr_priority = 2
 --let $node_3_bwr_priority = 3

@@ -325,6 +325,7 @@ Commands :
  Results: OK
 
 MTR:
+reader_to_maintenance4.test
 writer_to_maintenance4.test
 
  ----------------------------------------------------------
@@ -338,7 +339,9 @@ writer_to_maintenance4.test
  Results: writer moves offline_soft another one from reader take place
  For reader HG we have multiple nodes so all good to be desync
 
-
+MTR:
+reader_desync4.test
+writer_desync4.test
 
  ----------------------------------------------------------
  Test : Read_only = 1
@@ -352,6 +355,10 @@ writer_to_maintenance4.test
  Results: fail-over to the next available backup
  Results: OK
 
+MTR:
+reader_to_readonly4.test
+writer_to_readonly4.test
+
  ----------------------------------------------------------
  Test : wsrep_reject_queries <> none
  Expectations: node is moved to HG 9000
@@ -363,12 +370,18 @@ writer_to_maintenance4.test
  Results: reader goes to 9000
 
 Results: OK
+
+MTR:
+writer_reject_queries4.test
+
  ----------------------------------------------------------
  Test : on SHUNNED
  Expectations: node is moved to HG 9000
  Command on writer  : kill -9 <mysqd pid>
  Results: Writer node is shunned and new node is elected as writer
 
+MTR:
+writer_kill4.test
 
 ----------------------------------------------------------
 Test : on Crash or network down

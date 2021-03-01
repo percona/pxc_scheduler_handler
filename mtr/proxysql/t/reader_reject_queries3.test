@@ -1,0 +1,18 @@
+# scheduler: active_failover=1 retry_down=2 writer_is_also_reader=1 failBack=false
+#
+# Scenario:
+# 1. node_3: SET GLOBAL wsrep_reject_queries=ALL
+#     => node_1 still writer
+#     => node_2 still writer
+#     => node_3 goes to hostgroup 9101
+# 2. node_3: SET GLOBAL wsrep_reject_queries=NONE
+#     => node_1 still writer
+#     => node_2 still writer
+#     => node_3 goes back hostgroup 101
+
+--let $proxysql_scheduler_config = writer_is_reader_2w.toml
+--let $action_1_node = node_3
+--let $action_1 = SET GLOBAL wsrep_reject_queries=ALL;
+--let $action_2_node = node_3
+--let $action_2 = SET GLOBAL wsrep_reject_queries=NONE;
+--source 2w3r2bw_2actions.inc

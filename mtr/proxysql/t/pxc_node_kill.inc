@@ -43,19 +43,23 @@
 
 # PxC nodes setup
 # writers
+--replace_result $NODE_MYPORT_1 NODE_MYPORT_1
+--eval INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',$wHG,$NODE_MYPORT_1,$node_1_bwr_priority,1000,'WRITE')
 --replace_result $NODE_MYPORT_3 NODE_MYPORT_3
 --eval INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',$wHG,$NODE_MYPORT_3,$node_3_bwr_priority,1000,'WRITE')
 
 # readers
+--replace_result $NODE_MYPORT_1 NODE_MYPORT_1
+--eval INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',$rHG,$NODE_MYPORT_1,$node_1_brd_priority,1000,'READ')
 --replace_result $NODE_MYPORT_2 NODE_MYPORT_2
 --eval INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',$rHG,$NODE_MYPORT_2,$node_2_brd_priority,1000,'READ')
 
 # backup writers
---replace_result $NODE_MYPORT_1 NODE_MYPORT_3
+--replace_result $NODE_MYPORT_3 NODE_MYPORT_3
 --eval INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',8100,$NODE_MYPORT_3,$node_3_bwr_priority,1000,'Backup writer 3')
 --replace_result $NODE_MYPORT_2 NODE_MYPORT_2
 --eval INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',8100,$NODE_MYPORT_2,$node_2_bwr_priority,1000,'Backup writer 2')
---replace_result $NODE_MYPORT_3 NODE_MYPORT_1
+--replace_result $NODE_MYPORT_1 NODE_MYPORT_1
 --eval INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',8100,$NODE_MYPORT_1,$node_1_bwr_priority,1000,'Backup writer 1')
 
 # backup readers

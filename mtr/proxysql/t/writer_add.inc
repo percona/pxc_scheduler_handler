@@ -39,6 +39,8 @@
 
 # PxC nodes setup
 # writers
+--replace_result $NODE_MYPORT_1 NODE_MYPORT_1
+--eval INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',$wHG,$NODE_MYPORT_1,1,1000,'WRITE')
 --replace_result $NODE_MYPORT_2 NODE_MYPORT_2
 --eval INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',$wHG,$NODE_MYPORT_2,2,1000,'WRITE')
 
@@ -49,6 +51,8 @@
 --eval INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',$rHG,$NODE_MYPORT_3,3,1000,'READ')
 
 # backup writers
+--replace_result $NODE_MYPORT_1 NODE_MYPORT_1
+--eval INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',8100,$NODE_MYPORT_1,1,1000,'Backup writer 2')
 --replace_result $NODE_MYPORT_2 NODE_MYPORT_2
 --eval INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',8100,$NODE_MYPORT_2,2,1000,'Backup writer 2')
 

@@ -245,6 +245,9 @@ Commands :
 
  Results: OK
 
+MTR:
+reader_to_maintenance3.test
+writer_to_maintenance3.test
 
  ----------------------------------------------------------
  Test : wsrep_desync (or any state <> 4)
@@ -257,6 +260,11 @@ Commands :
  Results: writer moves offline_soft another one from reader take place
  For reader HG we have multiple nodes so all good to be desync
 
+MTR:
+reader_desync3.test
+writer_desync3.test
+
+
  ----------------------------------------------------------
  Test : Read_only = 1
  Expectations: node is removed from writers
@@ -268,6 +276,10 @@ Commands :
  Command on a writer node: set global READ_ONLY = 1;
  Results: fail-over to the next available backup
 
+MTR:
+reader_to_readonly3.test
+writer_to_readonly3.test
+
  ----------------------------------------------------------
  Test : wsrep_reject_queries <> none
  Expectations: node is moved to HG 9000
@@ -278,12 +290,19 @@ Commands :
  Command: on reader: set global wsrep_reject_queries=all;
  Results: reader goes to 9000
 
+MTR:
+reader_reject_queries3.test
+writer_reject_queries3.test
+
  ----------------------------------------------------------
  Test : on SHUNNED
  Expectations: node is moved to HG 9000
  Command on writer  : kill -9 <mysqd pid>
  Results: Writer node is shunned and new node is elected as writer
 
+MTR:
+reader_kill3.test
+writer_kill3.test
 
 ----------------------------------------------------------
 Test : on Crash or network down
@@ -308,6 +327,11 @@ Command: delete from mysql_servers where hostname = '<ip>' and hostgroup_id in (
 Results: node in Backup HGs is inserted back first in 9000 Reader HG, then evaluated and if successful promoted to HGRead
 
 if Failback node is also move back to writer and previous writer moved to offline_soft
+
+MTR:
+reader_add3.test
+writer_add3.test
+
 ========================================================
 =======================================
 Scenario 4:

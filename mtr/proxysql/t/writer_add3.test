@@ -8,5 +8,5 @@
 #   => node_2 added back to wHG
 #   => node_2 NOT added to rHG as WriterIsAlsoReader=false
 
---let $proxysql_scheduler_config = writer_is_not_reader.toml
+--let $proxysql_scheduler_config = writer_is_reader_2w.toml
 --source writer_add.inc

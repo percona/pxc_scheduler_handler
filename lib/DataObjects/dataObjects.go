@@ -1,4 +1,4 @@
-package DataObjects
+package dataobjects
 
 import (
 	"crypto/tls"
@@ -13,7 +13,7 @@ import (
 	"sync"
 	"time"
 
-	"../Global"
+	global "../Global"
 	SQLPxc "../Sql/Pcx"
 	SQLProxy "../Sql/Proxy"
 	"github.com/go-sql-driver/mysql"
@@ -133,27 +133,27 @@ Methods
 /*
 Data cluster initialization method
 */
-func (cluster *DataCluster) init(config Global.Configuration, connectionProxy *sql.DB) bool {
+func (cluster *DataCluster) init(config *global.Configuration, connectionProxy *sql.DB) bool {
 
-	if Global.Performance {
-		Global.SetPerformanceObj("data_cluster_init", true, log.InfoLevel)
+	if global.Performance {
+		global.SetPerformanceObj("data_cluster_init", true, log.InfoLevel)
 	}
 	//set parameters from the config file
 	cluster.Debug = config.Global.Debug
-	cluster.ClusterIdentifier = config.Pxcluster.ClusterId
-	cluster.CheckTimeout = config.Pxcluster.CheckTimeOut
-	cluster.MainSegment = config.Pxcluster.MainSegment
-	cluster.ActiveFailover = config.Pxcluster.ActiveFailover
-	cluster.FailBack = config.Pxcluster.FailBack
+	cluster.ClusterIdentifier = config.PxcCluster.ClusterID
+	cluster.CheckTimeout = config.PxcCluster.CheckTimeOut
+	cluster.MainSegment = config.PxcCluster.MainSegment
+	cluster.ActiveFailover = config.PxcCluster.ActiveFailover
+	cluster.FailBack = config.PxcCluster.FailBack
 
 	//Enable SSL support
-	if config.Pxcluster.SslClient != "" && config.Pxcluster.SslKey != "" && config.Pxcluster.SslCa != "" {
+	if config.PxcCluster.SslClient != "" && config.PxcCluster.SslKey != "" && config.PxcCluster.SslCa != "" {
 		ssl := new(SslCertificates)
-		ssl.sslClient = config.Pxcluster.SslClient
-		ssl.sslKey = config.Pxcluster.SslKey
-		ssl.sslCa = config.Pxcluster.SslCa
-		if config.Pxcluster.SslcertificatePath != "" {
-			ssl.sslCertificatePath = config.Pxcluster.SslcertificatePath
+		ssl.sslClient = config.PxcCluster.SslClient
+		ssl.sslKey = config.PxcCluster.SslKey
+		ssl.sslCa = config.PxcCluster.SslCa
+		if config.PxcCluster.SslcertificatePath != "" {
+			ssl.sslCertificatePath = config.PxcCluster.SslcertificatePath
 		} else {
 			path, err := os.Getwd()
 			if err != nil {
@@ -198,8 +198,8 @@ func (cluster *DataCluster) init(config Global.Configuration, connectionProxy *s
 		}
 	}
 
-	if Global.Performance {
-		Global.SetPerformanceObj("data_cluster_init", false, log.InfoLevel)
+	if global.Performance {
+		global.SetPerformanceObj("data_cluster_init", false, log.InfoLevel)
 	}
 	return true
 }
@@ -208,7 +208,7 @@ func (cluster *DataCluster) init(config Global.Configuration, connectionProxy *s
 // We will use the Nodes list with all the IP:Port pair no matter what HG to check the nodes and then will assign the information to the relevant node collection
 // like Bkup(r/w) or Readers/Writers
 func (cluster *DataCluster) getNodesInfo() bool {
-	var waitingGroup Global.MyWaitGroup
+	var waitingGroup global.MyWaitGroup
 
 	//Before getting the information, we check if any node in the 8000 is gone lost and if so we try to add it back
 	cluster.NodesPxc.internal = cluster.checkMissingForNodes(cluster.NodesPxc.internal)
@@ -253,8 +253,8 @@ In prod is parallelized
 */
 func (cluster *DataCluster) loadNodes(connectionProxy *sql.DB) bool {
 	// get list of nodes from ProxySQL
-	if Global.Performance {
-		Global.SetPerformanceObj("loadNodes", true, log.InfoLevel)
+	if global.Performance {
+		global.SetPerformanceObj("loadNodes", true, log.InfoLevel)
 	}
 	var sb strings.Builder
 	sb.WriteString(strconv.Itoa(cluster.HgWriterId))
@@ -339,25 +339,25 @@ func (cluster *DataCluster) loadNodes(connectionProxy *sql.DB) bool {
 		}
 
 	}
-	if Global.Performance {
-		Global.SetPerformanceObj("loadNodes", false, log.InfoLevel)
+	if global.Performance {
+		global.SetPerformanceObj("loadNodes", false, log.InfoLevel)
 	}
 	return true
 }
 
 //load values from db disk in ProxySQL
-func (cluster *DataCluster) getParametersFromProxySQL(config Global.Configuration) bool {
+func (cluster *DataCluster) getParametersFromProxySQL(config *global.Configuration) bool {
 
-	cluster.ClusterIdentifier = config.Pxcluster.ClusterId
-	cluster.HgWriterId = config.Pxcluster.HgW
-	cluster.HgReaderId = config.Pxcluster.HgR
-	cluster.BakcupHgWriterId = config.Pxcluster.BckHgW
-	cluster.BackupHgReaderId = config.Pxcluster.BckHgR
-	cluster.SinglePrimary = config.Pxcluster.SinglePrimary
-	cluster.MaxNumWriters = config.Pxcluster.MaxNumWriters
-	cluster.WriterIsReader = config.Pxcluster.WriterIsAlsoReader
-	cluster.RetryUp = config.Pxcluster.RetryUp
-	cluster.RetryDown = config.Pxcluster.RetryDown
+	cluster.ClusterIdentifier = config.PxcCluster.ClusterID
+	cluster.HgWriterId = config.PxcCluster.HgW
+	cluster.HgReaderId = config.PxcCluster.HgR
+	cluster.BakcupHgWriterId = config.PxcCluster.BckHgW
+	cluster.BackupHgReaderId = config.PxcCluster.BckHgR
+	cluster.SinglePrimary = config.PxcCluster.SinglePrimary
+	cluster.MaxNumWriters = config.PxcCluster.MaxNumWriters
+	cluster.WriterIsReader = config.PxcCluster.WriterIsAlsoReader
+	cluster.RetryUp = config.PxcCluster.RetryUp
+	cluster.RetryDown = config.PxcCluster.RetryDown
 	//)
 	if log.GetLevel() == log.DebugLevel {
 		log.Debug("Cluster arguments ", " clusterid=", cluster.ClusterIdentifier,
@@ -498,8 +498,8 @@ The actionList is the object returning the list of nodes that require modificati
 Any modification at their status in ProxySQL is done by the ProxySQLNode object
 */
 func (cluster *DataCluster) GetActionList() map[string]DataNodePxc {
-	if Global.Performance {
-		Global.SetPerformanceObj("Get Action Map (DataCluster)", true, log.DebugLevel)
+	if global.Performance {
+		global.SetPerformanceObj("Get Action Map (DataCluster)", true, log.DebugLevel)
 	}
 	/*
 		NOTES:
@@ -528,8 +528,8 @@ func (cluster *DataCluster) GetActionList() map[string]DataNodePxc {
 	if !cluster.checkFailoverIfFound() {
 		log.Error("Error electing Node for fail-over")
 	}
-	if Global.Performance {
-		Global.SetPerformanceObj("Get Action Map (DataCluster)", false, log.DebugLevel)
+	if global.Performance {
+		global.SetPerformanceObj("Get Action Map (DataCluster)", false, log.DebugLevel)
 	}
 
 	//At this point we should be able to do actions in consistent way
@@ -1084,8 +1084,8 @@ func (cluster *DataCluster) processUpActionMap() {
 		hg := key[0:strings.Index(key, "_")]
 		ip := key[strings.Index(key, "_")+1 : strings.Index(key, ":")]
 		port := key[strings.Index(key, ":")+1:]
-		hgI = Global.ToInt(hg)
-		portI = Global.ToInt(port)
+		hgI = global.ToInt(hg)
+		portI = global.ToInt(port)
 		// We process only WRITERS
 		if currentHg.Type == "W" || currentHg.Type == "WREC" {
 			if node.DataNodeBase.ReturnActionCategory(node.DataNodeBase.ActionType) == "UP" ||
@@ -1195,8 +1195,8 @@ func (cluster *DataCluster) processDownActionMap() {
 		hg := key[0:strings.Index(key, "_")]
 		ip := key[strings.Index(key, "_")+1 : strings.Index(key, ":")]
 		port := key[strings.Index(key, ":")+1:]
-		hgI = Global.ToInt(hg)
-		portI = Global.ToInt(port)
+		hgI = global.ToInt(hg)
+		portI = global.ToInt(port)
 
 		// We process only WRITERS and check for nodes marked in EvalNodes as DOWN
 		if currentHg.Type == "W" || currentHg.Type == "WREC" {
@@ -1364,8 +1364,8 @@ func (cluster *DataCluster) pushNewNode(node DataNodePxc) bool {
 return true if successful in any other case false
 */
 func (node *DataNode) GetConnection() bool {
-	if Global.Performance {
-		Global.SetPerformanceObj("node_connection_"+node.Dns, true, log.DebugLevel)
+	if global.Performance {
+		global.SetPerformanceObj("node_connection_"+node.Dns, true, log.DebugLevel)
 	}
 	//dns := node.User + ":" + node.Password + "@tcp(" + node.Dns + ":"+ strconv.Itoa(node.Port) +")/admin" //
 	//if log.GetLevel() == log.DebugLevel {log.Debug(dns)}
@@ -1404,9 +1404,9 @@ func (node *DataNode) GetConnection() bool {
 		if node.Ssl == nil {
 			attributes = attributes + "&tls=skip-verify"
 		} else if node.Ssl.sslCertificatePath != "" {
-			ca := node.Ssl.sslCertificatePath + Global.Separator + node.Ssl.sslCa
-			client := node.Ssl.sslCertificatePath + Global.Separator + node.Ssl.sslClient
-			key := node.Ssl.sslCertificatePath + Global.Separator + node.Ssl.sslKey
+			ca := node.Ssl.sslCertificatePath + global.Separator + node.Ssl.sslCa
+			client := node.Ssl.sslCertificatePath + global.Separator + node.Ssl.sslClient
+			key := node.Ssl.sslCertificatePath + global.Separator + node.Ssl.sslKey
 
 			rootCertPool := x509.NewCertPool()
 			pem, err := ioutil.ReadFile(ca)
@@ -1450,8 +1450,8 @@ func (node *DataNode) GetConnection() bool {
 	}
 	node.NodeTCPDown = false
 
-	if Global.Performance {
-		Global.SetPerformanceObj("node_connection_"+node.Dns, false, log.DebugLevel)
+	if global.Performance {
+		global.SetPerformanceObj("node_connection_"+node.Dns, false, log.DebugLevel)
 	}
 	return true
 }

@@ -1,4 +1,4 @@
-Proxysql scheduler tests
+ProxySQL scheduler tests
 
 Scenario:
 =======================================

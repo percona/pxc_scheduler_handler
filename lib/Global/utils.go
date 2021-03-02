@@ -1,10 +1,7 @@
-package Global
+package global
 
 import (
 	"fmt"
-	log "github.com/sirupsen/logrus"
-	"golang.org/x/text/language"
-	"golang.org/x/text/message"
 	"os"
 	"reflect"
 	"runtime"
@@ -12,6 +9,10 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	log "github.com/sirupsen/logrus"
+	"golang.org/x/text/language"
+	"golang.org/x/text/message"
 )
 
 type MyWaitGroup struct {
@@ -132,6 +133,7 @@ func ReflectStructField(Iface interface{}, FieldName string) error {
 	}
 	return nil
 }
+
 //----------------------
 /* =====================
 STATS
@@ -181,8 +183,6 @@ func (rm *StatSyncInfo) ExposeMap() map[string][2]int64 {
 	return rm.internal
 }
 
-
-
 //====================================================
 
 // Struct
@@ -193,7 +193,7 @@ type OrderedPerfMap struct {
 }
 
 // Constructor
-func NewOrderedMap () *OrderedPerfMap {
+func NewOrderedMap() *OrderedPerfMap {
 	return &OrderedPerfMap{
 		store: map[string]PerfObject{},
 		keys:  []string{},
@@ -271,6 +271,7 @@ func CheckIfPathExists(path string) bool {
 	}
 	return false
 }
+
 //=======
 
 func caseInsenstiveFieldByName(v reflect.Value, name string) reflect.Value {
@@ -278,13 +279,12 @@ func caseInsenstiveFieldByName(v reflect.Value, name string) reflect.Value {
 	return v.FieldByNameFunc(func(n string) bool { return strings.ToLower(n) == name })
 }
 
-
 //====================================
 
 //stats structure
 type PerfObject struct {
-	Name string
-	Time [2]int64
+	Name     string
+	Time     [2]int64
 	LogLevel log.Level
 }
 
@@ -305,16 +305,16 @@ func SetPerformanceValue(key string, start bool) {
 	PerformanceMap.Store(key, valStat) //  ExposeMap()[key] = valStat
 }
 
-func SetPerformanceObj(key string, start bool,logLevel log.Level) {
+func SetPerformanceObj(key string, start bool, logLevel log.Level) {
 	var perfObj PerfObject
 	valStat := [2]int64{}
 
-	if val, exists := PerformanceMapOrdered.Get(key); !exists{
-		perfObj  = val
+	if val, exists := PerformanceMapOrdered.Get(key); !exists {
+		perfObj = val
 		perfObj.LogLevel = logLevel
 		perfObj.Name = key
 		valStat = [2]int64{0, 0}
-	}else{
+	} else {
 		perfObj = val
 		valStat = perfObj.Time
 	}
@@ -354,5 +354,3 @@ func ReportPerformance() {
 		}
 	}
 }
-
-

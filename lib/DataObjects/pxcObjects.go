@@ -1,11 +1,12 @@
-package DataObjects
+package dataobjects
 
 import (
-	"../Global"
-	SQLPxc "../Sql/Pcx"
 	"fmt"
-	log "github.com/sirupsen/logrus"
 	"strings"
+
+	global "../Global"
+	SQLPxc "../Sql/Pcx"
+	log "github.com/sirupsen/logrus"
 )
 
 type DataNodePxc struct {
@@ -48,9 +49,9 @@ func (node *DataNodePxc) getPxcView(dml string) PxcClusterView {
 }
 
 //We parallelize the information retrieval using goroutine
-func (node DataNodePxc) getInfo(wg *Global.MyWaitGroup, cluster *DataCluster) int {
-	if Global.Performance {
-		Global.SetPerformanceObj(fmt.Sprintf("Get info for node %s",node.DataNodeBase.Dns), true,log.DebugLevel)
+func (node DataNodePxc) getInfo(wg *global.MyWaitGroup, cluster *DataCluster) int {
+	if global.Performance {
+		global.SetPerformanceObj(fmt.Sprintf("Get info for node %s", node.DataNodeBase.Dns), true, log.DebugLevel)
 	}
 	// Get the connection
 	node.DataNodeBase.GetConnection()
@@ -70,8 +71,8 @@ func (node DataNodePxc) getInfo(wg *Global.MyWaitGroup, cluster *DataCluster) in
 
 		//set the specific monitoring parameters
 		node.setParameters()
-		if Global.Performance {
-			Global.SetPerformanceObj(fmt.Sprintf("Get info for node %s",node.DataNodeBase.Dns), false,log.DebugLevel)
+		if global.Performance {
+			global.SetPerformanceObj(fmt.Sprintf("Get info for node %s", node.DataNodeBase.Dns), false, log.DebugLevel)
 		}
 	} else {
 		node.DataNodeBase.Processed = false
@@ -93,22 +94,22 @@ func (node DataNodePxc) getInfo(wg *Global.MyWaitGroup, cluster *DataCluster) in
 func (node *DataNodePxc) setParameters() {
 	node.WsrepLocalIndex = node.PxcView.LocalIndex
 	node.PxcMaintMode = node.DataNodeBase.Variables["pxc_maint_mode"]
-	node.WsrepConnected = Global.ToBool(node.DataNodeBase.Status["wsrep_connected"], "ON")
-	node.WsrepDesinccount = Global.ToInt(node.DataNodeBase.Status["wsrep_desync_count"])
-	node.WsrepDonorrejectqueries = Global.ToBool(node.DataNodeBase.Variables["wsrep_sst_donor_rejects_queries"], "ON")
+	node.WsrepConnected = global.ToBool(node.DataNodeBase.Status["wsrep_connected"], "ON")
+	node.WsrepDesinccount = global.ToInt(node.DataNodeBase.Status["wsrep_desync_count"])
+	node.WsrepDonorrejectqueries = global.ToBool(node.DataNodeBase.Variables["wsrep_sst_donor_rejects_queries"], "ON")
 	node.WsrepGcommUuid = node.DataNodeBase.Status["wsrep_gcomm_uuid"]
-	node.WsrepProvider = Global.FromStringToMAp(node.DataNodeBase.Variables["wsrep_provider_options"], ";")
-	node.HasPrimaryState = Global.ToBool(node.DataNodeBase.Status["wsrep_cluster_status"], "Primary")
+	node.WsrepProvider = global.FromStringToMAp(node.DataNodeBase.Variables["wsrep_provider_options"], ";")
+	node.HasPrimaryState = global.ToBool(node.DataNodeBase.Status["wsrep_cluster_status"], "Primary")
 
 	node.WsrepClusterName = node.DataNodeBase.Variables["wsrep_cluster_name"]
 	node.WsrepClusterStatus = node.DataNodeBase.Status["wsrep_cluster_status"]
 	node.WsrepNodeName = node.DataNodeBase.Variables["wsrep_node_name"]
-	node.WsrepClusterSize = Global.ToInt(node.DataNodeBase.Status["wsrep_cluster_size"])
-	node.WsrepPcWeight = Global.ToInt(node.WsrepProvider["pc.weight"])
-	node.WsrepReady = Global.ToBool(node.DataNodeBase.Status["wsrep_ready"], "on")
-	node.WsrepRejectqueries = !Global.ToBool(node.DataNodeBase.Variables["wsrep_reject_queries"], "none")
-	node.WsrepSegment = Global.ToInt(node.WsrepProvider["gmcast.segment"])
-	node.WsrepStatus = Global.ToInt(node.DataNodeBase.Status["wsrep_local_state"])
-	node.DataNodeBase.ReadOnly = Global.ToBool(node.DataNodeBase.Variables["read_only"], "on")
+	node.WsrepClusterSize = global.ToInt(node.DataNodeBase.Status["wsrep_cluster_size"])
+	node.WsrepPcWeight = global.ToInt(node.WsrepProvider["pc.weight"])
+	node.WsrepReady = global.ToBool(node.DataNodeBase.Status["wsrep_ready"], "on")
+	node.WsrepRejectqueries = !global.ToBool(node.DataNodeBase.Variables["wsrep_reject_queries"], "none")
+	node.WsrepSegment = global.ToInt(node.WsrepProvider["gmcast.segment"])
+	node.WsrepStatus = global.ToInt(node.DataNodeBase.Status["wsrep_local_state"])
+	node.DataNodeBase.ReadOnly = global.ToBool(node.DataNodeBase.Variables["read_only"], "on")
 
 }

@@ -7,7 +7,7 @@ import (
 	"time"
 
 	DO "./lib/DataObjects"
-	Global "./lib/Global"
+	global "./lib/Global"
 	_ "github.com/go-sql-driver/mysql"
 	log "github.com/sirupsen/logrus"
 )
@@ -38,101 +38,88 @@ import (
 Main function must contains only initial parameter, log system init and main object init
 */
 func main() {
-	//global setup of basic parameters
+	// global setup of basic parameters
 	const (
 		Separator = string(os.PathSeparator)
 	)
-	var daemonLoopWait = 0
-	var daemonLoop = 0
-	//var lockId string //LockId is compose by clusterID_HG_W_HG_R
+	daemonLoopWait := 0
+	daemonLoop := 0
 
 	var configFile string
 	var configPath string
-	locker := new(DO.Locker)
-
-
-	//initialize help
-	help := new(Global.HelpText)
-	help.Init()
-
+	locker := DO.Locker{}
 
 	// By default performance collection is disabled
-	Global.Performance = false
+	global.Performance = false
 
-	//Manage config and parameters from conf file [start]
+	// Manage config and parameters from conf file [start]
 	flag.StringVar(&configFile, "configfile", "", "Config file name for the script")
 	flag.StringVar(&configPath, "configpath", "", "Config file path")
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "\n%s\n", help.GetHelpText())
+		fmt.Fprintf(os.Stderr, "\n%s\n", global.GetHelp().HelpText())
 	}
 	flag.Parse()
 
-	//check for current params
+	// check for current params
+	// we allow only 2 command line parameters: configfile and configpath
+	// configfile is mandatory
 	if len(os.Args) < 2 || configFile == "" {
 		fmt.Println("You must at least pass the --configfile=xxx parameter ")
 		os.Exit(1)
 	}
 
-	var currPath, err = os.Getwd()
-
 	if configPath != "" {
-		if configPath[len(configPath)-1:] == Separator {
-			currPath = configPath
-		} else {
-			currPath = configPath + Separator
-		}
+		configPath = configPath + Separator // double separator will not make any harm
 	} else {
-		currPath = currPath + Separator + "config" + Separator
-	}
-
-	if err != nil {
-		fmt.Print("Problem loading the config")
-		os.Exit(1)
+		var err error
+		if configPath, err = os.Getwd(); err != nil {
+			fmt.Print("Problem getting current path")
+			os.Exit(1)
+		}
+		configPath = configPath + Separator + "config" + Separator
 	}
 
 	for i := 0; i <= daemonLoop; {
-		//Return our full configuration from file
-		var config = Global.GetConfig(currPath + configFile)
-
-		//Let us do a sanity check on the configuration to prevent most obvious issues
-		if !config.SanityCheck(){
+		// Return our full configuration from file
+		config := global.GetConfig(global.GetConfigFromTomlFile, configPath+configFile)
+		if config == nil {
+			fmt.Print("Problem getting config")
 			os.Exit(1)
 		}
 
-		//initialize the log system
-		if !Global.InitLog(config){
+		// initialize the log system
+		if !global.InitLog(config) {
 			fmt.Println("Not able to initialize log system exiting")
 			os.Exit(1)
 		}
-		//Initialize the locker
-		if !locker.Init(&config){
+		// Initialize the locker
+		if !locker.Init(config) {
 			log.Error("Cannot initialize Locker")
 			os.Exit(1)
 		}
 
-		//In case we have development mode active then loop here
+		// In case we have development mode active then loop here
 		if config.Global.Daemonize {
 			daemonLoop = 2
 			daemonLoopWait = config.Global.DaemonInterval
 		}
-		//set the locker on file
+		// set the locker on file
 		if !locker.SetLockFile() {
 			fmt.Println("Cannot create a lock, exit")
 			os.Exit(1)
 		}
 
-
-		//should we track performance or not
-		Global.Performance = config.Global.Performance
+		// should we track performance or not
+		global.Performance = config.Global.Performance
 
 		/*
 			main game start here defining the Proxy Objects
 		*/
-		//initialize performance collection if requested
-		if Global.Performance {
-			Global.PerformanceMapOrdered = Global.NewOrderedMap()
-			Global.PerformanceMap = Global.NewRegularIntMap()
-			Global.SetPerformanceObj("main", true, log.ErrorLevel)
+		// initialize performance collection if requested
+		if global.Performance {
+			global.PerformanceMapOrdered = global.NewOrderedMap()
+			global.PerformanceMap = global.NewRegularIntMap()
+			global.SetPerformanceObj("main", true, log.ErrorLevel)
 		}
 		// create the two main containers the ProxySQL cluster and at least ONE ProxySQL node
 		proxysqlNode := locker.MyServer
@@ -141,21 +128,21 @@ func main() {
 			TODO the check against a cluster require a PRE-phase to align the nodes and an AFTER to be sure nodes settings are distributed.
 			Not yet implemented
 		*/
-		if config.Proxysql.Clustered {
+		if config.ProxySQL.Clustered {
 
-			if locker.CheckClusterLock() != nil{
-				//our node has the lock
-				if !initProxySQLNode(proxysqlNode, config){
+			if locker.CheckClusterLock() != nil {
+				// our node has the lock
+				if !initProxySQLNode(proxysqlNode, config) {
 					locker.RemoveLockFile()
 					os.Exit(1)
 				}
-			}else {
-			//	Another node has the lock we must exit
+			} else {
+				// Another node has the lock we must exit
 				locker.RemoveLockFile()
 				os.Exit(1)
 			}
-		}else{
-			if !initProxySQLNode(proxysqlNode, config){
+		} else {
+			if !initProxySQLNode(proxysqlNode, config) {
 				locker.RemoveLockFile()
 				os.Exit(1)
 			}
@@ -187,7 +174,7 @@ func main() {
 		proxysqlNode.ActionNodeList = proxysqlNode.MySQLCluster.GetActionList()
 
 		// Once we have the Map we translate it into SQL commands to process
-		if !proxysqlNode.ProcessChanges(){
+		if !proxysqlNode.ProcessChanges() {
 			locker.RemoveLockFile()
 			os.Exit(1)
 		}
@@ -203,12 +190,12 @@ func main() {
 			}
 		}
 
-		if Global.Performance {
-			Global.SetPerformanceObj("main", false, log.ErrorLevel)
-			Global.ReportPerformance()
+		if global.Performance {
+			global.SetPerformanceObj("main", false, log.ErrorLevel)
+			global.ReportPerformance()
 		}
 
-		//remove lock and wait
+		// remove lock and wait
 		locker.RemoveLockFile()
 
 		if config.Global.Daemonize {
@@ -219,15 +206,15 @@ func main() {
 		log.Info("")
 
 	}
-	//if !config.Global.Development {
+	//if !config.global.Development {
 	//	locker.RemoveLockFile()
 	//}
 
 }
 
-func initProxySQLNode(proxysqlNode *DO.ProxySQLNode, config Global.Configuration) bool{
-	//ProxySQL Node work start here
-	if proxysqlNode.Init(&config) {
+func initProxySQLNode(proxysqlNode *DO.ProxySQLNode, config *global.Configuration) bool {
+	// ProxySQL Node work start here
+	if proxysqlNode.Init(config) {
 		if log.GetLevel() == log.DebugLevel {
 			log.Debug("ProxySQL node initialized ")
 		}

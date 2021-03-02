@@ -1,22 +1,40 @@
-package Global
+package global
 
-import "fmt"
+import (
+	"fmt"
+	"sync"
+)
 
+// Help is the interface for getting help strings
+type Help interface {
+	PrintLicense()
+	HelpText() string
+}
 
-type HelpText struct{
-	inParams [2]string
-	license string
+// GetHelp returns singleton Help interface
+func GetHelp() Help {
+	once.Do(func() {
+		ht = &help{}
+	})
+	return ht
+}
+
+var (
+	ht   *help
+	once sync.Once
+)
+
+type help struct {
+	license   string
 	helpShort string
 }
-func (help *HelpText) Init(){
-	help.inParams = [2]string{"configfile","configPath"}
-}
-func (help *HelpText)PrintLicense(){
-		fmt.Println(help.GetHelpText())
+
+func (help *help) PrintLicense() {
+	fmt.Println(help.HelpText())
 }
 
-func (help *HelpText)GetHelpText() string{
- helpText := `pxcScheduler
+func (help *help) HelpText() string {
+	helpText := `pxcScheduler
 
 Parameters for the executable --configfile <file name> --configpath <full path> --help
 
@@ -91,16 +109,16 @@ We will need to :
 	INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('192.168.4.22',101,3306,998,2000,'last reader');
 	INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('192.168.4.23',101,3306,1000,2000,'reader1');    
 	INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('192.168.4.233',101,3306,1000,2000,'reader2');        
-	
+
 	INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('192.168.4.22',8100,3306,1000,2000,'Failover server preferred');
 	INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('192.168.4.23',8100,3306,999,2000,'Second preferred');    
 	INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('192.168.4.233',8100,3306,998,2000,'Thirdh and last in the list');      
-	
+
 	INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('192.168.4.22',8101,3306,998,2000,'Failover server preferred');
 	INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('192.168.4.23',8101,3306,999,2000,'Second preferred');    
 	INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('192.168.4.233',8101,3306,1000,2000,'Thirdh and last in the list');      
 
 	LOAD MYSQL SERVERS TO RUNTIME; SAVE MYSQL SERVERS TO DISK;
 `
-return helpText
+	return helpText
 }

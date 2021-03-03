@@ -25,16 +25,17 @@ type ProxySQLCluster struct {
 	Password string
 }
 
-// This method in ProxySQL Cluster Object is responsible for getting the list of ACTIVE ProxySQL servers.
+// FetchProxySQLNodes is responsible for fetching the list of ACTIVE ProxySQL servers.
+// Nodes are collected as the ones visible by arbitrary ProxySQL cluster node provided
+// as the parameter.
+// Nodes available in ProxySQL cluster are accessible then in Nodes member of the object.
 // Interestingly ProxySQL has not clue if a ProxySQL nodes ur down. Or at least is not reported in the proxysql_server tables or any stats table
 // Given that we check if nodes are reachable opening a connection and closing it
-func (cluster ProxySQLCluster) GetProxySQLnodes(myNode *ProxySQLNode) bool {
-	//nodes := make(map[int]*ProxySQLNode)
-
+func (cluster ProxySQLCluster) FetchProxySQLNodes(myNode *ProxySQLNode) {
+	cluster.Nodes = make(map[string]ProxySQLNode)
 	recordset, err := myNode.Connection.Query(SQL.Dml_select_proxy_servers)
 	if err != nil {
 		log.Error(err.Error())
-		//os.Exit(1)
 	}
 
 	for recordset.Next() {
@@ -43,28 +44,26 @@ func (cluster ProxySQLCluster) GetProxySQLnodes(myNode *ProxySQLNode) bool {
 		var port int
 		var comment string
 		recordset.Scan(&weight, &hostname, &port, &comment)
-		var newNode = new(ProxySQLNode)
-		newNode.Ip = hostname
-		newNode.Weight = weight
-		newNode.Port = port
-		newNode.Comment = comment
-		newNode.Dns = newNode.Ip + ":" + strconv.Itoa(newNode.Port)
-		newNode.User = cluster.User
-		newNode.Password = cluster.Password
+		newNode := ProxySQLNode{
+			Ip:       hostname,
+			Weight:   weight,
+			Port:     port,
+			Comment:  comment,
+			Dns:      hostname + ":" + strconv.Itoa(port),
+			User:     cluster.User,
+			Password: cluster.Password,
+		}
 
 		// Given ProxySQL is NOT removing a non healthy node from proxySQL_cluster I must add a step here to check and eventually remove failing ProxySQL nodes
 		if newNode.GetConnection() {
 			if newNode.Dns != myNode.Dns {
 				newNode.CloseConnection()
 			}
-			cluster.Nodes[newNode.Dns] = *newNode
+			cluster.Nodes[newNode.Dns] = newNode
 		} else {
 			log.Error(fmt.Sprintf("ProxySQL Node %s is down or not reachable PLEASE REMOVE IT from the proxysql_servers table OR fix the issue", newNode.Dns))
 		}
-
 	}
-
-	return true
 }
 
 /*
@@ -130,7 +129,7 @@ func (node *ProxySQLNode) Init(config *global.Configuration) bool {
 	}
 
 	//initiate the cluster and all the related nodes
-	//if !node.GetDataCluster(config) {
+	//if !node.FetchDataCluster(config) {
 	//	log.Error("Cannot load Data cluster from Proxy.\n")
 	//	return false
 	//}
@@ -239,7 +238,9 @@ Populate proxy node
 */
 
 /*
-Retrieve active cluster
+FetchDataCluster retrieves active cluster.
+If the method finishes with success, data cluster view is available via
+MySQLCluster member of the object.
 check for pxc_cluster and cluster_id add to the object a DataCluster object.
 DataCluster returns already Initialized, which means it returns with all node populated with status
 ProxySQLNode
@@ -250,8 +251,8 @@ ProxySQLNode
 					|
 				Pxc | GR
 */
-func (node *ProxySQLNode) GetDataCluster(config *global.Configuration) bool {
-	//Init the data cluster
+func (node *ProxySQLNode) FetchDataCluster(config *global.Configuration) bool {
+	// Init the data cluster
 	dataClusterPxc := new(DataCluster)
 	dataClusterPxc.MonitorPassword = node.MonitorPassword
 	dataClusterPxc.MonitorUser = node.MonitorUser

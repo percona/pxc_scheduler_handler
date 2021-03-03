@@ -122,36 +122,29 @@ func main() {
 			global.SetPerformanceObj("main", true, log.ErrorLevel)
 		}
 		// create the two main containers the ProxySQL cluster and at least ONE ProxySQL node
-		proxysqlNode := locker.MyServer
 
 		/*
 			TODO the check against a cluster require a PRE-phase to align the nodes and an AFTER to be sure nodes settings are distributed.
 			Not yet implemented
 		*/
-		if config.ProxySQL.Clustered {
 
-			if locker.CheckClusterLock() != nil {
-				// our node has the lock
-				if !initProxySQLNode(proxysqlNode, config) {
-					locker.RemoveLockFile()
-					os.Exit(1)
-				}
-			} else {
-				// Another node has the lock we must exit
-				locker.RemoveLockFile()
-				os.Exit(1)
-			}
-		} else {
+		proxysqlNode := locker.ClusterLock()
+		if proxysqlNode != nil {
+			// our node has the lock
 			if !initProxySQLNode(proxysqlNode, config) {
 				locker.RemoveLockFile()
 				os.Exit(1)
 			}
+		} else {
+			// Another node has the lock we must exit, or something bad happened
+			locker.RemoveLockFile()
+			os.Exit(1)
 		}
 
-		if proxysqlNode.GetDataCluster(config) {
-			log.Debug("PXC cluster data nodes initialized ")
+		if proxysqlNode.FetchDataCluster(config) {
+			log.Debug("Data cluster nodes initialized ")
 		} else {
-			log.Error("Initialization failed")
+			log.Error("Data cluster nodes initialization failed")
 			locker.RemoveLockFile()
 			os.Exit(1)
 		}

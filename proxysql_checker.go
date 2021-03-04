@@ -93,7 +93,7 @@ func main() {
 			os.Exit(1)
 		}
 		// Initialize the locker
-		if !locker.Init(config) {
+		if !locker.Init(config, DO.NewProxySQLNode, DO.NewProxySQLCluster) {
 			log.Error("Cannot initialize Locker")
 			os.Exit(1)
 		}
@@ -164,7 +164,8 @@ func main() {
 			Analyse the nodes and identify the list of nodes that we must take action on
 			The action Map contains all the nodes that require modification with the proper Action ID set
 		*/
-		proxysqlNode.ActionNodeList = proxysqlNode.MySQLCluster.GetActionList()
+		// KH: todo: this smells a lot
+		proxysqlNode.SetActionNodeList(proxysqlNode.MySQLCluster().GetActionList())
 
 		// Once we have the Map we translate it into SQL commands to process
 		if !proxysqlNode.ProcessChanges() {
@@ -205,7 +206,7 @@ func main() {
 
 }
 
-func initProxySQLNode(proxysqlNode *DO.ProxySQLNode, config *global.Configuration) bool {
+func initProxySQLNode(proxysqlNode DO.ProxySQLNode, config *global.Configuration) bool {
 	// ProxySQL Node work start here
 	if proxysqlNode.Init(config) {
 		if log.GetLevel() == log.DebugLevel {

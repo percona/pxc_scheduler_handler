@@ -294,7 +294,15 @@ var PerformanceMapOrdered *OrderedPerfMap
 
 var PerformanceMap *StatSyncInfo //map[string][2]int64
 
+func performaceEnabled() bool {
+	return PerformanceMapOrdered != nil
+}
+
 func SetPerformanceValue(key string, start bool) {
+	if !performaceEnabled() {
+		return
+	}
+
 	valStat := [2]int64{0, 0}
 	if start {
 		valStat[0] = time.Now().UnixNano()
@@ -306,6 +314,10 @@ func SetPerformanceValue(key string, start bool) {
 }
 
 func SetPerformanceObj(key string, start bool, logLevel log.Level) {
+	if !performaceEnabled() {
+		return
+	}
+
 	var perfObj PerfObject
 	valStat := [2]int64{}
 
@@ -330,6 +342,10 @@ func SetPerformanceObj(key string, start bool, logLevel log.Level) {
 }
 
 func ReportPerformance() {
+	if !performaceEnabled() {
+		return
+	}
+
 	formatter := message.NewPrinter(language.English)
 
 	if log.InfoLevel <= log.GetLevel() {

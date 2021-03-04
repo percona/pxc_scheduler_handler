@@ -1,3 +1,4 @@
+//go:generate mockgen -source proxysqlcluster.go -destination mock/proxysqlcluster_mock.go -package mock
 package dataobjects
 
 import (
@@ -7,16 +8,23 @@ import (
 
 	"fmt"
 
-	SQL "../Sql/Proxy"
+	SQL "sql/Proxy"
 )
 
+// ProxySQLCluster is the interface for object representing the whole cluster
+// of ProxySQL nodes
 type ProxySQLCluster interface {
 	Nodes() map[string]ProxySQLNode
 	FetchProxySQLNodes(ProxySQLNode)
 }
 
-func (cluster *proxySQLClusterImpl) Nodes() map[string]ProxySQLNode {
-	return cluster.nodes
+// NewProxySQLCluster creates ProxySQLCluster object
+func NewProxySQLCluster(user string, password string) ProxySQLCluster {
+	v := proxySQLClusterImpl{
+		user:     user,
+		password: password,
+	}
+	return &v
 }
 
 type proxySQLClusterImpl struct {
@@ -27,12 +35,8 @@ type proxySQLClusterImpl struct {
 	password string
 }
 
-func NewProxySQLCluster(user string, password string) ProxySQLCluster {
-	v := proxySQLClusterImpl{
-		user:     user,
-		password: password,
-	}
-	return &v
+func (cluster *proxySQLClusterImpl) Nodes() map[string]ProxySQLNode {
+	return cluster.nodes
 }
 
 // FetchProxySQLNodes is responsible for fetching the list of ACTIVE ProxySQL servers.

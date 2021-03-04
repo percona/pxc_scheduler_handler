@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"strings"
 
-	global "../Global"
-	SQLPxc "../Sql/Pcx"
+	"global"
+
+	SQLPxc "sql/Pcx"
+
 	log "github.com/sirupsen/logrus"
 )
 

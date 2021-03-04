@@ -7,8 +7,9 @@ import (
 	"regexp"
 	"strings"
 
-	global "../Global"
-	SQL "../Sql/Proxy"
+	"global"
+
+	SQL "sql/Proxy"
 
 	"os"
 	"strconv"
@@ -38,6 +39,8 @@ type (
 
 // ProxySQLNodeFactory creates instance of ProxySQLNode object
 type ProxySQLNodeFactory func(ip string) ProxySQLNode
+
+// ProxySQLClusterFactory creates instance of ProxySQLCluster object
 type ProxySQLClusterFactory func(user string, password string) ProxySQLCluster
 
 // Init initializes the locker object according to provided configuration
@@ -88,7 +91,7 @@ func (locker *Locker) ClusterLock() ProxySQLNode {
 	if locker.myServer.IsInitialized() {
 		// If this is single ProxySQL node setup, lock can always be granted
 		// on this node
-		if locker.myConfig.ProxySQL.Clustered {
+		if !locker.myConfig.ProxySQL.Clustered {
 			return locker.myServer
 		}
 
@@ -99,7 +102,7 @@ func (locker *Locker) ClusterLock() ProxySQLNode {
 		proxySQLCluster.FetchProxySQLNodes(locker.myServer)
 		if len(proxySQLCluster.Nodes()) > 0 {
 			if nodes, ok := locker.findLock(proxySQLCluster.Nodes()); ok && nodes != nil {
-				if locker.PushSchedulerLock(nodes) {
+				if locker.pushSchedulerLock(nodes) {
 					return locker.myServer
 				}
 				return nil
@@ -189,9 +192,8 @@ func (locker *Locker) findLock(nodes map[string]ProxySQLNode) (map[string]ProxyS
 	return nil, false
 }
 
-// PushSchedulerLock submits changes. As always all is executed in a transaction
 // TODO SHOULD we remove the proxysql node that doesn't work ????
-func (locker *Locker) PushSchedulerLock(nodes map[string]ProxySQLNode) bool {
+func (locker *Locker) pushSchedulerLock(nodes map[string]ProxySQLNode) bool {
 	if len(nodes) <= 0 {
 		return true
 	}
@@ -203,14 +205,14 @@ func (locker *Locker) PushSchedulerLock(nodes map[string]ProxySQLNode) bool {
 	}
 	// We will execute all the commands inside a transaction if any error we will roll back all
 	ctx := context.Background()
-	tx, err := locker.myServer.Connection().BeginTx(ctx, nil)
+	tx, err := locker.myServer.Connection().BeginTx(ctx)
 	if err != nil {
 		log.Fatal("Error in creating transaction to push changes ", err)
 	}
 	for key, node := range nodes {
 		if node.Dns() != "" {
 			sqlAction := strings.ReplaceAll(SQL.Dml_update_comment_proxy_servers, "?", node.Comment()) + " where hostname='" + node.Ip() + "' and port= " + strconv.Itoa(node.Port())
-			_, err = tx.ExecContext(ctx, sqlAction)
+			err = tx.ExecContext(ctx, sqlAction)
 			if err != nil {
 				tx.Rollback()
 				log.Fatal("Error executing SQL: ", sqlAction, " for node: ", key, " Rollback and exit")
@@ -225,12 +227,12 @@ func (locker *Locker) PushSchedulerLock(nodes map[string]ProxySQLNode) bool {
 		return false
 
 	} else {
-		_, err = locker.myServer.Connection().Exec("LOAD proxysql servers to RUN ")
+		err = locker.myServer.Connection().Exec("LOAD proxysql servers to RUN ")
 		if err != nil {
 			log.Fatal("Cannot load new proxysql configuration to RUN ")
 			return false
 		} else {
-			_, err = locker.myServer.Connection().Exec("save proxysql servers to disk ")
+			err = locker.myServer.Connection().Exec("save proxysql servers to disk ")
 			if err != nil {
 				log.Fatal("Cannot save new proxysql configuration to DISK ")
 				return false

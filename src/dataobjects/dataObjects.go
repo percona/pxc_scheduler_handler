@@ -13,9 +13,12 @@ import (
 	"sync"
 	"time"
 
-	global "../Global"
-	SQLPxc "../Sql/Pcx"
-	SQLProxy "../Sql/Proxy"
+	"dbwrapper"
+	"global"
+
+	SQLPxc "sql/Pcx"
+	SQLProxy "sql/Proxy"
+
 	"github.com/go-sql-driver/mysql"
 	log "github.com/sirupsen/logrus"
 )
@@ -133,7 +136,7 @@ Methods
 /*
 Data cluster initialization method
 */
-func (cluster *DataCluster) init(config *global.Configuration, connectionProxy *sql.DB) bool {
+func (cluster *DataCluster) init(config *global.Configuration, connectionProxy dbwrapper.DBConnection) bool {
 
 	if global.Performance {
 		global.SetPerformanceObj("data_cluster_init", true, log.InfoLevel)
@@ -251,7 +254,7 @@ In debug-dev mode information is retrieved sequentially.
 In prod is parallelized
 
 */
-func (cluster *DataCluster) loadNodes(connectionProxy *sql.DB) bool {
+func (cluster *DataCluster) loadNodes(connectionProxy dbwrapper.DBConnection) bool {
 	// get list of nodes from ProxySQL
 	if global.Performance {
 		global.SetPerformanceObj("loadNodes", true, log.InfoLevel)

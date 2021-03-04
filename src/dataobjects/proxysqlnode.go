@@ -1,48 +1,51 @@
+//go:generate mockgen -source proxysqlnode.go -destination mock/proxysqlnode_mock.go -package mock
 package dataobjects
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"strconv"
 	"strings"
 
-	global "../Global"
-	SQL "../Sql/Proxy"
+	"global"
+
+	SQL "sql/Proxy"
+
+	"dbwrapper"
+
 	log "github.com/sirupsen/logrus"
 )
 
-/*
-ProxySQL Node
-*/
+// ProxySQLNode is the interface for object representing single ProxySQL server
+// in ProxySQL cluster
+type ProxySQLNode interface {
+	SetActionNodeList(map[string]DataNodePxc)
+	Dns() string
+	Ip() string
+	Port() int
+	Connection() dbwrapper.DBConnection
+	MySQLCluster() *DataCluster // KH: to be removed
+	IsInitialized() bool
+	SetHoldLock(bool)
+	SetLockExpired(bool)
+	LockExpired() bool
+	SetLastLockTime(int64)
+	LastLockTime() int64
+	SetComment(string)
+	Comment() string
 
+	Init(*global.Configuration) bool
+	CloseConnection() bool // KH: why it is public?
+	FetchDataCluster(*global.Configuration) bool
+	ProcessChanges() bool
+}
+
+// NewProxySQLNode creates new ProxySQL node object
 func NewProxySQLNode(ip string) ProxySQLNode {
 	o := proxySQLNodeImpl{
 		ip: ip,
 	}
 	return &o
-}
-
-type ProxySQLNode interface {
-	SetActionNodeList(map[string]DataNodePxc) // OK
-	Dns() string                              // OK
-	Ip() string                               // OK
-	Port() int                                // OK
-	Connection() *sql.DB                      // OK
-	MySQLCluster() *DataCluster               // KH: to be removed
-	IsInitialized() bool                      // OK
-	SetHoldLock(bool)                         // OK
-	SetLockExpired(bool)                      // OK
-	LockExpired() bool                        // OK
-	SetLastLockTime(int64)                    // OK
-	LastLockTime() int64                      // OK
-	SetComment(string)                        // OK
-	Comment() string                          // OK
-
-	Init(*global.Configuration) bool // OK
-	CloseConnection() bool           // KH: why it is public?
-	FetchDataCluster(*global.Configuration) bool
-	ProcessChanges() bool
 }
 
 type proxySQLNodeImpl struct {
@@ -55,7 +58,7 @@ type proxySQLNodeImpl struct {
 	password        string
 	port            int
 	user            string
-	connection      *sql.DB
+	connection      dbwrapper.DBConnection
 	mySQLCluster    *DataCluster
 	variables       map[string]string
 	isInitialized   bool
@@ -85,7 +88,7 @@ func (node *proxySQLNodeImpl) Port() int {
 	return node.port
 }
 
-func (node *proxySQLNodeImpl) Connection() *sql.DB {
+func (node *proxySQLNodeImpl) Connection() dbwrapper.DBConnection {
 	return node.connection
 }
 func (node *proxySQLNodeImpl) MySQLCluster() *DataCluster {
@@ -209,7 +212,7 @@ func (node *proxySQLNodeImpl) getConnection() bool {
 	//dns := node.User + ":" + node.Password + "@tcp(" + node.Dns + ":"+ strconv.Itoa(node.Port) +")/admin" //
 	//if log.GetLevel() == log.DebugLevel {log.Debug(dns)}
 
-	db, err := sql.Open("mysql", node.user+":"+node.password+"@tcp("+node.dns+")/main?timeout=1s")
+	db, err := dbwrapper.NewDBConnection("mysql", node.user+":"+node.password+"@tcp("+node.dns+")/main?timeout=1s")
 
 	//defer db.Close()
 	node.connection = db
@@ -502,13 +505,13 @@ func (node *proxySQLNodeImpl) executeSQLChanges(SQLActionString []string) bool {
 	}
 	//We will execute all the commands inside a transaction if any error we will roll back all
 	ctx := context.Background()
-	tx, err := node.connection.BeginTx(ctx, nil)
+	tx, err := node.connection.BeginTx(ctx)
 	if err != nil {
 		log.Fatal("Error in creating transaction to push changes ", err)
 	}
 	for i := 0; i < len(SQLActionString); i++ {
 		if SQLActionString[i] != "" {
-			_, err = tx.ExecContext(ctx, SQLActionString[i])
+			err = tx.ExecContext(ctx, SQLActionString[i])
 			if err != nil {
 				tx.Rollback()
 				log.Fatal("Error executing SQL: ", SQLActionString[i], " Rollback and exit")
@@ -523,12 +526,12 @@ func (node *proxySQLNodeImpl) executeSQLChanges(SQLActionString []string) bool {
 		return false
 
 	} else {
-		_, err = node.connection.Exec("LOAD mysql servers to RUN ")
+		err = node.connection.Exec("LOAD mysql servers to RUN ")
 		if err != nil {
 			log.Fatal("Cannot load new mysql configuration to RUN ")
 			return false
 		} else {
-			_, err = node.connection.Exec("SAVE mysql servers to DISK ")
+			err = node.connection.Exec("SAVE mysql servers to DISK ")
 			if err != nil {
 				log.Fatal("Cannot save new mysql configuration to DISK ")
 				return false

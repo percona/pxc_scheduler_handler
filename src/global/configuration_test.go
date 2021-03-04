@@ -3,7 +3,7 @@ package global_test
 import (
 	"testing"
 
-	global "../Global"
+	"global"
 )
 
 var gConfig = global.Configuration{
@@ -30,6 +30,7 @@ func TestGetConfigProviderReturnsNull(t *testing.T) {
 	if config != nil {
 		t.Errorf("No config expected when error")
 	}
+
 }
 
 func TestGetConfigReturnsWhatProviderProvides(t *testing.T) {

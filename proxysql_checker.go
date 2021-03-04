@@ -6,8 +6,9 @@ import (
 	"os"
 	"time"
 
-	DO "./lib/DataObjects"
-	global "./lib/Global"
+	DO "dataobjects"
+	"global"
+
 	_ "github.com/go-sql-driver/mysql"
 	log "github.com/sirupsen/logrus"
 )

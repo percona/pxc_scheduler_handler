@@ -1,0 +1,14 @@
+# scheduler: active_failover=1 retry_down=2 writer_is_also_reader=0 failBack=false
+#
+# Scenario:
+# 1. node_2: SET GLOBAL read_only=1
+#     => node_2 is still reader
+# 2. node_2: SET GLOBAL read_only=0
+#     => node_2 stays reader
+
+--let $proxysql_scheduler_config = writer_is_not_reader.toml
+--let $action_1_node = node_2
+--let $action_1 = SET GLOBAL read_only=1;
+--let $action_2_node = node_2
+--let $action_2 = SET GLOBAL read_only=0;
+--source 1w3r2bw_2actions.inc

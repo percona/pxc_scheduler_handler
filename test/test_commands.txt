@@ -80,6 +80,7 @@ writer_reject_queries1.test
 on failback online Reader is add back Writer attempt to come back if no writer
 
 MTR:
+reader_kill1.test
 writer_kill1.test
 
 ----------------------------------------------------------
@@ -108,6 +109,7 @@ if Failback node is also move back to writer and previous writer moved to offlin
 
 MTR:
 reader_add1.test
+writer_add1.test
 
 ****************************************************************
  All tests passed
@@ -196,6 +198,7 @@ writer_reject_queries2.test
 on failback node is also move back to writer hg and previos node goes in offline_soft
 
 MTR:
+reader_kill2.test
 writer_kill2.test
 writer_kill2b.test
 
@@ -218,6 +221,7 @@ Results: node in Backup HGs is inserted back first in 9000 Reader HG, then evalu
 
 MTR: 
 reader_add2.test
+writer_add2.test
 
 ==========================================
 =======================================
@@ -241,6 +245,9 @@ Commands :
 
  Results: OK
 
+MTR:
+reader_to_maintenance3.test
+writer_to_maintenance3.test
 
  ----------------------------------------------------------
  Test : wsrep_desync (or any state <> 4)
@@ -253,6 +260,11 @@ Commands :
  Results: writer moves offline_soft another one from reader take place
  For reader HG we have multiple nodes so all good to be desync
 
+MTR:
+reader_desync3.test
+writer_desync3.test
+
+
  ----------------------------------------------------------
  Test : Read_only = 1
  Expectations: node is removed from writers
@@ -264,6 +276,10 @@ Commands :
  Command on a writer node: set global READ_ONLY = 1;
  Results: fail-over to the next available backup
 
+MTR:
+reader_to_readonly3.test
+writer_to_readonly3.test
+
  ----------------------------------------------------------
  Test : wsrep_reject_queries <> none
  Expectations: node is moved to HG 9000
@@ -274,12 +290,19 @@ Commands :
  Command: on reader: set global wsrep_reject_queries=all;
  Results: reader goes to 9000
 
+MTR:
+reader_reject_queries3.test
+writer_reject_queries3.test
+
  ----------------------------------------------------------
  Test : on SHUNNED
  Expectations: node is moved to HG 9000
  Command on writer  : kill -9 <mysqd pid>
  Results: Writer node is shunned and new node is elected as writer
 
+MTR:
+reader_kill3.test
+writer_kill3.test
 
 ----------------------------------------------------------
 Test : on Crash or network down
@@ -304,6 +327,11 @@ Command: delete from mysql_servers where hostname = '<ip>' and hostgroup_id in (
 Results: node in Backup HGs is inserted back first in 9000 Reader HG, then evaluated and if successful promoted to HGRead
 
 if Failback node is also move back to writer and previous writer moved to offline_soft
+
+MTR:
+reader_add3.test
+writer_add3.test
+
 ========================================================
 =======================================
 Scenario 4:
@@ -325,6 +353,7 @@ Commands :
  Results: OK
 
 MTR:
+reader_to_maintenance4.test
 writer_to_maintenance4.test
 
  ----------------------------------------------------------
@@ -338,7 +367,9 @@ writer_to_maintenance4.test
  Results: writer moves offline_soft another one from reader take place
  For reader HG we have multiple nodes so all good to be desync
 
-
+MTR:
+reader_desync4.test
+writer_desync4.test
 
  ----------------------------------------------------------
  Test : Read_only = 1
@@ -352,6 +383,10 @@ writer_to_maintenance4.test
  Results: fail-over to the next available backup
  Results: OK
 
+MTR:
+reader_to_readonly4.test
+writer_to_readonly4.test
+
  ----------------------------------------------------------
  Test : wsrep_reject_queries <> none
  Expectations: node is moved to HG 9000
@@ -363,12 +398,19 @@ writer_to_maintenance4.test
  Results: reader goes to 9000
 
 Results: OK
+
+MTR:
+writer_reject_queries4.test
+
  ----------------------------------------------------------
  Test : on SHUNNED
  Expectations: node is moved to HG 9000
  Command on writer  : kill -9 <mysqd pid>
  Results: Writer node is shunned and new node is elected as writer
 
+MTR:
+reader_kill4.test
+writer_kill4.test
 
 ----------------------------------------------------------
 Test : on Crash or network down
@@ -392,3 +434,4 @@ Results: node in Backup HGs is inserted back first in 9000 Reader HG, then evalu
 
 MTR: 
 reader_add4.test
+writer_add4.test

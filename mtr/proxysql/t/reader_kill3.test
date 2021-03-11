@@ -1,0 +1,26 @@
+# 1. Setup 3 node PXC cluster
+# 2. Setup ProxySQL 
+#  node_1: reader writer / backup reader / backup wrtier
+#  node_2: reader        / backup reader / backup writer
+#  node_3:        writer / backup reader / backup writer
+# 3. Setup ProxySQL scheduler with config passed in $proxysql_scheduler_config
+# 4. shutdown reader node_2
+#   => node_1 reader writer
+#   => node_2 status changed to SHUNED, node moved to hostgroup 9100
+#   => node_3 writer
+# 5. relaunch reader node_2
+#   => node_1 reader writer
+#   => node_2 status changed to ONLINE, node removed from hostgroup 9100, node added to reader hostrgroup 101
+#   => node_3 writer
+
+--let $proxysql_scheduler_config = writer_is_reader_2w.toml
+--let $node_1_bwr_priority = 1
+--let $node_2_bwr_priority = 2
+--let $node_3_bwr_priority = 3
+
+--let $node_1_brd_priority = 1
+--let $node_2_brd_priority = 2
+--let $node_3_brd_priority = 3
+
+--let $node_to_kill=node_2
+--source pxc_node_kill.inc

@@ -1,16 +1,15 @@
-# This is common scenario for 1 writer, 3 reades, 3 backup writers
-# When node_3 is killed and then started again
-# We cannot use the node_1 for this as it is used to boostrap the cluster (and 
-# handling this in MTR is more problematic)
-#
+# This is common scenario for 1 writer, 2 reades, 2 backup writers
 # 1. Setup 3 node PXC cluster
 # 2. Setup ProxySQL 
-#  node_3: writer/reader / backup writer
+#  node_1: writer
 #  node_2: reader / backup writer
-#  node_1: reader / baclup writer
+#  node_3: reader / backup writer
 # 3. Setup ProxySQL scheduler with config passed in $proxysql_scheduler_config
-# 4. shutdown node_3
-# 5. start node_3
+# 4. Connect to $action_1_node and perform $action_1
+# 5. Validate ProxySQL configuration
+# 6. Connect to $action_2_node and perform $action_2
+# 7. Validate ProxySQL configuration
+
 
 --source include/galera_cluster_3nodes.inc
 
@@ -43,24 +42,26 @@
 
 # PxC nodes setup
 # writers
---replace_result $NODE_MYPORT_3 NODE_MYPORT_3
---eval INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',$wHG,$NODE_MYPORT_3,$node_3_bwr_priority,1000,'WRITE')
+--replace_result $NODE_MYPORT_1 NODE_MYPORT_1
+--eval INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',$wHG,$NODE_MYPORT_1,3,1000,'WRITE')
+--replace_result $NODE_MYPORT_2 NODE_MYPORT_2
+--eval INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',$wHG,$NODE_MYPORT_2,2,1000,'WRITE')
 
 # readers
---replace_result $NODE_MYPORT_3 NODE_MYPORT_3
---eval INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',$rHG,$NODE_MYPORT_3,100,1000,'READ/WRITE')
---replace_result $NODE_MYPORT_2 NODE_MYPORT_2
---eval INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',$rHG,$NODE_MYPORT_2,10000,1000,'READ')
 --replace_result $NODE_MYPORT_1 NODE_MYPORT_1
---eval INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',$rHG,$NODE_MYPORT_1,10000,1000,'READ')
+--eval INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',$rHG,$NODE_MYPORT_1,1,1000,'READ')
+--replace_result $NODE_MYPORT_2 NODE_MYPORT_2
+--eval INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',$rHG,$NODE_MYPORT_2,2,1000,'READ')
+--replace_result $NODE_MYPORT_3 NODE_MYPORT_3
+--eval INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',$rHG,$NODE_MYPORT_3,3,1000,'READ')
 
 # backup writers
---replace_result $NODE_MYPORT_1 NODE_MYPORT_3
---eval INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',8100,$NODE_MYPORT_3,$node_3_bwr_priority,1000,'Backup writer 3')
+--replace_result $NODE_MYPORT_1 NODE_MYPORT_1
+--eval INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',8100,$NODE_MYPORT_1,3,1000,'Backup writer 1')
 --replace_result $NODE_MYPORT_2 NODE_MYPORT_2
---eval INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',8100,$NODE_MYPORT_2,$node_2_bwr_priority,1000,'Backup writer 2')
---replace_result $NODE_MYPORT_3 NODE_MYPORT_1
---eval INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',8100,$NODE_MYPORT_1,$node_1_bwr_priority,1000,'Backup writer 1')
+--eval INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',8100,$NODE_MYPORT_2,2,1000,'Backup writer 1')
+--replace_result $NODE_MYPORT_3 NODE_MYPORT_3
+--eval INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('127.0.0.1',8100,$NODE_MYPORT_3,1,1000,'Backup writer 2')
 
 # scheduler script
 # allow scheduler script to write its logs
@@ -72,7 +73,7 @@
 # --eval INSERT INTO scheduler (id,active,interval_ms,filename,arg1) values (10,1,3000,"$proxysql_scheduler_script","-u=admin -p=admin -h=127.0.0.1 -H=$wHG:W,$rHG:R -P=6032 --debug=1 --active_failover=1 --retry_down=2 --writer_is_also_reader=0 --log=$MYSQL_TMP_DIR/galera_check-perl.log")
 # The following line works with Golang
 --replace_result $proxysql_scheduler_script SCHEDULER_SCRIPT $proxysql_scheduler_config_dir CONFIG_DIR
---eval INSERT INTO scheduler (id,active,interval_ms,filename,arg1,arg2) values (10,1,3000,"$proxysql_scheduler_script","--configfile=$proxysql_scheduler_config","--configpath=$proxysql_scheduler_config_dir")
+--eval INSERT INTO scheduler (id,active,interval_ms,filename,arg1,arg2) values (10,1,3000,"$proxysql_scheduler_script","--configfile=$proxysql_scheduler_config", "--configpath=$proxysql_scheduler_config_dir")
 
 --source ../include/apply_proxysql_config.inc
 
@@ -87,13 +88,13 @@ CREATE TABLE t1 (a int primary key);
 INSERT INTO t1 VALUES (1), (2), (3);
 
 --echo #
---echo # node_3 kill
+--echo # $action_1_node $action_1
 --echo #
---connection node_3
---source include/kill_mysqld.inc
+--connection $action_1_node
+--eval $action_1
 
 # now let ProxySQL scheduler detect this change and do its job
---sleep 60
+--sleep 30
 
 # Reconnect allowing ProxySQL to route to the new backend
 --disconnect conn_app_test
@@ -120,21 +121,19 @@ SELECT COUNT(*) FROM t1;
 #
 
 --echo #
---echo # node_3 back online
+--echo # $action_2_node $action_2
 --echo #
---connection node_3
---source include/start_mysqld.inc
---source include/wait_wsrep_ready.inc
+--connection $action_2_node
+--eval $action_2
 
 # now let ProxySQL scheduler detect this change and do its job
---sleep 60
+--sleep 30
 
 # Reconnect allowing ProxySQL to route to the new backend
 --disconnect conn_app_test
 --connect(conn_app_test, 127.0.0.1, app_test, test, , 6033)
 --connection conn_app_test
 INSERT INTO t1 VALUES (21), (22), (23);
-
 
 #
 # ASSERT 2
@@ -144,10 +143,10 @@ INSERT INTO t1 VALUES (21), (22), (23);
 --replace_result $NODE_MYPORT_1 NODE_MYPORT_1 $NODE_MYPORT_2 NODE_MYPORT_2 $NODE_MYPORT_3 NODE_MYPORT_3
 --eval SELECT * FROM runtime_mysql_servers ORDER BY hostgroup_id, port;
 
---connection conn_app_test
-# verify that writes reached the backend
-SELECT COUNT(*) FROM t1;
 
+--connection conn_app_test
+# verify that writes reached the backend (promoted Backup writer 1)
+SELECT COUNT(*) FROM t1;
 
 #
 # CLEANUP
@@ -158,6 +157,6 @@ SELECT COUNT(*) FROM t1;
 --remove_files_wildcard $MYSQL_TMP_DIR galera_check-perl.log*
 
 # pxc
---connection node_2
+--connection node_1
 DROP TABLE t1;
 --source ../include/common_pxc_deinit.inc

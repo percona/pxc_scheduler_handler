@@ -2,21 +2,21 @@ package Global
 
 import "fmt"
 
-
-type HelpText struct{
-	inParams [2]string
-	license string
+type HelpText struct {
+	inParams  [2]string
+	license   string
 	helpShort string
 }
-func (help *HelpText) Init(){
-	help.inParams = [2]string{"configfile","configPath"}
+
+func (help *HelpText) Init() {
+	help.inParams = [2]string{"configfile", "configPath"}
 }
-func (help *HelpText)PrintLicense(){
-		fmt.Println(help.GetHelpText())
+func (help *HelpText) PrintLicense() {
+	fmt.Println(help.GetHelpText())
 }
 
-func (help *HelpText)GetHelpText() string{
- helpText := `pxcScheduler
+func (help *HelpText) GetHelpText() string {
+	helpText := `pxcScheduler
 
 Parameters for the executable --configfile <file name> --configpath <full path> --help
 
@@ -102,5 +102,5 @@ We will need to :
 
 	LOAD MYSQL SERVERS TO RUNTIME; SAVE MYSQL SERVERS TO DISK;
 `
-return helpText
+	return helpText
 }

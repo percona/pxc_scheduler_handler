@@ -50,7 +50,7 @@ func (node *DataNodePxc) getPxcView(dml string) PxcClusterView {
 //We parallelize the information retrieval using goroutine
 func (node DataNodePxc) getInfo(wg *Global.MyWaitGroup, cluster *DataCluster) int {
 	if Global.Performance {
-		Global.SetPerformanceObj(fmt.Sprintf("Get info for node %s",node.DataNodeBase.Dns), true,log.DebugLevel)
+		Global.SetPerformanceObj(fmt.Sprintf("Get info for node %s", node.DataNodeBase.Dns), true, log.DebugLevel)
 	}
 	// Get the connection
 	node.DataNodeBase.GetConnection()
@@ -71,7 +71,7 @@ func (node DataNodePxc) getInfo(wg *Global.MyWaitGroup, cluster *DataCluster) in
 		//set the specific monitoring parameters
 		node.setParameters()
 		if Global.Performance {
-			Global.SetPerformanceObj(fmt.Sprintf("Get info for node %s",node.DataNodeBase.Dns), false,log.DebugLevel)
+			Global.SetPerformanceObj(fmt.Sprintf("Get info for node %s", node.DataNodeBase.Dns), false, log.DebugLevel)
 		}
 	} else {
 		node.DataNodeBase.Processed = false

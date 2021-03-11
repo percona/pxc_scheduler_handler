@@ -10,6 +10,7 @@
     <mapping directory="$PROJECT_DIR$/src/github.com/pmezard/go-difflib" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/src/github.com/sirupsen/logrus" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/src/github.com/stretchr/testify" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/src/github.com/t-tomalak/logrus-easy-formatter" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/src/github.com/tusamarco/toml" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/src/golang.org/x/mod" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/src/golang.org/x/sys" vcs="Git" />

@@ -51,21 +51,19 @@ func (cluster ProxySQLCluster) GetProxySQLnodes(myNode *ProxySQLNode) bool {
 		newNode.Password = cluster.Password
 
 		// Given Proxysql is NOT removing a non healthy node from proxySQL_cluster I must add a step here to check and eventually remove failing ProxySQL nodes
-		if newNode.GetConnection(){
-			if newNode.Dns != myNode.Dns{
+		if newNode.GetConnection() {
+			if newNode.Dns != myNode.Dns {
 				newNode.CloseConnection()
 			}
 			cluster.Nodes[newNode.Dns] = *newNode
-		}else{
+		} else {
 			log.Error(fmt.Sprintf("ProxySQL Node %s is down or not reachable PLEASE REMOVE IT from the proxysql_servers table OR fix the issue", newNode.Dns))
 		}
 
 	}
 
-
 	return true
 }
-
 
 /*
 ProxySQL Node
@@ -85,11 +83,11 @@ type ProxySQLNode struct {
 	MySQLCluster    *DataCluster
 	Variables       map[string]string
 	IsInitialized   bool
-	Weight 			int
-	HoldLock		bool
+	Weight          int
+	HoldLock        bool
 	IsLockExpired   bool
-	LastLockTime	int64
-	Comment 		string
+	LastLockTime    int64
+	Comment         string
 }
 
 type Hostgroup struct {
@@ -108,7 +106,7 @@ Init the proxySQL node
 */
 func (node *ProxySQLNode) Init(config *Global.Configuration) bool {
 	if Global.Performance {
-		Global.SetPerformanceObj("proxysql_init", true,log.InfoLevel)
+		Global.SetPerformanceObj("proxysql_init", true, log.InfoLevel)
 	}
 	node.User = config.Proxysql.User
 	node.Password = config.Proxysql.Password
@@ -137,7 +135,7 @@ func (node *ProxySQLNode) Init(config *Global.Configuration) bool {
 
 	//calculate the performance
 	if Global.Performance {
-		Global.SetPerformanceObj("proxysql_init", false,log.InfoLevel)
+		Global.SetPerformanceObj("proxysql_init", false, log.InfoLevel)
 	}
 
 	if node.Connection != nil {
@@ -149,8 +147,6 @@ func (node *ProxySQLNode) Init(config *Global.Configuration) bool {
 	}
 
 }
-
-
 
 /*
 Retrieve ProxySQL variables and store them internally in a map
@@ -191,12 +187,12 @@ Having a connection taking longer than that is outrageous. Period!
 */
 func (node *ProxySQLNode) GetConnection() bool {
 	if Global.Performance {
-		Global.SetPerformanceObj("main_connection", true,log.DebugLevel)
+		Global.SetPerformanceObj("main_connection", true, log.DebugLevel)
 	}
 	//dns := node.User + ":" + node.Password + "@tcp(" + node.Dns + ":"+ strconv.Itoa(node.Port) +")/admin" //
 	//if log.GetLevel() == log.DebugLevel {log.Debug(dns)}
 
-	db, err := sql.Open("mysql", node.User+":"+node.Password+"@tcp(" + node.Dns + ")/main?timeout=1s")
+	db, err := sql.Open("mysql", node.User+":"+node.Password+"@tcp("+node.Dns+")/main?timeout=1s")
 
 	//defer db.Close()
 	node.Connection = db
@@ -215,7 +211,7 @@ func (node *ProxySQLNode) GetConnection() bool {
 	}
 
 	if Global.Performance {
-		Global.SetPerformanceObj("main_connection", false,log.DebugLevel)
+		Global.SetPerformanceObj("main_connection", false, log.DebugLevel)
 	}
 	return true
 }
@@ -279,9 +275,8 @@ func (node *ProxySQLNode) ProcessChanges() bool {
 		Add SQL statement SQL array.
 	*/
 	if Global.Performance {
-		Global.SetPerformanceObj("Process changes - ActionMap - (ProxysqlNode)" , true,log.DebugLevel)
+		Global.SetPerformanceObj("Process changes - ActionMap - (ProxysqlNode)", true, log.DebugLevel)
 	}
-
 
 	var SQLActionString []string
 
@@ -363,7 +358,7 @@ func (node *ProxySQLNode) ProcessChanges() bool {
 
 	}
 	if Global.Performance {
-		Global.SetPerformanceObj("Process changes - ActionMap - (ProxysqlNode)" , false,log.DebugLevel)
+		Global.SetPerformanceObj("Process changes - ActionMap - (ProxysqlNode)", false, log.DebugLevel)
 	}
 
 	if !node.executeSQLChanges(SQLActionString) {
@@ -488,7 +483,7 @@ func (node *ProxySQLNode) executeSQLChanges(SQLActionString []string) bool {
 	}
 
 	if Global.Performance {
-		Global.SetPerformanceObj("Execute SQL changes - ActionMap - (ProxysqlNode)" , true,log.DebugLevel)
+		Global.SetPerformanceObj("Execute SQL changes - ActionMap - (ProxysqlNode)", true, log.DebugLevel)
 	}
 	//We will execute all the commands inside a transaction if any error we will roll back all
 	ctx := context.Background()
@@ -527,7 +522,7 @@ func (node *ProxySQLNode) executeSQLChanges(SQLActionString []string) bool {
 
 	}
 	if Global.Performance {
-		Global.SetPerformanceObj("Execute SQL changes - ActionMap - (ProxysqlNode)" , false,log.DebugLevel)
+		Global.SetPerformanceObj("Execute SQL changes - ActionMap - (ProxysqlNode)", false, log.DebugLevel)
 	}
 
 	return true

@@ -50,11 +50,9 @@ func main() {
 	var configPath string
 	locker := new(DO.Locker)
 
-
 	//initialize help
 	help := new(Global.HelpText)
 	help.Init()
-
 
 	// By default performance collection is disabled
 	Global.Performance = false
@@ -95,17 +93,17 @@ func main() {
 		var config = Global.GetConfig(currPath + configFile)
 
 		//Let us do a sanity check on the configuration to prevent most obvious issues
-		if !config.SanityCheck(){
+		if !config.SanityCheck() {
 			os.Exit(1)
 		}
 
 		//initialize the log system
-		if !Global.InitLog(config){
+		if !Global.InitLog(config) {
 			fmt.Println("Not able to initialize log system exiting")
 			os.Exit(1)
 		}
 		//Initialize the locker
-		if !locker.Init(&config){
+		if !locker.Init(&config) {
 			log.Error("Cannot initialize Locker")
 			os.Exit(1)
 		}
@@ -120,7 +118,6 @@ func main() {
 			fmt.Println("Cannot create a lock, exit")
 			os.Exit(1)
 		}
-
 
 		//should we track performance or not
 		Global.Performance = config.Global.Performance
@@ -143,19 +140,19 @@ func main() {
 		*/
 		if config.Proxysql.Clustered {
 
-			if locker.CheckClusterLock() != nil{
+			if locker.CheckClusterLock() != nil {
 				//our node has the lock
-				if !initProxySQLNode(proxysqlNode, config){
+				if !initProxySQLNode(proxysqlNode, config) {
 					locker.RemoveLockFile()
 					os.Exit(1)
 				}
-			}else {
-			//	Another node has the lock we must exit
+			} else {
+				//	Another node has the lock we must exit
 				locker.RemoveLockFile()
 				os.Exit(1)
 			}
-		}else{
-			if !initProxySQLNode(proxysqlNode, config){
+		} else {
+			if !initProxySQLNode(proxysqlNode, config) {
 				locker.RemoveLockFile()
 				os.Exit(1)
 			}
@@ -187,7 +184,7 @@ func main() {
 		proxysqlNode.ActionNodeList = proxysqlNode.MySQLCluster.GetActionList()
 
 		// Once we have the Map we translate it into SQL commands to process
-		if !proxysqlNode.ProcessChanges(){
+		if !proxysqlNode.ProcessChanges() {
 			locker.RemoveLockFile()
 			os.Exit(1)
 		}
@@ -225,7 +222,7 @@ func main() {
 
 }
 
-func initProxySQLNode(proxysqlNode *DO.ProxySQLNode, config Global.Configuration) bool{
+func initProxySQLNode(proxysqlNode *DO.ProxySQLNode, config Global.Configuration) bool {
 	//ProxySQL Node work start here
 	if proxysqlNode.Init(&config) {
 		if log.GetLevel() == log.DebugLevel {

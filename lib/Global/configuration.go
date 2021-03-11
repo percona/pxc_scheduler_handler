@@ -68,26 +68,25 @@ type pxcCluster struct {
 
 //ProxySQL configuration class
 type proxySql struct {
-	Host       string
-	Password   string
-	Port       int
-	User       string
-	Clustered  bool
+	Host         string
+	Password     string
+	Port         int
+	User         string
+	Clustered    bool
 	LockFilePath string
 }
 
 //Global scheduler conf
 type globalScheduler struct {
-	Debug       bool
-	LogLevel    string
-	LogTarget   string // #stdout | file
-	LogFile     string //"/tmp/pscheduler"
-	Daemonize   bool
-	DaemonInterval int
-	Performance bool
-	LockFileTimeout int64
+	Debug              bool
+	LogLevel           string
+	LogTarget          string // #stdout | file
+	LogFile            string //"/tmp/pscheduler"
+	Daemonize          bool
+	DaemonInterval     int
+	Performance        bool
+	LockFileTimeout    int64
 	LockClusterTimeout int64
-
 }
 
 //Methods to return the config as map
@@ -100,7 +99,7 @@ func GetConfig(path string) Configuration {
 	return config
 }
 
-func (conf *Configuration) SanityCheck() bool{
+func (conf *Configuration) SanityCheck() bool {
 	//check for single primary and writer is also reader
 	if conf.Pxcluster.MaxNumWriters > 1 &&
 		conf.Pxcluster.SinglePrimary {
@@ -129,10 +128,10 @@ func (conf *Configuration) SanityCheck() bool{
 
 	//Check for correct LockFilePath
 	if conf.Proxysql.LockFilePath == "" {
-		log.Warn(fmt.Sprintf("LockFilePath is invalid. Currently set to: |%s|  I will set to /tmp/ ",conf.Proxysql.LockFilePath))
+		log.Warn(fmt.Sprintf("LockFilePath is invalid. Currently set to: |%s|  I will set to /tmp/ ", conf.Proxysql.LockFilePath))
 		conf.Proxysql.LockFilePath = "/tmp"
-		if !CheckIfPathExists(conf.Proxysql.LockFilePath){
-			log.Error(fmt.Sprintf("LockFilePath is not accessible currently set to: |%s|",conf.Proxysql.LockFilePath))
+		if !CheckIfPathExists(conf.Proxysql.LockFilePath) {
+			log.Error(fmt.Sprintf("LockFilePath is not accessible currently set to: |%s|", conf.Proxysql.LockFilePath))
 			return false
 			//os.Exit(1)
 		}
@@ -144,7 +143,7 @@ func (conf *Configuration) SanityCheck() bool{
 }
 
 //initialize the log
-func InitLog(config Configuration) bool{
+func InitLog(config Configuration) bool {
 
 	//set a consistent output for the log no matter if file or stdout
 	formatter := LogFormat{}
@@ -166,7 +165,7 @@ func InitLog(config Configuration) bool{
 		if err == nil {
 			log.SetOutput(file)
 		} else {
-			log.Error("Error logging to file ",err.Error())
+			log.Error("Error logging to file ", err.Error())
 			//log.Error("Failed to log to file, using default stderr")
 			return false
 		}
@@ -200,6 +199,7 @@ func InitLog(config Configuration) bool{
 type LogFormat struct {
 	TimestampFormat string
 }
+
 func (f *LogFormat) Format(entry *log.Entry) ([]byte, error) {
 	var b *bytes.Buffer
 
@@ -209,7 +209,7 @@ func (f *LogFormat) Format(entry *log.Entry) ([]byte, error) {
 		b = &bytes.Buffer{}
 	}
 
-	b.WriteString("\x1b["+ strconv.Itoa(getColorByLevel(entry.Level)) +"m")
+	b.WriteString("\x1b[" + strconv.Itoa(getColorByLevel(entry.Level)) + "m")
 	b.WriteByte('[')
 	b.WriteString(strings.ToUpper(entry.Level.String()))
 	b.WriteString("]")
@@ -236,6 +236,7 @@ func (f *LogFormat) Format(entry *log.Entry) ([]byte, error) {
 	b.WriteByte('\n')
 	return b.Bytes(), nil
 }
+
 const (
 	colorRed    = 31
 	colorYellow = 33

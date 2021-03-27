@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"../Global"
+	global "../Global"
 	SQL "../Sql/Proxy"
 	"fmt"
 )
@@ -104,9 +104,9 @@ Methods
 /*
 Init the proxySQL node
 */
-func (node *ProxySQLNode) Init(config *Global.Configuration) bool {
-	if Global.Performance {
-		Global.SetPerformanceObj("proxysql_init", true, log.InfoLevel)
+func (node *ProxySQLNode) Init(config *global.Configuration) bool {
+	if global.Performance {
+		global.SetPerformanceObj("proxysql_init", true, log.InfoLevel)
 	}
 	node.User = config.Proxysql.User
 	node.Password = config.Proxysql.Password
@@ -134,8 +134,8 @@ func (node *ProxySQLNode) Init(config *Global.Configuration) bool {
 	//}
 
 	//calculate the performance
-	if Global.Performance {
-		Global.SetPerformanceObj("proxysql_init", false, log.InfoLevel)
+	if global.Performance {
+		global.SetPerformanceObj("proxysql_init", false, log.InfoLevel)
 	}
 
 	if node.Connection != nil {
@@ -186,8 +186,8 @@ Note ?timeout=1s is HARDCODED on purpose. This is a check that MUST execute in l
 Having a connection taking longer than that is outrageous. Period!
 */
 func (node *ProxySQLNode) GetConnection() bool {
-	if Global.Performance {
-		Global.SetPerformanceObj("main_connection", true, log.DebugLevel)
+	if global.Performance {
+		global.SetPerformanceObj("main_connection", true, log.DebugLevel)
 	}
 	//dns := node.User + ":" + node.Password + "@tcp(" + node.Dns + ":"+ strconv.Itoa(node.Port) +")/admin" //
 	//if log.GetLevel() == log.DebugLevel {log.Debug(dns)}
@@ -210,8 +210,8 @@ func (node *ProxySQLNode) GetConnection() bool {
 		return false
 	}
 
-	if Global.Performance {
-		Global.SetPerformanceObj("main_connection", false, log.DebugLevel)
+	if global.Performance {
+		global.SetPerformanceObj("main_connection", false, log.DebugLevel)
 	}
 	return true
 }
@@ -248,7 +248,7 @@ ProxySQLNode
 					|
 				Pxc | GR
 */
-func (node *ProxySQLNode) GetDataCluster(config Global.Configuration) bool {
+func (node *ProxySQLNode) GetDataCluster(config global.Configuration) bool {
 	//Init the data cluster
 	dataClusterPxc := new(DataCluster)
 	dataClusterPxc.MonitorPassword = node.MonitorPassword
@@ -274,8 +274,8 @@ func (node *ProxySQLNode) ProcessChanges() bool {
 		check for retries
 		Add SQL statement SQL array.
 	*/
-	if Global.Performance {
-		Global.SetPerformanceObj("Process changes - ActionMap - (ProxysqlNode)", true, log.DebugLevel)
+	if global.Performance {
+		global.SetPerformanceObj("Process changes - ActionMap - (ProxysqlNode)", true, log.DebugLevel)
 	}
 
 	var SQLActionString []string
@@ -287,7 +287,7 @@ func (node *ProxySQLNode) ProcessChanges() bool {
 		hg := dataNode.HostgroupId
 		ip := dataNode.Dns[0:strings.Index(dataNode.Dns, ":")]
 		port := dataNode.Dns[strings.Index(dataNode.Dns, ":")+1:]
-		portI := Global.ToInt(port)
+		portI := global.ToInt(port)
 		switch actionCode {
 		case 0:
 			log.Info(fmt.Sprintf("Node %d %s nothing to do", dataNode.HostgroupId, dataNode.Dns)) //"NOTHING_TO_DO"
@@ -328,8 +328,10 @@ func (node *ProxySQLNode) ProcessChanges() bool {
 				SQLActionString = append(SQLActionString, node.SaveRetry(dataNode, hg, ip, portI))
 			} // "MOVE_OUT_MAINTENANCE"
 		case 4010:
+			SQLActionString = append(SQLActionString, node.DeleteDataNode(dataNode, node.MySQLCluster.HgReaderId, ip, portI)) // "DELETE before insert to be sure no conflict arise"
 			SQLActionString = append(SQLActionString, node.InsertRead(dataNode, hg, ip, portI)) // "INSERT_READ"
 		case 4020:
+			SQLActionString = append(SQLActionString, node.DeleteDataNode(dataNode, node.MySQLCluster.HgWriterId, ip, portI)) // "DELETE before insert to be sure no conflict arise"
 			SQLActionString = append(SQLActionString, node.InsertWrite(dataNode, hg, ip, portI)) // "INSERT_WRITE"
 		case 5000:
 			SQLActionString = append(SQLActionString, node.DeleteDataNode(dataNode, hg, ip, portI)) // "DELETE_NODE"
@@ -357,8 +359,8 @@ func (node *ProxySQLNode) ProcessChanges() bool {
 		}
 
 	}
-	if Global.Performance {
-		Global.SetPerformanceObj("Process changes - ActionMap - (ProxysqlNode)", false, log.DebugLevel)
+	if global.Performance {
+		global.SetPerformanceObj("Process changes - ActionMap - (ProxysqlNode)", false, log.DebugLevel)
 	}
 
 	if !node.executeSQLChanges(SQLActionString) {
@@ -399,6 +401,7 @@ func (node *ProxySQLNode) InsertRead(dataNode DataNode, hg int, ip string, port 
 	} else {
 		hg = node.MySQLCluster.HgReaderId
 	}
+
 	myString := fmt.Sprintf("INSERT INTO mysql_servers (hostgroup_id, hostname,port,gtid_port,status,weight,compression,max_connections,max_replication_lag,use_ssl,max_latency_ms,comment) "+
 		" VALUES(%d,'%s',%d,%d,'%s',%d,%d,%d,%d,%d,%d,'%s')",
 		hg,
@@ -410,7 +413,7 @@ func (node *ProxySQLNode) InsertRead(dataNode DataNode, hg int, ip string, port 
 		dataNode.Compression,
 		dataNode.MaxConnection,
 		dataNode.MaxReplicationLag,
-		Global.Bool2int(dataNode.UseSsl),
+		global.Bool2int(dataNode.UseSsl),
 		dataNode.MaxLatency,
 		dataNode.Comment)
 	log.Debug(fmt.Sprintf("Preparing for node  %s:%d HG:%d SQL: %s", ip, port, hg, myString))
@@ -438,7 +441,7 @@ func (node *ProxySQLNode) InsertWrite(dataNode DataNode, hg int, ip string, port
 		dataNode.Compression,
 		dataNode.MaxConnection,
 		dataNode.MaxReplicationLag,
-		Global.Bool2int(dataNode.UseSsl),
+		global.Bool2int(dataNode.UseSsl),
 		dataNode.MaxLatency,
 		dataNode.Comment)
 	log.Debug(fmt.Sprintf("Preparing for node  %s:%d HG:%d SQL: %s", ip, port, hg, myString))
@@ -482,8 +485,8 @@ func (node *ProxySQLNode) executeSQLChanges(SQLActionString []string) bool {
 		return true
 	}
 
-	if Global.Performance {
-		Global.SetPerformanceObj("Execute SQL changes - ActionMap - (ProxysqlNode)", true, log.DebugLevel)
+	if global.Performance {
+		global.SetPerformanceObj("Execute SQL changes - ActionMap - (ProxysqlNode)", true, log.DebugLevel)
 	}
 	//We will execute all the commands inside a transaction if any error we will roll back all
 	ctx := context.Background()
@@ -521,8 +524,8 @@ func (node *ProxySQLNode) executeSQLChanges(SQLActionString []string) bool {
 		}
 
 	}
-	if Global.Performance {
-		Global.SetPerformanceObj("Execute SQL changes - ActionMap - (ProxysqlNode)", false, log.DebugLevel)
+	if global.Performance {
+		global.SetPerformanceObj("Execute SQL changes - ActionMap - (ProxysqlNode)", false, log.DebugLevel)
 	}
 
 	return true

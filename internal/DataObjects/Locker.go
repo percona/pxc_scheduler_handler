@@ -1,7 +1,7 @@
 package DataObjects
 
 import (
-	Global "../Global"
+	global "../Global"
 	SQL "../Sql/Proxy"
 	"bufio"
 	"context"
@@ -23,7 +23,7 @@ type (
 		MyServerIp             string
 		MyServerPort           int
 		MyServer               *ProxySQLNode
-		myConfig               *Global.Configuration
+		myConfig               *global.Configuration
 		FileLock               string
 		FileLockPath           string
 		FileLockInterval       int64
@@ -43,7 +43,7 @@ type (
 
 //Initialize the locker
 //TODO initialize
-func (locker *Locker) Init(config *Global.Configuration) bool {
+func (locker *Locker) Init(config *global.Configuration) bool {
 	locker.myConfig = config
 	locker.MyServerIp = config.Proxysql.Host
 	locker.MyServerPort = config.Proxysql.Port
@@ -85,11 +85,11 @@ func (locker *Locker) CheckClusterLock() *ProxySQLNode {
 	// 1 get connection
 	// 2 get all we need from ProxySQL
 	// 3 put the lock if we can
-	Global.SetPerformanceObj("Cluster lock", true, log.InfoLevel)
+	global.SetPerformanceObj("Cluster lock", true, log.InfoLevel)
 	proxySQLCluster := new(ProxySQLCluster)
 	if !locker.MyServer.IsInitialized {
 		if !locker.MyServer.Init(locker.myConfig) {
-			Global.SetPerformanceObj("Cluster lock", false, log.InfoLevel)
+			global.SetPerformanceObj("Cluster lock", false, log.InfoLevel)
 			return nil
 		}
 	}
@@ -102,21 +102,21 @@ func (locker *Locker) CheckClusterLock() *ProxySQLNode {
 		if proxySQLCluster.GetProxySQLnodes(locker.MyServer) && len(proxySQLCluster.Nodes) > 0 {
 			if nodes, ok := locker.findLock(proxySQLCluster.Nodes); ok && nodes != nil {
 				if locker.PushSchedulerLock(nodes) {
-					Global.SetPerformanceObj("Cluster lock", false, log.InfoLevel)
+					global.SetPerformanceObj("Cluster lock", false, log.InfoLevel)
 					return locker.MyServer
 				} else {
-					Global.SetPerformanceObj("Cluster lock", false, log.InfoLevel)
+					global.SetPerformanceObj("Cluster lock", false, log.InfoLevel)
 					return nil
 				}
 			} else {
 				log.Info(fmt.Sprintf("Cannot put a lock on the cluster for this scheduler %s another node hold the lock and acting", locker.MyServer.Dns))
-				Global.SetPerformanceObj("Cluster lock", false, log.InfoLevel)
+				global.SetPerformanceObj("Cluster lock", false, log.InfoLevel)
 				return nil
 			}
 		}
 	}
 
-	Global.SetPerformanceObj("Cluster lock", false, log.InfoLevel)
+	global.SetPerformanceObj("Cluster lock", false, log.InfoLevel)
 	return locker.MyServer
 }
 
@@ -154,7 +154,7 @@ func (locker *Locker) findLock(nodes map[string]ProxySQLNode) (map[string]ProxyS
 			log.Debug(fmt.Sprintf("Cluster Node %s has a scheduler lock ", node.Dns))
 
 			//get LOCK time and assign as winning node the node that has be the more recent one
-			node.LastLockTime = int64(Global.ToInt(lockText))
+			node.LastLockTime = int64(global.ToInt(lockText))
 
 			//Also if the time is not expired I will remove the lock text from comment for my node, given if the lock on another node is active I will not do a thing.
 			//But if is not I will have the comment in the node ready
@@ -206,8 +206,8 @@ func (locker *Locker) PushSchedulerLock(nodes map[string]ProxySQLNode) bool {
 		return true
 	}
 
-	if Global.Performance {
-		Global.SetPerformanceObj("Execute SQL changes - ProxySQL cluster LOCK ("+locker.ClusterLockId+")", true, log.DebugLevel)
+	if global.Performance {
+		global.SetPerformanceObj("Execute SQL changes - ProxySQL cluster LOCK ("+locker.ClusterLockId+")", true, log.DebugLevel)
 	}
 	//We will execute all the commands inside a transaction if any error we will roll back all
 	ctx := context.Background()
@@ -246,8 +246,8 @@ func (locker *Locker) PushSchedulerLock(nodes map[string]ProxySQLNode) bool {
 		}
 
 	}
-	if Global.Performance {
-		Global.SetPerformanceObj("Execute SQL changes - ProxySQL cluster LOCK ("+locker.ClusterLockId+")", false, log.DebugLevel)
+	if global.Performance {
+		global.SetPerformanceObj("Execute SQL changes - ProxySQL cluster LOCK ("+locker.ClusterLockId+")", false, log.DebugLevel)
 	}
 
 	return true

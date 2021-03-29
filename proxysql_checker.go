@@ -6,8 +6,8 @@ import (
 	"os"
 	"time"
 
-	DO "./lib/DataObjects"
-	Global "./lib/Global"
+	DO "./internal/DataObjects"
+	global "./internal/Global"
 	_ "github.com/go-sql-driver/mysql"
 	log "github.com/sirupsen/logrus"
 )
@@ -51,11 +51,11 @@ func main() {
 	locker := new(DO.Locker)
 
 	//initialize help
-	help := new(Global.HelpText)
+	help := new(global.HelpText)
 	help.Init()
 
 	// By default performance collection is disabled
-	Global.Performance = false
+	global.Performance = false
 
 	//Manage config and parameters from conf file [start]
 	flag.StringVar(&configFile, "configfile", "", "Config file name for the script")
@@ -90,7 +90,7 @@ func main() {
 
 	for i := 0; i <= daemonLoop; {
 		//Return our full configuration from file
-		var config = Global.GetConfig(currPath + configFile)
+		var config = global.GetConfig(currPath + configFile)
 
 		//Let us do a sanity check on the configuration to prevent most obvious issues
 		if !config.SanityCheck() {
@@ -98,7 +98,7 @@ func main() {
 		}
 
 		//initialize the log system
-		if !Global.InitLog(config) {
+		if !global.InitLog(config) {
 			fmt.Println("Not able to initialize log system exiting")
 			os.Exit(1)
 		}
@@ -120,16 +120,16 @@ func main() {
 		}
 
 		//should we track performance or not
-		Global.Performance = config.Global.Performance
+		global.Performance = config.Global.Performance
 
 		/*
 			main game start here defining the Proxy Objects
 		*/
 		//initialize performance collection if requested
-		if Global.Performance {
-			Global.PerformanceMapOrdered = Global.NewOrderedMap()
-			Global.PerformanceMap = Global.NewRegularIntMap()
-			Global.SetPerformanceObj("main", true, log.ErrorLevel)
+		if global.Performance {
+			global.PerformanceMapOrdered = global.NewOrderedMap()
+			global.PerformanceMap = global.NewRegularIntMap()
+			global.SetPerformanceObj("main", true, log.ErrorLevel)
 		}
 		// create the two main containers the ProxySQL cluster and at least ONE ProxySQL node
 		proxysqlNode := locker.MyServer
@@ -200,9 +200,9 @@ func main() {
 			}
 		}
 
-		if Global.Performance {
-			Global.SetPerformanceObj("main", false, log.ErrorLevel)
-			Global.ReportPerformance()
+		if global.Performance {
+			global.SetPerformanceObj("main", false, log.ErrorLevel)
+			global.ReportPerformance()
 		}
 
 		//remove lock and wait
@@ -216,13 +216,13 @@ func main() {
 		log.Info("")
 
 	}
-	//if !config.Global.Development {
+	//if !config.global.Development {
 	//	locker.RemoveLockFile()
 	//}
 
 }
 
-func initProxySQLNode(proxysqlNode *DO.ProxySQLNode, config Global.Configuration) bool {
+func initProxySQLNode(proxysqlNode *DO.ProxySQLNode, config global.Configuration) bool {
 	//ProxySQL Node work start here
 	if proxysqlNode.Init(&config) {
 		if log.GetLevel() == log.DebugLevel {

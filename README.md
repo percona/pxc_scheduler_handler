@@ -193,6 +193,7 @@ OS = "na"
 - password : [] Password 
 - clustered : [false] If this is __NOT__ a single instance then we need to put a lock on the running scheduler (see [Working with ProxySQL cluster](Working-with-ProxySQL-cluster) section)
 - initialized : not used (for the moment) 
+- respectManualOfflineSoft : [false] When true the checker will NOT modify an `OFFLINE_SOFT` state manually set. It will also DO NOT put back any OFFLINE_SOFT given it will be impossible to discriminate the ones set by hand from the ones set by the application. Given that this feature is to be consider, __UNSAFE__ and should never be used unless you know very well what you are doing.
 
 ### Pxccluster
 - activeFailover : [1] Failover method

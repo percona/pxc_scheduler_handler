@@ -73,6 +73,7 @@ type proxySql struct {
 	Port         int
 	User         string
 	Clustered    bool
+	RespectManualOfflineSoft bool `default:false`
 	LockFilePath string
 }
 

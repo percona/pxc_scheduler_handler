@@ -81,10 +81,13 @@
 # --eval INSERT INTO scheduler (id,active,interval_ms,filename,arg1) values (10,1,3000,"$proxysql_scheduler_script","-u=admin -p=admin -h=127.0.0.1 -H=$wHG:W,$rHG:R -P=6032 --debug=1 --active_failover=1 --retry_down=2 --writer_is_also_reader=0 --log=$MYSQL_TMP_DIR/galera_check-perl.log")
 # The following line works with Golang
 --replace_result $proxysql_scheduler_script SCHEDULER_SCRIPT $proxysql_scheduler_config_dir CONFIG_DIR
---eval INSERT INTO scheduler (id,active,interval_ms,filename,arg1,arg2) values (10,1,3000,"$proxysql_scheduler_script","--configfile=$proxysql_scheduler_config","--configpath=$proxysql_scheduler_config_dir")
+--eval INSERT INTO scheduler (id,active,interval_ms,filename,arg1,arg2) values (10,1,2000,"$proxysql_scheduler_script","--configfile=$proxysql_scheduler_config","--configpath=$proxysql_scheduler_config_dir")
 
 --source ../include/apply_proxysql_config.inc
 
+--sleep 10
+
+ 
 #
 # ACT 1
 #
@@ -93,6 +96,9 @@
 --connect(conn_app_test, 127.0.0.1, app_test, test, , 6033)
 --connection conn_app_test
 CREATE TABLE t1 (a int primary key);
+
+--sleep 5
+
 INSERT INTO t1 VALUES (1), (2), (3);
 
 --echo #
@@ -102,13 +108,14 @@ INSERT INTO t1 VALUES (1), (2), (3);
 --source include/kill_mysqld.inc
 
 # now let ProxySQL scheduler detect this change and do its job
---sleep 60
+--sleep 70
 
 # Reconnect allowing ProxySQL to route to the new backend
 --disconnect conn_app_test
 --connect(conn_app_test, 127.0.0.1, app_test, test, , 6033)
 --connection conn_app_test
 INSERT INTO t1 VALUES (11), (12), (13);
+--sleep 20
 
 
 #
@@ -117,7 +124,7 @@ INSERT INTO t1 VALUES (11), (12), (13);
 
 --connection proxysql_admin
 --replace_result $NODE_MYPORT_1 NODE_MYPORT_1 $NODE_MYPORT_2 NODE_MYPORT_2 $NODE_MYPORT_3 NODE_MYPORT_3
---eval SELECT * FROM runtime_mysql_servers ORDER BY hostgroup_id, port;
+--eval SELECT hostgroup_id,hostname,port,gtid_port,status,weight,compression,max_connections,max_replication_lag,use_ssl,max_latency_ms FROM runtime_mysql_servers WHERE hostgroup_id in ($wHG,$rHG)  ORDER BY hostgroup_id, port;
 
 --connection conn_app_test
 # verify that writes reached the backend
@@ -136,14 +143,14 @@ SELECT COUNT(*) FROM t1;
 --source include/wait_wsrep_ready.inc
 
 # now let ProxySQL scheduler detect this change and do its job
---sleep 60
+--sleep 80
 
 # Reconnect allowing ProxySQL to route to the new backend
 --disconnect conn_app_test
 --connect(conn_app_test, 127.0.0.1, app_test, test, , 6033)
 --connection conn_app_test
 INSERT INTO t1 VALUES (21), (22), (23);
-
+--sleep 30
 
 #
 # ASSERT 2
@@ -151,7 +158,7 @@ INSERT INTO t1 VALUES (21), (22), (23);
 
 --connection proxysql_admin
 --replace_result $NODE_MYPORT_1 NODE_MYPORT_1 $NODE_MYPORT_2 NODE_MYPORT_2 $NODE_MYPORT_3 NODE_MYPORT_3
---eval SELECT * FROM runtime_mysql_servers ORDER BY hostgroup_id, port;
+--eval SELECT hostgroup_id,hostname,port,gtid_port,status,weight,compression,max_connections,max_replication_lag,use_ssl,max_latency_ms FROM runtime_mysql_servers WHERE hostgroup_id in ($wHG,$rHG)  ORDER BY hostgroup_id, port;
 
 --connection conn_app_test
 # verify that writes reached the backend

@@ -28,7 +28,7 @@ user = "<valid user to connect from real ip as for proxysql_server table>"
 password = "<password>"
 clustered = false
 lockfilepath ="/var/run/proxysql_scheduler"
-
+respectManualOfflineSoft=false
 
 [global]
 debug = true

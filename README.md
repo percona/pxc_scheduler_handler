@@ -1,9 +1,10 @@
-# ProxySQL_checker
-## Concept
-ProxySQL_checker is an application that can run as standalone or invoked from ProxySQL scheduler. Its function is to manage integration between ProxySQL and Galera (from Codership), including its different implementations like PXC.
-The scope of ProxySQL_checker is to maintain the ProxySQL mysql_server table, in a way that the PXC cluster managed will suffer of minimal negative effects due to possible data node: failures, service degradation and maintenance.
+![logo](./docs/pxc_scheduler_handler.png "Logo")
 
-ProxySQL_checker is also ProxySQL cluster aware and can deal with multiple instances running on more ProxySQL cluster nodes. When in presence of a cluster the application will attempt to set a lock at cluster level such that no other node will interfere with the actions.
+## Concept
+PXC Scheduler Handler is an application that can run as standalone or invoked from ProxySQL scheduler. Its function is to manage integration between ProxySQL and Galera (from Codership), including its different implementations like PXC.
+The scope of PXC Scheduler Handler is to maintain the ProxySQL mysql_server table, in a way that the PXC cluster managed will suffer of minimal negative effects due to possible data node: failures, service degradation and maintenance.
+
+PXC Scheduler Handler is also ProxySQL cluster aware and can deal with multiple instances running on more ProxySQL cluster nodes. When in presence of a cluster the application will attempt to set a lock at cluster level such that no other node will interfere with the actions.
 
 At the moment galera_check analyze and manage the following:
 
@@ -25,7 +26,7 @@ Node states:
 It also makes possible to isolate the Primary Writer from READS (when read/write split is in place in ProxySQL), such that reads will be redirect only to READ HostGroup.
 
 ### Understand the HGs relation
-ProxySQL_checker leverage the HostGroup concept existing in ProxySQL to identify 3 main set of HGs, the set that needs to be handled (your pair of HGs for R/W) , the set used for configuration (the ones in the 8XXX range) and a special set use to isolate the nodes when not active (in the 9XXX range).
+PXC Scheduler Handler leverage the HostGroup concept existing in ProxySQL to identify 3 main set of HGs, the set that needs to be handled (your pair of HGs for R/W) , the set used for configuration (the ones in the 8XXX range) and a special set use to isolate the nodes when not active (in the 9XXX range).
 
 To clarify, let assume you have your PXC cluster compose by 3 Nodes, and you have already set query rules to split traffic R/W with the following HGs:
 * 10 is the ID for the HG dealing with Writes
@@ -40,18 +41,18 @@ The settings used in the 8XXX HGs like weight, use of SSL etc. are used as templ
 
 
 ## Failover
-A fail-over will occur anytime a Primary writer node will need to be demoted. This can be for planned maintenance as well as a node crash. To be able to fail-over ProxySQL_checker require to have valid Node(s) in the corresponding 8XXX HostGroup (8000 + original HG id).
+A fail-over will occur anytime a Primary writer node will need to be demoted. This can be for planned maintenance as well as a node crash. To be able to fail-over PXC Scheduler Handler require to have valid Node(s) in the corresponding 8XXX HostGroup (8000 + original HG id).
 Given that assume we have:
 ```editorconfig
 node4 : 192.168.4.22 Primary Writer
 node5 : 192.168.4.23
 node6 : 192.168.4.233
 ```
-If node4 will fail/maintenance,  ProxySQL_checker will choose the next one with higher weight in the 8XXX corresponding HGs.
+If node4 will fail/maintenance,  PXC Scheduler Handler will choose the next one with higher weight in the 8XXX corresponding HGs.
 Actions will also be different if the Node is going down because a crash or maintenance. In case of the latter the Node will be set as OFFLINE_SOFT to allow existing connections to end their work. In other cases, the node will be moved to HG 9XXX which is the special HG to isolate non active nodes.
 
 ### Failback
-ProxySQL_checker by default IS NOT doing failback, this is by design. Nevertheless, if the option is activated in the config file, ProxySQL_checker will honor that.
+PXC Scheduler Handler by default IS NOT doing failback, this is by design. Nevertheless, if the option is activated in the config file, PXC Scheduler Handler will honor that.
 What is a failback? Assume you have only ONE writer (Primary writer) elected because its weight is the highest in the 8XXX writer HG. If this node is removed another will take its place. When the original Node will come back and failback is active, this node will be re-elected as Primary, while the one who take its place is moved to OFFLINE_SOFT.
 Why failback is bad? Because with automatic failback, your resurrecting node will be immediately move to production. This is not a good practice when in real production environment, because normally is better to warmup the Buffer-Pool to reduce the access to storage layer, and then move the node as Primary writer.
 
@@ -155,7 +156,7 @@ Please note that active_failover=1, is the only deterministic method to failover
 
 
 
-## How to configure ProxySQL_checker
+## How to configure PXC Scheduler Handler
 There are many options that can be set, and I foresee we will have to add even more. Given that I have abandoned the previous style of using command line and move to config-file definition. Yes this is a bit more expensive, given the file access but it is minimal.
 
 First let us see what we have:
@@ -219,7 +220,7 @@ OS = "na"
 Simply pass max 2 arguments 
 
 ```MySQL 
-INSERT  INTO scheduler (id,active,interval_ms,filename,arg1,arg2) values (10,0,2000,"/var/lib/proxysql/proxysql_checker","--configfile=config.toml","--configpath=<path to config>");
+INSERT  INTO scheduler (id,active,interval_ms,filename,arg1,arg2) values (10,0,2000,"/var/lib/proxysql/pxc_scheduler_handler","--configfile=config.toml","--configpath=<path to config>");
 LOAD SCHEDULER TO RUNTIME;SAVE SCHEDULER TO DISK;
 ```
 
@@ -272,7 +273,7 @@ go get github.com/sirupsen/logrus
 go get golang.org/x/text/language
 go get golang.org/x/text/message
 
-go build -o proxysql_checker .  
+go build -o pxc_scheduler_handler.  
 
 ```
 First thing to do then is to run `./proxysql_scheduler --help`

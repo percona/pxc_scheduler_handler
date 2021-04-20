@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"runtime"
 	"strconv"
 	"strings"
 	"syscall"
@@ -187,6 +188,7 @@ func InitLog(config Configuration) bool {
 	}
 
 	if log.GetLevel() == log.DebugLevel {
+		log.Info("Go version: ", runtime.Version())
 		log.Debug("Testing the log")
 		log.Info("Testing the log")
 		log.Warning("Testing the log")

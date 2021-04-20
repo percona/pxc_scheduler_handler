@@ -1,11 +1,11 @@
 package DataObjects
 
 import (
-	global "../Global"
-	SQL "../Sql/Proxy"
 	"bufio"
 	"context"
 	"fmt"
+	global "pxc_scheduler_handler/internal/Global"
+	SQL "pxc_scheduler_handler/internal/Sql/Proxy"
 	"regexp"
 	"strings"
 	//"github.com/go-sql-driver/mysql"

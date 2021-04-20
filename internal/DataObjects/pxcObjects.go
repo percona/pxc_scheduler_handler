@@ -1,10 +1,10 @@
 package DataObjects
 
 import (
-	"../Global"
-	SQLPxc "../Sql/Pcx"
 	"fmt"
 	log "github.com/sirupsen/logrus"
+	"pxc_scheduler_handler/internal/Global"
+	SQLPxc "pxc_scheduler_handler/internal/Sql/Pcx"
 	"strings"
 )
 

@@ -273,7 +273,7 @@ go get github.com/sirupsen/logrus
 go get golang.org/x/text/language
 go get golang.org/x/text/message
 
-go build -o pxc_scheduler_handler.  
+go build -o proxysql_scheduler.  
 
 ```
 First thing to do then is to run `./proxysql_scheduler --help`

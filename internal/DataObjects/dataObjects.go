@@ -13,11 +13,11 @@ import (
 	"sync"
 	"time"
 
-	global "../Global"
-	SQLPxc "../Sql/Pcx"
-	SQLProxy "../Sql/Proxy"
 	"github.com/go-sql-driver/mysql"
 	log "github.com/sirupsen/logrus"
+	global "pxc_scheduler_handler/internal/Global"
+	SQLPxc "pxc_scheduler_handler/internal/Sql/Pcx"
+	SQLProxy "pxc_scheduler_handler/internal/Sql/Proxy"
 )
 
 type DataNode struct {

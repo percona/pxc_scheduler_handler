@@ -6,8 +6,8 @@ import (
 	"os"
 	"time"
 
-	DO "./internal/DataObjects"
-	global "./internal/Global"
+	DO "pxc_scheduler_handler/internal/DataObjects"
+	global "pxc_scheduler_handler/internal/Global"
 	_ "github.com/go-sql-driver/mysql"
 	log "github.com/sirupsen/logrus"
 )

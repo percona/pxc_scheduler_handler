@@ -7,9 +7,9 @@ import (
 	"strconv"
 	"strings"
 
-	global "../Global"
-	SQL "../Sql/Proxy"
 	"fmt"
+	global "pxc_scheduler_handler/internal/Global"
+	SQL "pxc_scheduler_handler/internal/Sql/Proxy"
 )
 
 /*

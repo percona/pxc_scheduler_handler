@@ -1,13 +1,6 @@
 package DataObjects
 
-import (
-	"fmt"
-	log "github.com/sirupsen/logrus"
-	"pxc_scheduler_handler/internal/Global"
-	SQLPxc "pxc_scheduler_handler/internal/Sql/Pcx"
-	"strings"
-)
-
+/*
 type DataNodePxc struct {
 	DataNodeBase            DataNode
 	PxcMaintMode            string
@@ -53,11 +46,11 @@ func (node DataNodePxc) getInfo(wg *Global.MyWaitGroup, cluster *DataCluster) in
 		Global.SetPerformanceObj(fmt.Sprintf("Get info for node %s", node.DataNodeBase.Dns), true, log.DebugLevel)
 	}
 	// Get the connection
-	node.DataNodeBase.GetConnection()
-	/*
-		if connection is functioning we try to get the info
-		Otherwise we go on and set node as NOT processed
-	*/
+	//node.DataNodeBase.GetConnection()
+
+	//	if connection is functioning we try to get the info
+	//	Otherwise we go on and set node as NOT processed
+
 	// get variables and status first then pxc_view
 	if !node.DataNodeBase.NodeTCPDown {
 		node.DataNodeBase.Variables = node.DataNodeBase.getNodeInformations("variables")
@@ -112,3 +105,5 @@ func (node *DataNodePxc) setParameters() {
 	node.DataNodeBase.ReadOnly = Global.ToBool(node.DataNodeBase.Variables["read_only"], "on")
 
 }
+
+*/

@@ -70,7 +70,7 @@ ProxySQL Node
 */
 
 type ProxySQLNode struct {
-	ActionNodeList  map[string]DataNodePxc
+	ActionNodeList  map[string]DataNode
 	Dns             string
 	Hostgoups       map[int]Hostgroup
 	Ip              string
@@ -282,7 +282,7 @@ func (node *ProxySQLNode) ProcessChanges() bool {
 
 	log.Info("Processing action node list and build SQL commands")
 	for _, dataNodePxc := range node.ActionNodeList {
-		dataNode := dataNodePxc.DataNodeBase
+		dataNode := dataNodePxc
 		actionCode := dataNode.ActionType
 		hg := dataNode.HostgroupId
 		ip := dataNode.Dns[0:strings.Index(dataNode.Dns, ":")]

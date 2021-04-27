@@ -48,7 +48,7 @@ func main() {
 
 	var configFile string
 	var configPath string
-	locker := new(DO.Locker)
+	locker := new(DO.LockerImpl)
 
 	//initialize help
 	help := new(global.HelpText)
@@ -104,7 +104,7 @@ func main() {
 		}
 		//Initialize the locker
 		if !locker.Init(&config) {
-			log.Error("Cannot initialize Locker")
+			log.Error("Cannot initialize LockerImpl")
 			os.Exit(1)
 		}
 
@@ -222,7 +222,7 @@ func main() {
 
 }
 
-func initProxySQLNode(proxysqlNode *DO.ProxySQLNode, config global.Configuration) bool {
+func initProxySQLNode(proxysqlNode *DO.ProxySQLNodeImpl, config global.Configuration) bool {
 	//ProxySQL Node work start here
 	if proxysqlNode.Init(&config) {
 		if log.GetLevel() == log.DebugLevel {

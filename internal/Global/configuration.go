@@ -28,13 +28,13 @@ Configuration file has 3 main section:
 //Main structure working as container for the configuration sections
 // So far only 2 but this may increase like logs for instance
 type Configuration struct {
-	Proxysql  proxySql        `toml:"proxysql"`
-	Pxcluster pxcCluster      `toml:"pxccluster"`
-	Global    globalScheduler `toml:"Global"`
+	Proxysql  ProxySql        `toml:"proxysql"`
+	Pxcluster PxcCluster      `toml:"pxccluster"`
+	Global    GlobalScheduler `toml:"Global"`
 }
 
 //Pxc configuration class
-type pxcCluster struct {
+type PxcCluster struct {
 	ActiveFailover     int
 	FailBack           bool
 	CheckTimeOut       int
@@ -68,7 +68,7 @@ type pxcCluster struct {
 }
 
 //ProxySQL configuration class
-type proxySql struct {
+type ProxySql struct {
 	Host         string
 	Password     string
 	Port         int
@@ -79,7 +79,7 @@ type proxySql struct {
 }
 
 //Global scheduler conf
-type globalScheduler struct {
+type GlobalScheduler struct {
 	Debug              bool
 	LogLevel           string
 	LogTarget          string // #stdout | file

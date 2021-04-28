@@ -46,6 +46,11 @@ func main() {
 	var daemonLoop = 0
 	//var lockId string //LockId is compose by clusterID_HG_W_HG_R
 
+	//fmt.Println(time.Now().UnixNano())
+	//time.Sleep(60 * time.Second)
+	//fmt.Println(time.Now().UnixNano())
+	//os.Exit(0)
+
 	var configFile string
 	var configPath string
 	locker := new(DO.LockerImpl)

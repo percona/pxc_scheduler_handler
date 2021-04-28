@@ -178,13 +178,15 @@ func (locker *LockerImpl) findLock(nodes map[string]ProxySQLNodeImpl) (map[strin
 			//check if we had exceed the lock time
 			//convert nanoseconds to seconds
 			lockTime := (locker.ClusterCurrentLockTime - node.LastLockTime) / 1000000000
+
+			log.Debug(fmt.Sprintf("processing node %s with locktime %d cluster lock time %d ",node.Dns, node.LastLockTime, locker.ClusterLastLockTime ))
 			if lockTime > locker.LockClusterTimeout {
 				log.Debug(fmt.Sprintf("The lock on node %s has expired from %d seconds", node.Dns, lockTime))
 				node.IsLockExpired = true
 			}
 
 			// in case of multiple locks, the node with the most recent lock time wins
-			if node.LastLockTime < locker.ClusterLastLockTime && !node.IsLockExpired {
+			if node.LastLockTime <= locker.ClusterLastLockTime && !node.IsLockExpired {
 				locker.ClusterLastLockTime = node.LastLockTime
 				winningNode = node.Dns
 			} else if locker.ClusterLastLockTime == 0 && !node.IsLockExpired {
@@ -192,6 +194,7 @@ func (locker *LockerImpl) findLock(nodes map[string]ProxySQLNodeImpl) (map[strin
 				winningNode = node.Dns
 			}
 		}
+		log.Debug(fmt.Sprintf("Winning node %s",winningNode))
 		nodes[node.Dns] = node
 	}
 
@@ -204,7 +207,7 @@ func (locker *LockerImpl) findLock(nodes map[string]ProxySQLNodeImpl) (map[strin
 			nodes[locker.MyServer.Dns] = node
 			log.Debug(fmt.Sprintf("Lock acquired by node %s Current time %d", locker.MyServer.Dns, locker.ClusterCurrentLockTime))
 		}
-
+		log.Debug(fmt.Sprintf("Returning node %s my server DNS %s", node.Dns, locker.MyServer.Dns))
 		return nodes, true
 	}
 	return nil, false

@@ -20,7 +20,7 @@ $ pwd
 $ ls -l proxysql
 proxysql -> /repo/proxysql_scheduler/mtr/proxysql
 ```
-5. Environment variable PROXYSQL_SCHEDULER_SCRIPT pointing to `proxysql_scheduler` binary:
+5. Environment variable PROXYSQL_SCHEDULER_SCRIPT pointing to `pxc_scheduler_handler` binary:
 ```
 $export PROXYSQL_SCHEDULER_SCRIPT=/path/to/proxysql_scheduler
 ```

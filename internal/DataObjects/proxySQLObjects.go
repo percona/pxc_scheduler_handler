@@ -7,17 +7,45 @@ import (
 	"strconv"
 	"strings"
 
-	global "../Global"
-	SQL "../Sql/Proxy"
 	"fmt"
+	global "pxc_scheduler_handler/internal/Global"
+	SQL "pxc_scheduler_handler/internal/Sql/Proxy"
+
 )
+/*
+Interfaces
+*/
+
+type ProxySQLCluster interface {
+	GetProxySQLnodes(myNode *ProxySQLNodeImpl) bool
+}
+type ProxySQLNode interface {
+	getVariables() bool
+	GetConnection() bool
+	CloseConnection() bool
+	GetDataCluster(config global.Configuration) bool
+	ProcessChanges() bool
+
+	MoveNodeUpFromOfflineSoft(dataNode DataNodeImpl, hg int, ip string, port int) string
+	MoveNodeDownToOfflineSoft(dataNode DataNodeImpl, hg int, ip string, port int) string
+	MoveNodeUpFromHGCange(dataNode DataNodeImpl, hg int, ip string, port int) string
+	MoveNodeDownToHGCange(dataNode DataNodeImpl, hg int, ip string, port int) string
+	InsertRead(dataNode DataNodeImpl, hg int, ip string, port int) string
+	InsertWrite(dataNode DataNodeImpl, hg int, ip string, port int) string
+	DeleteDataNode(dataNode DataNodeImpl, hg int, ip string, port int) string
+	SaveRetry(dataNode DataNodeImpl, hg int, ip string, port int) string
+	executeSQLChanges(SQLActionString []string) bool
+}
+
+
+
 
 /*
 Cluster object and methods
 */
-type ProxySQLCluster struct {
+type ProxySQLClusterImpl struct {
 	Name     string
-	Nodes    map[string]ProxySQLNode
+	Nodes    map[string]ProxySQLNodeImpl
 	Active   bool
 	User     string
 	Password string
@@ -26,8 +54,8 @@ type ProxySQLCluster struct {
 // This method in ProxySQL Cluster Object is responsible for getting the list of ACTIVE ProxySQL servers.
 // Interestingly ProxySQL has not clue if a ProxySQL nodes ur down. Or at least is not reported in the proxysql_server tables or any stats table
 // Given that we check if nodes are reachable opening a connection and closing it
-func (cluster ProxySQLCluster) GetProxySQLnodes(myNode *ProxySQLNode) bool {
-	//nodes := make(map[int]*ProxySQLNode)
+func (cluster ProxySQLClusterImpl) GetProxySQLnodes(myNode *ProxySQLNodeImpl) bool {
+	//nodes := make(map[int]*ProxySQLNodeImpl)
 
 	recordset, err := myNode.Connection.Query(SQL.Dml_select_proxy_servers)
 	if err != nil {
@@ -41,7 +69,7 @@ func (cluster ProxySQLCluster) GetProxySQLnodes(myNode *ProxySQLNode) bool {
 		var port int
 		var comment string
 		recordset.Scan(&weight, &hostname, &port, &comment)
-		var newNode = new(ProxySQLNode)
+		var newNode = new(ProxySQLNodeImpl)
 		newNode.Ip = hostname
 		newNode.Weight = weight
 		newNode.Port = port
@@ -69,8 +97,8 @@ func (cluster ProxySQLCluster) GetProxySQLnodes(myNode *ProxySQLNode) bool {
 ProxySQL Node
 */
 
-type ProxySQLNode struct {
-	ActionNodeList  map[string]DataNodePxc
+type ProxySQLNodeImpl struct {
+	ActionNodeList  map[string]DataNodeImpl
 	Dns             string
 	Hostgoups       map[int]Hostgroup
 	Ip              string
@@ -80,7 +108,7 @@ type ProxySQLNode struct {
 	Port            int
 	User            string
 	Connection      *sql.DB
-	MySQLCluster    *DataCluster
+	MySQLCluster    *DataClusterImpl
 	Variables       map[string]string
 	IsInitialized   bool
 	Weight          int
@@ -94,7 +122,7 @@ type Hostgroup struct {
 	Id    int
 	Size  int
 	Type  string
-	Nodes []DataNode
+	Nodes []DataNodeImpl
 }
 
 /*===============================================================
@@ -104,7 +132,7 @@ Methods
 /*
 Init the proxySQL node
 */
-func (node *ProxySQLNode) Init(config *global.Configuration) bool {
+func (node *ProxySQLNodeImpl) Init(config *global.Configuration) bool {
 	if global.Performance {
 		global.SetPerformanceObj("proxysql_init", true, log.InfoLevel)
 	}
@@ -151,7 +179,7 @@ func (node *ProxySQLNode) Init(config *global.Configuration) bool {
 /*
 Retrieve ProxySQL variables and store them internally in a map
 */
-func (node *ProxySQLNode) getVariables() bool {
+func (node *ProxySQLNodeImpl) getVariables() bool {
 	variables := make(map[string]string)
 
 	recordset, err := node.Connection.Query(SQL.Dml_show_variables)
@@ -185,7 +213,7 @@ return true if successful in any other case false
 Note ?timeout=1s is HARDCODED on purpose. This is a check that MUST execute in less than a second.
 Having a connection taking longer than that is outrageous. Period!
 */
-func (node *ProxySQLNode) GetConnection() bool {
+func (node *ProxySQLNodeImpl) GetConnection() bool {
 	if global.Performance {
 		global.SetPerformanceObj("main_connection", true, log.DebugLevel)
 	}
@@ -220,7 +248,7 @@ func (node *ProxySQLNode) GetConnection() bool {
 return true if successful in any other case false
 */
 
-func (node *ProxySQLNode) CloseConnection() bool {
+func (node *ProxySQLNodeImpl) CloseConnection() bool {
 	if node.Connection != nil {
 		err := node.Connection.Close()
 		if err != nil {
@@ -238,19 +266,19 @@ Populate proxy node
 
 /*
 Retrieve active cluster
-check for pxc_cluster and cluster_id add to the object a DataCluster object.
-DataCluster returns already Initialized, which means it returns with all node populated with status
-ProxySQLNode
+check for pxc_cluster and cluster_id add to the object a DataClusterImpl object.
+DataClusterImpl returns already Initialized, which means it returns with all node populated with status
+ProxySQLNodeImpl
 	|
-	|-> DataCluster
+	|-> DataClusterImpl
 			|
 			|-> DataObject
 					|
 				Pxc | GR
 */
-func (node *ProxySQLNode) GetDataCluster(config global.Configuration) bool {
+func (node *ProxySQLNodeImpl) GetDataCluster(config global.Configuration) bool {
 	//Init the data cluster
-	dataClusterPxc := new(DataCluster)
+	dataClusterPxc := new(DataClusterImpl)
 	dataClusterPxc.MonitorPassword = node.MonitorPassword
 	dataClusterPxc.MonitorUser = node.MonitorUser
 
@@ -266,7 +294,7 @@ func (node *ProxySQLNode) GetDataCluster(config global.Configuration) bool {
 /*
 This method is the one applying the changes to the proxy database
 */
-func (node *ProxySQLNode) ProcessChanges() bool {
+func (node *ProxySQLNodeImpl) ProcessChanges() bool {
 	/*
 		Actions for each node in the loop (node.ActionNodeList)
 		identify the kind of action
@@ -282,7 +310,7 @@ func (node *ProxySQLNode) ProcessChanges() bool {
 
 	log.Info("Processing action node list and build SQL commands")
 	for _, dataNodePxc := range node.ActionNodeList {
-		dataNode := dataNodePxc.DataNodeBase
+		dataNode := dataNodePxc
 		actionCode := dataNode.ActionType
 		hg := dataNode.HostgroupId
 		ip := dataNode.Dns[0:strings.Index(dataNode.Dns, ":")]
@@ -370,23 +398,23 @@ func (node *ProxySQLNode) ProcessChanges() bool {
 	}
 	return true
 }
-func (node *ProxySQLNode) MoveNodeUpFromOfflineSoft(dataNode DataNode, hg int, ip string, port int) string {
+func (node *ProxySQLNodeImpl) MoveNodeUpFromOfflineSoft(dataNode DataNodeImpl, hg int, ip string, port int) string {
 
 	myString := fmt.Sprintf(" UPDATE mysql_servers SET status='ONLINE' WHERE hostgroup_id=%d AND hostname='%s' AND port=%d", hg, ip, port)
 	log.Debug(fmt.Sprintf("Preparing for node  %s:%d HG:%d SQL: %s", ip, port, hg, myString))
 	return myString
 }
-func (node *ProxySQLNode) MoveNodeDownToOfflineSoft(dataNode DataNode, hg int, ip string, port int) string {
+func (node *ProxySQLNodeImpl) MoveNodeDownToOfflineSoft(dataNode DataNodeImpl, hg int, ip string, port int) string {
 	myString := fmt.Sprintf(" UPDATE mysql_servers SET status='OFFLINE_SOFT' WHERE hostgroup_id=%d AND hostname='%s' AND port=%d", hg, ip, port)
 	log.Debug(fmt.Sprintf("Preparing for node  %s:%d HG:%d SQL: %s", ip, port, hg, myString))
 	return myString
 }
-func (node *ProxySQLNode) MoveNodeUpFromHGCange(dataNode DataNode, hg int, ip string, port int) string {
+func (node *ProxySQLNodeImpl) MoveNodeUpFromHGCange(dataNode DataNodeImpl, hg int, ip string, port int) string {
 	myString := fmt.Sprintf(" UPDATE mysql_servers SET hostgroup_id=%d WHERE hostgroup_id=%d AND hostname='%s' AND port=%d", hg-9000, hg, ip, port)
 	log.Debug(fmt.Sprintf("Preparing for node  %s:%d HG:%d SQL: %s", ip, port, hg, myString))
 	return myString
 }
-func (node *ProxySQLNode) MoveNodeDownToHGCange(dataNode DataNode, hg int, ip string, port int) string {
+func (node *ProxySQLNodeImpl) MoveNodeDownToHGCange(dataNode DataNodeImpl, hg int, ip string, port int) string {
 	myString := fmt.Sprintf(" UPDATE mysql_servers SET hostgroup_id=%d WHERE hostgroup_id=%d AND hostname='%s' AND port=%d", hg+9000, hg, ip, port)
 	log.Debug(fmt.Sprintf("Preparing for node  %s:%d HG:%d SQL: %s", ip, port, hg, myString))
 	return myString
@@ -395,7 +423,7 @@ func (node *ProxySQLNode) MoveNodeDownToHGCange(dataNode DataNode, hg int, ip st
 /*
 When inserting a node we need to differentiate when is a NEW node coming from the Bakcup HG because in that case we will NOT push it directly to prod
 */
-func (node *ProxySQLNode) InsertRead(dataNode DataNode, hg int, ip string, port int) string {
+func (node *ProxySQLNodeImpl) InsertRead(dataNode DataNodeImpl, hg int, ip string, port int) string {
 	if dataNode.NodeIsNew {
 		hg = node.MySQLCluster.HgReaderId + 9000
 	} else {
@@ -423,7 +451,7 @@ func (node *ProxySQLNode) InsertRead(dataNode DataNode, hg int, ip string, port 
 /*
 When inserting a node we need to differentiate when is a NEW node coming from the Bakcup HG because in that case we will NOT push it directly to prod
 */
-func (node *ProxySQLNode) InsertWrite(dataNode DataNode, hg int, ip string, port int) string {
+func (node *ProxySQLNodeImpl) InsertWrite(dataNode DataNodeImpl, hg int, ip string, port int) string {
 	if dataNode.NodeIsNew {
 		hg = node.MySQLCluster.HgWriterId + 9000
 	} else {
@@ -451,7 +479,7 @@ func (node *ProxySQLNode) InsertWrite(dataNode DataNode, hg int, ip string, port
 /*
 Delete the given node
 */
-func (node *ProxySQLNode) DeleteDataNode(dataNode DataNode, hg int, ip string, port int) string {
+func (node *ProxySQLNodeImpl) DeleteDataNode(dataNode DataNodeImpl, hg int, ip string, port int) string {
 
 	myString := fmt.Sprintf(" Delete from mysql_servers WHERE hostgroup_id=%d AND hostname='%s' AND port=%d", hg, ip, port)
 	log.Debug(fmt.Sprintf("Preparing for node  %s:%d HG:%d SQL: %s", ip, port, hg, myString))
@@ -463,7 +491,7 @@ This action is used to modify the RETRY options stored in the comment field
 It is important to know that after a final action (like move to OFFLINE_SOFT or move to another HG)
 the application will try to reset the RETRIES to 0
 */
-func (node *ProxySQLNode) SaveRetry(dataNode DataNode, hg int, ip string, port int) string {
+func (node *ProxySQLNodeImpl) SaveRetry(dataNode DataNodeImpl, hg int, ip string, port int) string {
 	retry := fmt.Sprintf("%d_W_%d_R_retry_up=%d;%d_W_%d_R_retry_down=%d;",
 		node.MySQLCluster.HgWriterId,
 		node.MySQLCluster.HgReaderId,
@@ -479,7 +507,7 @@ func (node *ProxySQLNode) SaveRetry(dataNode DataNode, hg int, ip string, port i
 /*
 We are going to apply all the SQL inside a transaction, so either all or nothing
 */
-func (node *ProxySQLNode) executeSQLChanges(SQLActionString []string) bool {
+func (node *ProxySQLNodeImpl) executeSQLChanges(SQLActionString []string) bool {
 	//if nothing to execute just return true
 	if len(SQLActionString) <= 0 {
 		return true
@@ -542,3 +570,4 @@ func (hgw *Hostgroup) init(id int, hgType string, size int) *Hostgroup {
 
 	return hg
 }
+

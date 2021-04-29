@@ -6,8 +6,8 @@ import (
 	"os"
 	"time"
 
-	DO "./internal/DataObjects"
-	global "./internal/Global"
+	DO "pxc_scheduler_handler/internal/DataObjects"
+	global "pxc_scheduler_handler/internal/Global"
 	_ "github.com/go-sql-driver/mysql"
 	log "github.com/sirupsen/logrus"
 )
@@ -46,9 +46,14 @@ func main() {
 	var daemonLoop = 0
 	//var lockId string //LockId is compose by clusterID_HG_W_HG_R
 
+	//fmt.Println(time.Now().UnixNano())
+	//time.Sleep(60 * time.Second)
+	//fmt.Println(time.Now().UnixNano())
+	//os.Exit(0)
+
 	var configFile string
 	var configPath string
-	locker := new(DO.Locker)
+	locker := new(DO.LockerImpl)
 
 	//initialize help
 	help := new(global.HelpText)
@@ -104,7 +109,7 @@ func main() {
 		}
 		//Initialize the locker
 		if !locker.Init(&config) {
-			log.Error("Cannot initialize Locker")
+			log.Error("Cannot initialize LockerImpl")
 			os.Exit(1)
 		}
 
@@ -222,7 +227,7 @@ func main() {
 
 }
 
-func initProxySQLNode(proxysqlNode *DO.ProxySQLNode, config global.Configuration) bool {
+func initProxySQLNode(proxysqlNode *DO.ProxySQLNodeImpl, config global.Configuration) bool {
 	//ProxySQL Node work start here
 	if proxysqlNode.Init(&config) {
 		if log.GetLevel() == log.DebugLevel {

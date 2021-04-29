@@ -1,9 +1,9 @@
 package DataObjects
 
 import (
+	"fmt"
 	"pxc_scheduler_handler/internal/Global"
 	"reflect"
-
 )
 
 
@@ -26,17 +26,17 @@ func rulesTestCheckWsrepDesync (myArgs args, clusterNode testClusterNodeImpl )  
 	myRules := []rule{
 		{"No change W", clusterNode, args{testDataNode, testDataNode.Hostgroups[0]}, false},
 		{"Change in W but only 1", clusterNode, args{
-			changeDataObjectIntAttribute(testDataNode, "WsrepStatus", 2),
+			changeDataObjectAnyAttribute(testDataNode, "WsrepStatus", valueGeneric{Int64: 2}),
 			changeHostgGroupIntAttribute(testDataNode.Hostgroups[0], "Size", 1)}, false},
 		{"Change in W and 2 in HG", clusterNode, args{
-			changeDataObjectIntAttribute(testDataNode, "WsrepStatus", 2),
+			changeDataObjectAnyAttribute(testDataNode, "WsrepStatus", valueGeneric{Int64: 2}),
 			changeHostgGroupIntAttribute(testDataNode.Hostgroups[0], "Size", 2)}, true},
 		{"Change in R and 1 in HG", clusterNode, args{
-			changeDataObjectIntAttribute(testDataNode, "WsrepStatus", 2),
+			changeDataObjectAnyAttribute(testDataNode, "WsrepStatus", valueGeneric{Int64: 2}),
 			changeHostgGroupStringAttribute(changeHostgGroupIntAttribute(testDataNode.Hostgroups[0], "Size", 1), "Type", "R")}, false},
 
 		{"Change in R and 2 in HG", clusterNode, args{
-			changeDataObjectIntAttribute(testDataNode, "WsrepStatus", 2),
+			changeDataObjectAnyAttribute(testDataNode, "WsrepStatus", valueGeneric{Int64: 2}),
 			changeHostgGroupStringAttribute(changeHostgGroupIntAttribute(testDataNode.Hostgroups[0], "Size", 2), "Type", "R")}, true},
 	}
 	return myRules
@@ -49,33 +49,33 @@ func rulesTestcheckAnyNotReadyStatus (myArgs args, clusterNode testClusterNodeIm
 	myRules := []rule{
 		{ "No change W", clusterNode,args{testDataNode,testDataNode.Hostgroups[0]},false},
 		{ "Change wsrepstatus = 1 in W but only 1", clusterNode,args{
-			changeDataObjectIntAttribute(testDataNode,"WsrepStatus",1),
+			changeDataObjectAnyAttribute(testDataNode,"WsrepStatus",valueGeneric{Int64: 1}),
 			changeHostgGroupIntAttribute(testDataNode.Hostgroups[0],"Size",1)},true},
 		{ "Change wsrepstatus = 1 in W and 2 in HG", clusterNode,args{
-			changeDataObjectIntAttribute(testDataNode,"WsrepStatus",1),
+			changeDataObjectAnyAttribute(testDataNode,"WsrepStatus",valueGeneric{Int64: 1}),
 			changeHostgGroupIntAttribute(testDataNode.Hostgroups[0],"Size",2)},true},
 		{ "Change wsrepstatus = 1 in R and 1 in HG", clusterNode,args{
-			changeDataObjectIntAttribute(testDataNode,"WsrepStatus",1),
+			changeDataObjectAnyAttribute(testDataNode,"WsrepStatus",valueGeneric{Int64: 1}),
 			changeHostgGroupStringAttribute(changeHostgGroupIntAttribute(testDataNode.Hostgroups[0],"Size",1),"Type","R")},true},
 
 		{ "Change wsrepstatus = 1 in R and 2 in HG", clusterNode,args{
-			changeDataObjectIntAttribute(testDataNode,"WsrepStatus",1),
+			changeDataObjectAnyAttribute(testDataNode,"WsrepStatus",valueGeneric{Int64: 1}),
 			changeHostgGroupStringAttribute(changeHostgGroupIntAttribute(testDataNode.Hostgroups[0],"Size",2),"Type","R")},true},
 
 
 
 		{ "Change wsrepstatus = 3 in W but only 1", clusterNode,args{
-			changeDataObjectIntAttribute(testDataNode,"WsrepStatus",3),
+			changeDataObjectAnyAttribute(testDataNode,"WsrepStatus",valueGeneric{Int64: 3}),
 			changeHostgGroupIntAttribute(testDataNode.Hostgroups[0],"Size",1)},true},
 		{ "Change wsrepstatus = 3 in W and 2 in HG", clusterNode,args{
-			changeDataObjectIntAttribute(testDataNode,"WsrepStatus",3),
+			changeDataObjectAnyAttribute(testDataNode,"WsrepStatus",valueGeneric{Int64: 3}),
 			changeHostgGroupIntAttribute(testDataNode.Hostgroups[0],"Size",2)},true},
 		{ "Change wsrepstatus = 3 in R and 1 in HG", clusterNode,args{
-			changeDataObjectIntAttribute(testDataNode,"WsrepStatus",3),
+			changeDataObjectAnyAttribute(testDataNode,"WsrepStatus",valueGeneric{Int64: 3}),
 			changeHostgGroupStringAttribute(changeHostgGroupIntAttribute(testDataNode.Hostgroups[0],"Size",1),"Type","R")},true},
 
 		{ "Change wsrepstatus = 3 in R and 2 in HG", clusterNode,args{
-			changeDataObjectIntAttribute(testDataNode,"WsrepStatus",3),
+			changeDataObjectAnyAttribute(testDataNode,"WsrepStatus",valueGeneric{Int64: 3}),
 			changeHostgGroupStringAttribute(changeHostgGroupIntAttribute(testDataNode.Hostgroups[0],"Size",2),"Type","R")},true},
 
 	}
@@ -89,7 +89,7 @@ func rulesTestcheckNotPrimary(myArgs args, clusterNode testClusterNodeImpl) []ru
 		myRules := []rule{
 			{ "No WsrepClusterStatus change ", clusterNode,args{testDataNode,testDataNode.Hostgroups[0]},false},
 			{ "Change WsrepClusterStatus = NOT Primary in W ", clusterNode,args{
-				changeDataObjectStringAttribute(testDataNode,"WsrepClusterStatus","TEST"),
+				changeDataObjectAnyAttribute(testDataNode,"WsrepClusterStatus",valueGeneric{myString: "TEST"}),
 				changeHostgGroupIntAttribute(testDataNode.Hostgroups[0],"Size",1)},true},
 		}
 		return myRules
@@ -102,10 +102,10 @@ func rulesTestcheckRejectQueries (myArgs args, clusterNode testClusterNodeImpl )
 	myRules := []rule{
 		{ "No WsrepRejectqueries change ", clusterNode,args{testDataNode,testDataNode.Hostgroups[0]},false},
 		{ "Change WsrepRejectqueries = ALL in W ", clusterNode,args{
-			changeDataObjectBoolAttribute(testDataNode,"WsrepRejectqueries",true),
+			changeDataObjectAnyAttribute(testDataNode,"WsrepRejectqueries",valueGeneric{Bool: true}),
 			changeHostgGroupIntAttribute(testDataNode.Hostgroups[0],"Size",1)},true},
 		{ "Change WsrepRejectqueries = ALL in W ", clusterNode,args{
-			changeDataObjectBoolAttribute(testDataNode,"WsrepRejectqueries",true),
+			changeDataObjectAnyAttribute(testDataNode,"WsrepRejectqueries",valueGeneric{Bool: true}),
 			changeHostgGroupStringAttribute(testDataNode.Hostgroups[0],"Type","R")},true},
 
 	}
@@ -119,17 +119,17 @@ func rulesTestcheckDonorReject (myArgs args, clusterNode testClusterNodeImpl )  
 	myRules := []rule{
 		{ "No WsrepDonorrejectqueries change ", clusterNode,args{testDataNode,testDataNode.Hostgroups[0]},false},
 		{ "Change WsrepDonorrejectqueries = true in W HG size = 1", clusterNode,args{
-			changeDataObjectBoolAttribute(testDataNode,"WsrepDonorrejectqueries",true),
+			changeDataObjectAnyAttribute(testDataNode,"WsrepDonorrejectqueries",valueGeneric{Bool: true}),
 			changeHostgGroupIntAttribute(testDataNode.Hostgroups[0],"Size",1)},false},
 		{ "Change WsrepDonorrejectqueries = true in W HG size = 2", clusterNode,args{
-			changeDataObjectBoolAttribute(testDataNode,"WsrepDonorrejectqueries",true),
+			changeDataObjectAnyAttribute(testDataNode,"WsrepDonorrejectqueries",valueGeneric{Bool: true}),
 			changeHostgGroupIntAttribute(testDataNode.Hostgroups[0],"Size",2)},true},
 
 		{ "Change WsrepDonorrejectqueries = true in R and 1 in HG", clusterNode,args{
-			changeDataObjectBoolAttribute(testDataNode,"WsrepDonorrejectqueries",true),
+			changeDataObjectAnyAttribute(testDataNode,"WsrepDonorrejectqueries",valueGeneric{Bool: true}),
 			changeHostgGroupStringAttribute(changeHostgGroupIntAttribute(testDataNode.Hostgroups[0],"Size",1),"Type","R")},false},
 		{ "Change WsrepDonorrejectqueries = true in R and 2 in HG", clusterNode,args{
-			changeDataObjectBoolAttribute(testDataNode,"WsrepDonorrejectqueries",true),
+			changeDataObjectAnyAttribute(testDataNode,"WsrepDonorrejectqueries",valueGeneric{Bool: true}),
 			changeHostgGroupStringAttribute(changeHostgGroupIntAttribute(testDataNode.Hostgroups[0],"Size",2),"Type","R")},true},
 	}
 	return myRules
@@ -142,11 +142,11 @@ func rulesTestcheckPxcMaint (myArgs args, clusterNode testClusterNodeImpl )  []r
 	myRules := []rule{
 		{ "No PxcMaintMode change ", clusterNode,args{testDataNode,testDataNode.Hostgroups[0]},false},
 		{ "Change PxcMaintMode = Maintenance", clusterNode,args{
-			changeDataObjectStringAttribute(testDataNode,"PxcMaintMode","Maintenance"),
+			changeDataObjectAnyAttribute(testDataNode,"PxcMaintMode",valueGeneric{myString: "Maintenance"}),
 			changeHostgGroupIntAttribute(testDataNode.Hostgroups[0],"Size",1)},true},
 		{ "Change PxcMaintMode = Maintenance and OFFLINE_SOFT", clusterNode,args{
-			changeDataObjectStringAttribute(changeDataObjectStringAttribute(testDataNode,"ProxyStatus","OFFLINE_SOFT"),
-				"PxcMaintMode","Maintenance"),
+			changeDataObjectAnyAttribute(changeDataObjectAnyAttribute(testDataNode,"ProxyStatus",valueGeneric{myString:"OFFLINE_SOFT"}),
+				"PxcMaintMode",valueGeneric{myString:"Maintenance"}),
 			changeHostgGroupIntAttribute(testDataNode.Hostgroups[0],"Size",1)},false},
 	}
 	return myRules
@@ -159,14 +159,14 @@ func rulesTestCheckReadOnly (myArgs args, clusterNode testClusterNodeImpl )  []r
 	myRules := []rule{
 		{ "No ReadOnly change ", clusterNode,args{testDataNode,testDataNode.Hostgroups[0]},false},
 		{ "Change ReadOnly = On 1 writer ", clusterNode,args{
-			changeDataObjectBoolAttribute(testDataNode,"ReadOnly",true),
+			changeDataObjectAnyAttribute(testDataNode,"ReadOnly",valueGeneric{Bool: true}),
 			changeHostgGroupIntAttribute(testDataNode.Hostgroups[0],"Size",1)},true},
 		{ "Change ReadOnly = On 2 writers ", clusterNode,args{
-			changeDataObjectBoolAttribute(testDataNode,"ReadOnly",true),
+			changeDataObjectAnyAttribute(testDataNode,"ReadOnly",valueGeneric{Bool: true}),
 			changeHostgGroupIntAttribute(testDataNode.Hostgroups[0],"Size",2)},true},
 
 		{ "CChange ReadOnly = On 2 readers ", clusterNode,args{
-			changeDataObjectBoolAttribute(testDataNode,"ReadOnly",true),
+			changeDataObjectAnyAttribute(testDataNode,"ReadOnly",valueGeneric{Bool: true}),
 			changeHostgGroupStringAttribute(changeHostgGroupIntAttribute(testDataNode.Hostgroups[0],"Size",2),"Type","R")},true},
 
 	}
@@ -180,20 +180,20 @@ evaluateNode section [end]
 
 func rulesTestCheckBackOffLine (myArgs args, clusterNode testClusterNodeImpl )  []rule {
 	testDataNode := myArgs.node
-	testDataNode = changeDataObjectIntAttribute(testDataNode,"WsrepStatus",4)
-	testDataNode = changeDataObjectStringAttribute(testDataNode,"ProxyStatus","OFFLINE_SOFT")
-	testDataNode = changeDataObjectStringAttribute(testDataNode,"WsrepClusterStatus","Primary")
-	testDataNode = changeDataObjectStringAttribute(testDataNode,"PxcMaintMode","DISABLED")
-	testDataNode = changeDataObjectBoolAttribute(testDataNode,"WsrepRejectqueries",false)
+	testDataNode = changeDataObjectAnyAttribute(testDataNode,"WsrepStatus",valueGeneric{Int64: 4})
+	testDataNode = changeDataObjectAnyAttribute(testDataNode,"ProxyStatus",valueGeneric{myString: "OFFLINE_SOFT"})
+	testDataNode = changeDataObjectAnyAttribute(testDataNode,"WsrepClusterStatus",valueGeneric{myString:"Primary"})
+	testDataNode = changeDataObjectAnyAttribute(testDataNode,"PxcMaintMode",valueGeneric{myString:"DISABLED"})
+	testDataNode = changeDataObjectAnyAttribute(testDataNode,"WsrepRejectqueries",valueGeneric{Bool:false})
 
 	myRules := []rule{
 
 		{ "Back from OFFLINE_SOFT no changes ", clusterNode,args{testDataNode,testDataNode.Hostgroups[0]},true},
-		{ "Back from OFFLINE_SOFT change WsrepStatus", clusterNode,args{changeDataObjectIntAttribute(testDataNode,"WsrepStatus",2),testDataNode.Hostgroups[0]},false},
-		{ "Back from OFFLINE_SOFT change ProxyStatus", clusterNode,args{changeDataObjectStringAttribute(testDataNode,"ProxyStatus","OFFLINE_HARD"),testDataNode.Hostgroups[0]},false},
-		{ "Back from OFFLINE_SOFT change WsrepClusterStatus", clusterNode,args{changeDataObjectStringAttribute(testDataNode,"WsrepClusterStatus","Not Primary"),testDataNode.Hostgroups[0]},false},
-		{ "Back from OFFLINE_SOFT change PxcMaintMode", clusterNode,args{changeDataObjectStringAttribute(testDataNode,"PxcMaintMode","MAINTENANCE"),testDataNode.Hostgroups[0]},false},
-		{ "Back from OFFLINE_SOFT change PxcMaintMode", clusterNode,args{changeDataObjectBoolAttribute(testDataNode,"WsrepRejectqueries",true),testDataNode.Hostgroups[0]},false},
+		{ "Back from OFFLINE_SOFT change WsrepStatus", clusterNode,args{changeDataObjectAnyAttribute(testDataNode,"WsrepStatus",valueGeneric{Int64: 2}),testDataNode.Hostgroups[0]},false},
+		{ "Back from OFFLINE_SOFT change ProxyStatus", clusterNode,args{changeDataObjectAnyAttribute(testDataNode,"ProxyStatus",valueGeneric{myString: "OFFLINE_HARD"}),testDataNode.Hostgroups[0]},false},
+		{ "Back from OFFLINE_SOFT change WsrepClusterStatus", clusterNode,args{changeDataObjectAnyAttribute(testDataNode,"WsrepClusterStatus",valueGeneric{myString: "Not Primary"}),testDataNode.Hostgroups[0]},false},
+		{ "Back from OFFLINE_SOFT change PxcMaintMode", clusterNode,args{changeDataObjectAnyAttribute(testDataNode,"PxcMaintMode",valueGeneric{myString:"MAINTENANCE"}),testDataNode.Hostgroups[0]},false},
+		{ "Back from OFFLINE_SOFT change PxcMaintMode", clusterNode,args{changeDataObjectAnyAttribute(testDataNode,"WsrepRejectqueries",valueGeneric{Bool: true}),testDataNode.Hostgroups[0]},false},
 
 	}
 	return myRules
@@ -205,7 +205,7 @@ func rulesTestCheckBackNew (myArgs args, clusterNode testClusterNodeImpl )  []ru
 
 	myRules := []rule{
 		{ "Back online Node is new no changes ", clusterNode,args{testDataNode,testDataNode.Hostgroups[0]},false},
-		{ "Back online Node is new no changes ", clusterNode,args{changeDataObjectBoolAttribute(testDataNode,"NodeIsNew",true),testDataNode.Hostgroups[0]},true},
+		{ "Back online Node is new no changes ", clusterNode,args{changeDataObjectAnyAttribute(testDataNode,"NodeIsNew",valueGeneric{Bool: true}),testDataNode.Hostgroups[0]},true},
 	}
 	return myRules
 }
@@ -214,20 +214,20 @@ func rulesTestCheckBackNew (myArgs args, clusterNode testClusterNodeImpl )  []ru
 
 func rulesTestCheckBackPrimary (myArgs args, clusterNode testClusterNodeImpl )  []rule {
 	testDataNode := myArgs.node
-	testDataNode = changeDataObjectIntAttribute(testDataNode,"WsrepStatus",4)
+	testDataNode = changeDataObjectAnyAttribute(testDataNode,"WsrepStatus",valueGeneric{Int64: 4})
 	//testDataNode = changeDataObjectStringAttribute(testDataNode,"ProxyStatus","OFFLINE_SOFT")
-	testDataNode = changeDataObjectStringAttribute(testDataNode,"WsrepClusterStatus","Primary")
-	testDataNode = changeDataObjectStringAttribute(testDataNode,"PxcMaintMode","DISABLED")
-	testDataNode = changeDataObjectBoolAttribute(testDataNode,"WsrepRejectqueries",false)
-	testDataNode = changeDataObjectIntAttribute(testDataNode,"HostgroupId",9100)
+	testDataNode = changeDataObjectAnyAttribute(testDataNode,"WsrepClusterStatus",valueGeneric{myString: "Primary"})
+	testDataNode = changeDataObjectAnyAttribute(testDataNode,"PxcMaintMode",valueGeneric{myString: "DISABLED"})
+	testDataNode = changeDataObjectAnyAttribute(testDataNode,"WsrepRejectqueries",valueGeneric{Bool: false})
+	testDataNode = changeDataObjectAnyAttribute(testDataNode,"HostgroupId",valueGeneric{Int64: 9100})
 
 	myRules := []rule{
 		{ "Back online Node from 9000 HG no changes", clusterNode,args{testDataNode,testDataNode.Hostgroups[0]},true},
-		{ "Back online Node from 9000 HG change WsrepStatus", clusterNode,args{changeDataObjectIntAttribute(testDataNode,"WsrepStatus",2),testDataNode.Hostgroups[0]},false},
-		{ "Back online Node from 9000 HG change HostgroupId", clusterNode,args{changeDataObjectIntAttribute(testDataNode,"HostgroupId",100),testDataNode.Hostgroups[0]},false},
-		{ "Back online Node from 9000 HG change WsrepClusterStatus", clusterNode,args{changeDataObjectStringAttribute(testDataNode,"WsrepClusterStatus","Not Primary"),testDataNode.Hostgroups[0]},false},
-		{ "Back online Node from 9000 HG change PxcMaintMode", clusterNode,args{changeDataObjectStringAttribute(testDataNode,"PxcMaintMode","MAINTENANCE"),testDataNode.Hostgroups[0]},false},
-		{ "Back online Node from 9000 HG change WsrepRejectqueries", clusterNode,args{changeDataObjectBoolAttribute(testDataNode,"WsrepRejectqueries",true),testDataNode.Hostgroups[0]},false},
+		{ "Back online Node from 9000 HG change WsrepStatus", clusterNode,args{changeDataObjectAnyAttribute(testDataNode,"WsrepStatus",valueGeneric{Int64: 2}),testDataNode.Hostgroups[0]},false},
+		{ "Back online Node from 9000 HG change HostgroupId", clusterNode,args{changeDataObjectAnyAttribute(testDataNode,"HostgroupId",valueGeneric{Int64: 100}),testDataNode.Hostgroups[0]},false},
+		{ "Back online Node from 9000 HG change WsrepClusterStatus", clusterNode,args{changeDataObjectAnyAttribute(testDataNode,"WsrepClusterStatus",valueGeneric{myString: "Not Primary"}),testDataNode.Hostgroups[0]},false},
+		{ "Back online Node from 9000 HG change PxcMaintMode", clusterNode,args{changeDataObjectAnyAttribute(testDataNode,"PxcMaintMode",valueGeneric{myString: "MAINTENANCE"}),testDataNode.Hostgroups[0]},false},
+		{ "Back online Node from 9000 HG change WsrepRejectqueries", clusterNode,args{changeDataObjectAnyAttribute(testDataNode,"WsrepRejectqueries",valueGeneric{Bool: true}),testDataNode.Hostgroups[0]},false},
 
 
 	}
@@ -243,7 +243,7 @@ func rulesTestCleanWriters (myArgs args,clusterNode testClusterNodeImpl )  []rul
 
 	myRules := []rule{
 		{ "Check evaluateWriters - cleanWriters no changes", clusterNode,args{testDataNode,testDataNode.Hostgroups[0]},false},
-		{ "Check evaluateWriters - cleanWriters One node is offline", clusterNode,args{changeDataObjectStringAttribute(testDataNode,"ProxyStatus","OFFLINE_SOFT"),testDataNode.Hostgroups[0]},true},
+		{ "Check evaluateWriters - cleanWriters One node is offline", clusterNode,args{changeDataObjectAnyAttribute(testDataNode,"ProxyStatus",valueGeneric{myString: "OFFLINE_SOFT"}),testDataNode.Hostgroups[0]},true},
 	}
 	return myRules
 }
@@ -262,14 +262,14 @@ func rulesTestProcessUpAndDownReaders (myArgs args, clusterNode testClusterNodeI
 
 	myRules := []rule{
 		{ "Check evaluateReaders - ProcessUpAndDownReaders no changes", clusterNode,args{testDataNode,testDataNode.Hostgroups[0]},false},
-		{ "Check evaluateReaders - ProcessUpAndDownReaders MOVE_DOWN_HG_CHANGE", clusterNode,args{changeDataObjectIntAttribute(testDataNode,"ActionType",3001),testDataNode.Hostgroups[0]},true},
-		{ "Check evaluateReaders - ProcessUpAndDownReaders MOVE_DOWN_OFFLINE", clusterNode,args{changeDataObjectIntAttribute(testDataNode,"ActionType",3010),testDataNode.Hostgroups[0]},true},
-		{ "Check evaluateReaders - ProcessUpAndDownReaders MOVE_TO_MAINTENANCE", clusterNode,args{changeDataObjectIntAttribute(testDataNode,"ActionType",3020),testDataNode.Hostgroups[0]},true},
-		{ "Check evaluateReaders - ProcessUpAndDownReaders MOVE_SWAP_READER_TO_WRITER", clusterNode,args{changeDataObjectIntAttribute(testDataNode,"ActionType",5001),testDataNode.Hostgroups[0]},true},
-		{ "Check evaluateReaders - ProcessUpAndDownReaders MOVE_UP_OFFLINE", clusterNode,args{changeDataObjectIntAttribute(testDataNode,"ActionType",1000),testDataNode.Hostgroups[0]},true},
-		{ "Check evaluateReaders - ProcessUpAndDownReaders MOVE_UP_HG_CHANGE", clusterNode,args{changeDataObjectIntAttribute(testDataNode,"ActionType",1010),testDataNode.Hostgroups[0]},true},
-		{ "Check evaluateReaders - ProcessUpAndDownReaders INSERT_READ", clusterNode,args{changeDataObjectIntAttribute(testDataNode,"ActionType",4010),testDataNode.Hostgroups[0]},true},
-		{ "Check evaluateReaders - ProcessUpAndDownReaders MOVE_SWAP_WRITER_TO_READER", clusterNode,args{changeDataObjectIntAttribute(testDataNode,"ActionType",5101),testDataNode.Hostgroups[0]},true},
+		{ "Check evaluateReaders - ProcessUpAndDownReaders MOVE_DOWN_HG_CHANGE", clusterNode,args{changeDataObjectAnyAttribute(testDataNode,"ActionType",valueGeneric{Int64: 3001}),testDataNode.Hostgroups[0]},true},
+		{ "Check evaluateReaders - ProcessUpAndDownReaders MOVE_DOWN_OFFLINE", clusterNode,args{changeDataObjectAnyAttribute(testDataNode,"ActionType",valueGeneric{Int64: 3010}),testDataNode.Hostgroups[0]},true},
+		{ "Check evaluateReaders - ProcessUpAndDownReaders MOVE_TO_MAINTENANCE", clusterNode,args{changeDataObjectAnyAttribute(testDataNode,"ActionType",valueGeneric{Int64: 3020}),testDataNode.Hostgroups[0]},true},
+		{ "Check evaluateReaders - ProcessUpAndDownReaders MOVE_SWAP_READER_TO_WRITER", clusterNode,args{changeDataObjectAnyAttribute(testDataNode,"ActionType",valueGeneric{Int64: 5001}),testDataNode.Hostgroups[0]},true},
+		{ "Check evaluateReaders - ProcessUpAndDownReaders MOVE_UP_OFFLINE", clusterNode,args{changeDataObjectAnyAttribute(testDataNode,"ActionType",valueGeneric{Int64: 1000}),testDataNode.Hostgroups[0]},true},
+		{ "Check evaluateReaders - ProcessUpAndDownReaders MOVE_UP_HG_CHANGE", clusterNode,args{changeDataObjectAnyAttribute(testDataNode,"ActionType",valueGeneric{Int64:1010}),testDataNode.Hostgroups[0]},true},
+		{ "Check evaluateReaders - ProcessUpAndDownReaders INSERT_READ", clusterNode,args{changeDataObjectAnyAttribute(testDataNode,"ActionType",valueGeneric{Int64: 4010}),testDataNode.Hostgroups[0]},true},
+		{ "Check evaluateReaders - ProcessUpAndDownReaders MOVE_SWAP_WRITER_TO_READER", clusterNode,args{changeDataObjectAnyAttribute(testDataNode,"ActionType",valueGeneric{Int64:5101}),testDataNode.Hostgroups[0]},true},
 	}
 	return myRules
 }
@@ -315,6 +315,12 @@ type rule struct {
 	testClusterNodeImp testClusterNodeImpl
 	args               args
 	want               bool
+}
+
+type valueGeneric struct {
+	Int64 int64
+	Bool  bool
+	myString string
 }
 
 type args struct {
@@ -496,7 +502,23 @@ func getHgOpt(id int, size int, hgType string) Hostgroup{
 
 	return currentHg
 }
+func changeDataObjectAnyAttribute(node DataNodeImpl, name string,value valueGeneric) DataNodeImpl{
+	myCase := reflect.ValueOf(&node).Elem().FieldByName(name).Type().Name()
+	fmt.Println("AAAAA " , myCase)
 
+	switch myCase {
+	case "int64":
+		return changeDataObjectIntAttribute(node, name,value.Int64)
+	case "int":
+		return changeDataObjectIntAttribute(node, name,value.Int64)
+	case "bool":
+		return changeDataObjectBoolAttribute(node, name,value.Bool)
+	case "string":
+		return changeDataObjectStringAttribute(node, name,value.myString)
+	}
+
+	return node
+}
 
 func changeDataObjectIntAttribute(node DataNodeImpl, name string,value int64) DataNodeImpl{
 	reflect.ValueOf(&node).Elem().FieldByName(name).SetInt(value)

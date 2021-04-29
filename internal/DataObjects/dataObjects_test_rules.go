@@ -1,7 +1,6 @@
 package DataObjects
 
 import (
-	"fmt"
 	"pxc_scheduler_handler/internal/Global"
 	"reflect"
 )
@@ -504,8 +503,7 @@ func getHgOpt(id int, size int, hgType string) Hostgroup{
 }
 func changeDataObjectAnyAttribute(node DataNodeImpl, name string,value valueGeneric) DataNodeImpl{
 	myCase := reflect.ValueOf(&node).Elem().FieldByName(name).Type().Name()
-	fmt.Println("AAAAA " , myCase)
-
+	
 	switch myCase {
 	case "int64":
 		return changeDataObjectIntAttribute(node, name,value.Int64)

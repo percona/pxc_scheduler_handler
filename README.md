@@ -261,7 +261,7 @@ You can define IF you want to have multiple writers. Default is 1 writer only (I
 ## Download and compile from source
 This project follows the GO layout standards as for https://github.com/golang-standards/project-layout
 
-Once you have GO installed and running (version 1.15.8 is recommended. Version 1.16 is not supported yet)
+Once you have GO installed and running (version 1.16 is recommended. Version 1.15.8 is still supported)
 
 Clone from github: `git clone https://github.com/Tusamarco/proxysql_scheduler.git`
 

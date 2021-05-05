@@ -7,7 +7,7 @@
 # 2. node_1: SET global wsrep_desync=0
 #     => node_1 reader: state changes to ONLINE.
 
---let $proxysql_scheduler_config = writer_is_not_reader.toml
+--let $pxc_scheduler_handler_config = writer_is_not_reader.toml
 --let $action_1_node = node_1
 --let $action_1 = SET global wsrep_desync=1;
 --let $action_2_node = node_1

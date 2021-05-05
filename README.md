@@ -263,7 +263,7 @@ This project follows the GO layout standards as for https://github.com/golang-st
 
 Once you have GO installed and running (version 1.16 is recommended. Version 1.15.8 is still supported)
 
-Clone from github: `git clone https://github.com/Tusamarco/proxysql_scheduler.git`
+Clone from github: `git clone https://github.com/Tusamarco/pxc_scheduler_handler.git`
 
 Install the needed library within go:
 ```bash

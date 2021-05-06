@@ -4,7 +4,7 @@
 #  node_1: reader
 #  node_2: writer/backup writer
 #  node_3: reader/backup reader
-# 3. Setup ProxySQL scheduler with config passed in $proxysql_scheduler_config
+# 3. Setup ProxySQL scheduler with config passed in $pxc_scheduler_handler_config
 # 4. remove all readers from rHG
 # 5. Results depend on WriterIsAlsoReader configuration
 
@@ -17,7 +17,7 @@
 --source ../include/common_pxc_init.inc
 
 # Check if ProxySQL scheduler config exists
---file_exists $proxysql_scheduler_config_dir/$proxysql_scheduler_config
+--file_exists $pxc_scheduler_handler_config_dir/$pxc_scheduler_handler_config
 
 #
 # ARRANGE
@@ -66,11 +66,11 @@
 #--let $scheduler_script=/home/kamil/repo/pxc/8.0/install/proxysql/galera_check.pl
 
 # The following line works with Perl
-# --replace_result $proxysql_scheduler_script SCHEDULER_SCRIPT $MYSQL_TMP_DIR MYSQL_TMP_DIR
-# --eval INSERT INTO scheduler (id,active,interval_ms,filename,arg1) values (10,1,3000,"$proxysql_scheduler_script","-u=admin -p=admin -h=127.0.0.1 -H=$wHG:W,$rHG:R -P=6032 --debug=1 --active_failover=1 --retry_down=2 --writer_is_also_reader=0 --log=$MYSQL_TMP_DIR/galera_check-perl.log")
+# --replace_result $pxc_scheduler_handler_script SCHEDULER_SCRIPT $MYSQL_TMP_DIR MYSQL_TMP_DIR
+# --eval INSERT INTO scheduler (id,active,interval_ms,filename,arg1) values (10,1,3000,"$pxc_scheduler_handler_script","-u=admin -p=admin -h=127.0.0.1 -H=$wHG:W,$rHG:R -P=6032 --debug=1 --active_failover=1 --retry_down=2 --writer_is_also_reader=0 --log=$MYSQL_TMP_DIR/galera_check-perl.log")
 # The following line works with Golang
---replace_result $proxysql_scheduler_script SCHEDULER_SCRIPT $proxysql_scheduler_config_dir CONFIG_DIR
---eval INSERT INTO scheduler (id,active,interval_ms,filename,arg1,arg2) values (10,1,3000,"$proxysql_scheduler_script","--configfile=$proxysql_scheduler_config", "--configpath=$proxysql_scheduler_config_dir")
+--replace_result $pxc_scheduler_handler_script SCHEDULER_SCRIPT $pxc_scheduler_handler_config_dir CONFIG_DIR
+--eval INSERT INTO scheduler (id,active,interval_ms,filename,arg1,arg2) values (10,1,3000,"$pxc_scheduler_handler_script","--configfile=$pxc_scheduler_handler_config", "--configpath=$pxc_scheduler_handler_config_dir")
 
 --source ../include/apply_proxysql_config.inc
 

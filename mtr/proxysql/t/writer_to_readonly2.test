@@ -8,7 +8,7 @@
 #     => node_1 stays reader and goes back to writer
 #     => node_2 removed from writers, still reader
 
---let $proxysql_scheduler_config = writer_is_reader_failback.toml
+--let $pxc_scheduler_handler_config = writer_is_reader_failback.toml
 --let $action_1_node = node_1
 --let $action_1 = SET GLOBAL read_only=1;
 --let $action_2_node = node_1

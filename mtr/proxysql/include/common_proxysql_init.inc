@@ -14,43 +14,43 @@ UPDATE global_variables SET Variable_Value='utf8' WHERE Variable_name='mysql-def
 --enable_query_log
 
 #
-# Setup variable 'proxysql_scheduler_script' containing scheduler script path
+# Setup variable 'pxc_scheduler_handler_script' containing scheduler script path
 #
---let _PROXYSQL_SCHEDULER_VAR_IMPORT_FILE = $MYSQL_TMP_DIR/proxysql_scheduler_var_import
+--let _PXC_SCHEDULER_HANDLER_VAR_IMPORT_FILE = $MYSQL_TMP_DIR/pxc_scheduler_handler_var_import
 --perl
   use strict;
-  my $out_file = $ENV{'_PROXYSQL_SCHEDULER_VAR_IMPORT_FILE'} or die "_PROXYSQL_SCHEDULER_VAR_IMPORT_FILE is not set";
+  my $out_file = $ENV{'_PXC_SCHEDULER_HANDLER_VAR_IMPORT_FILE'} or die "_PXC_SCHEDULER_HANDLER_VAR_IMPORT_FILE is not set";
   open(OUT_FILE, '>', $out_file) or die("Unable to open out file for writing: $!\n");
-  print OUT_FILE "--let \$proxysql_scheduler_script=$ENV{'PROXYSQL_SCHEDULER_SCRIPT'}\n";
+  print OUT_FILE "--let \$pxc_scheduler_handler_script=$ENV{'PXC_SCHEDULER_HANDLER_SCRIPT'}\n";
   close(OUT_FILE);
 EOF
---source $_PROXYSQL_SCHEDULER_VAR_IMPORT_FILE
---remove_file $_PROXYSQL_SCHEDULER_VAR_IMPORT_FILE
+--source $_PXC_SCHEDULER_HANDLER_VAR_IMPORT_FILE
+--remove_file $_PXC_SCHEDULER_HANDLER_VAR_IMPORT_FILE
 
-if (!$proxysql_scheduler_script) {
-  --die "ProxySQL scheduler script not specified. Set env variable PROXYSQL_SCHEDULER_SCRIPT and restart the test" 
+if (!$pxc_scheduler_handler_script) {
+  --die "ProxySQL scheduler script not specified. Set env variable PXC_SCHEDULER_HANDLER_SCRIPT and restart the test"
 }
---file_exists $proxysql_scheduler_script
+--file_exists $pxc_scheduler_handler_script
 
 
 #
 # Temporary solution (we need command line parameters for scheduler script)
 #
 #
-# Setup variable 'proxysql_scheduler_config_dir' containing scheduler script config files
+# Setup variable 'pxc_scheduler_handler_config_dir' containing scheduler script config files
 #
---let _PROXYSQL_SCHEDULER_VAR_IMPORT_FILE = $MYSQL_TMP_DIR/proxysql_scheduler_var_import
+--let _PXC_SCHEDULER_HANDLER_VAR_IMPORT_FILE = $MYSQL_TMP_DIR/pxc_scheduler_handler_var_import
 --perl
   use strict;
-  my $out_file = $ENV{'_PROXYSQL_SCHEDULER_VAR_IMPORT_FILE'} or die "_PROXYSQL_SCHEDULER_VAR_IMPORT_FILE is not set";
+  my $out_file = $ENV{'_PXC_SCHEDULER_HANDLER_VAR_IMPORT_FILE'} or die "_PXC_SCHEDULER_HANDLER_VAR_IMPORT_FILE is not set";
   open(OUT_FILE, '>', $out_file) or die("Unable to open out file for writing: $!\n");
-  print OUT_FILE "--let \$proxysql_scheduler_config_dir=$ENV{'PROXYSQL_SCHEDULER_CONFIG_DIR'}\n";
+  print OUT_FILE "--let \$pxc_scheduler_handler_config_dir=$ENV{'PXC_SCHEDULER_HANDLER_CONFIG_DIR'}\n";
   close(OUT_FILE);
 EOF
---source $_PROXYSQL_SCHEDULER_VAR_IMPORT_FILE
---remove_file $_PROXYSQL_SCHEDULER_VAR_IMPORT_FILE
+--source $_PXC_SCHEDULER_HANDLER_VAR_IMPORT_FILE
+--remove_file $_PXC_SCHEDULER_HANDLER_VAR_IMPORT_FILE
 
-if (!$proxysql_scheduler_config_dir) {
-  --die "ProxySQL scheduler script not specified. Set env variable PROXYSQL_SCHEDULER_CONFIG_DIR and restart the test" 
+if (!$pxc_scheduler_handler_config_dir) {
+  --die "ProxySQL scheduler script not specified. Set env variable PXC_SCHEDULER_HANDLER_CONFIG_DIR and restart the test"
 }
 

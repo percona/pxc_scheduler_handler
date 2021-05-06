@@ -24,10 +24,10 @@ import (
 	"os"
 	"time"
 
-	DO "pxc_scheduler_handler/internal/DataObjects"
-	global "pxc_scheduler_handler/internal/Global"
 	_ "github.com/go-sql-driver/mysql"
 	log "github.com/sirupsen/logrus"
+	DO "pxc_scheduler_handler/internal/DataObjects"
+	global "pxc_scheduler_handler/internal/Global"
 )
 
 /*
@@ -38,6 +38,7 @@ func main() {
 	const (
 		Separator = string(os.PathSeparator)
 	)
+	pxcSchedulerHandlerVersion := "1.0.0"
 	var daemonLoopWait = 0
 	var daemonLoop = 0
 	//var lockId string //LockId is compose by clusterID_HG_W_HG_R
@@ -58,9 +59,19 @@ func main() {
 	// By default performance collection is disabled
 	global.Performance = false
 
+	//return version adn exit
+	if len(os.Args) > 1 &&
+		os.Args[1] == "--version"{
+		fmt.Println("PXC Scheduler Handler Version: ",pxcSchedulerHandlerVersion )
+		os.Exit(0)
+	}
+
+
 	//Manage config and parameters from conf file [start]
 	flag.StringVar(&configFile, "configfile", "", "Config file name for the script")
 	flag.StringVar(&configPath, "configpath", "", "Config file path")
+	//flag.StringVar(nil, "version", pxc_scheduler_handler_version, "version: ")
+
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "\n%s\n", help.GetHelpText())
 	}
@@ -71,7 +82,6 @@ func main() {
 		fmt.Println("You must at least pass the --configfile=xxx parameter ")
 		os.Exit(1)
 	}
-
 	var currPath, err = os.Getwd()
 
 	if configPath != "" {

@@ -256,7 +256,13 @@ PXC_MAIN_MODE is fully supported. Any node in a state different from pxc_maint_m
 __Single Writer__
 You can define IF you want to have multiple writers. Default is 1 writer only (I strongly recommend you to do not use multiple writers unless you know very well what are you doing), but you can now have multiple writers at the same time.
 
-
+## Security settings
+PXC_Scheduler_Handler use the same `monitor` user ProxySQL use, BUT it needs access also performance_schema. As such it requires:
+```bigquery
+GRANT USAGE ON *.* TO `monitor`@`%`                    
+GRANT SELECT ON `performance_schema`.* TO `monitor`@`%
+```
+To access and evaluate correctly the nodes.
 
 ## Download and compile from source
 This project follows the GO layout standards as for https://github.com/golang-standards/project-layout

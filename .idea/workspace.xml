@@ -8,73 +8,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="c603b4de-b46a-45fd-bef4-8d20deb405fc" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/runConfigurations/proxyPxcScheduler.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/runConfigurations/proxyPxcScheduler.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/.gitignore" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/.travis.yml" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/.travis.yml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/COMPATIBLE" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/COMPATIBLE" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/COPYING" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/COPYING" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/Makefile" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/Makefile" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/_examples/example.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/_examples/example.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/_examples/example.toml" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/_examples/example.toml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/_examples/hard.toml" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/_examples/hard.toml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/_examples/implicit.toml" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/_examples/implicit.toml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/_examples/invalid-apples.toml" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/_examples/invalid-apples.toml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/_examples/invalid.toml" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/_examples/invalid.toml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/_examples/readme1.toml" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/_examples/readme1.toml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/_examples/readme2.toml" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/_examples/readme2.toml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/cmd/toml-test-decoder/COPYING" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/cmd/toml-test-decoder/COPYING" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/cmd/toml-test-decoder/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/cmd/toml-test-decoder/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/cmd/toml-test-decoder/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/cmd/toml-test-decoder/main.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/cmd/toml-test-encoder/COPYING" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/cmd/toml-test-encoder/COPYING" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/cmd/toml-test-encoder/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/cmd/toml-test-encoder/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/cmd/toml-test-encoder/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/cmd/toml-test-encoder/main.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/cmd/tomlv/COPYING" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/cmd/tomlv/COPYING" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/cmd/tomlv/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/cmd/tomlv/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/cmd/tomlv/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/cmd/tomlv/main.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/decode.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/decode.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/decode_meta.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/decode_meta.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/decode_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/decode_test.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/doc.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/doc.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/encode.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/encode.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/encode_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/encode_test.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/encoding_types.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/encoding_types.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/encoding_types_1.1.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/encoding_types_1.1.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/lex.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/lex.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/parse.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/parse.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/session.vim" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/session.vim" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/type_check.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/type_check.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/type_fields.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/BurntSushi/toml/type_fields.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/github.com/davecgh/go-spew/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/davecgh/go-spew/.gitignore" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/github.com/davecgh/go-spew/.travis.yml" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/davecgh/go-spew/.travis.yml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/github.com/davecgh/go-spew/LICENSE" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/davecgh/go-spew/LICENSE" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/github.com/davecgh/go-spew/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/davecgh/go-spew/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/github.com/davecgh/go-spew/cov_report.sh" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/davecgh/go-spew/cov_report.sh" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/github.com/davecgh/go-spew/spew/bypass.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/davecgh/go-spew/spew/bypass.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/github.com/davecgh/go-spew/spew/bypasssafe.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/davecgh/go-spew/spew/bypasssafe.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/github.com/davecgh/go-spew/spew/common.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/davecgh/go-spew/spew/common.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/github.com/davecgh/go-spew/spew/common_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/davecgh/go-spew/spew/common_test.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/github.com/davecgh/go-spew/spew/config.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/davecgh/go-spew/spew/config.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/github.com/davecgh/go-spew/spew/doc.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/davecgh/go-spew/spew/doc.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/github.com/davecgh/go-spew/spew/dump.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/davecgh/go-spew/spew/dump.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/github.com/davecgh/go-spew/spew/dump_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/davecgh/go-spew/spew/dump_test.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/github.com/davecgh/go-spew/spew/dumpcgo_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/davecgh/go-spew/spew/dumpcgo_test.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/github.com/davecgh/go-spew/spew/dumpnocgo_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/davecgh/go-spew/spew/dumpnocgo_test.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/github.com/davecgh/go-spew/spew/example_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/davecgh/go-spew/spew/example_test.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/github.com/davecgh/go-spew/spew/format.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/davecgh/go-spew/spew/format.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/github.com/davecgh/go-spew/spew/format_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/davecgh/go-spew/spew/format_test.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/github.com/davecgh/go-spew/spew/internal_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/davecgh/go-spew/spew/internal_test.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/github.com/davecgh/go-spew/spew/internalunsafe_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/davecgh/go-spew/spew/internalunsafe_test.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/github.com/davecgh/go-spew/spew/spew.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/davecgh/go-spew/spew/spew.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/github.com/davecgh/go-spew/spew/spew_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/davecgh/go-spew/spew/spew_test.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/github.com/davecgh/go-spew/spew/testdata/dumpcgo.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/davecgh/go-spew/spew/testdata/dumpcgo.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/github.com/davecgh/go-spew/test_coverage.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/davecgh/go-spew/test_coverage.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/github.com/pmezard/go-difflib/LICENSE" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/pmezard/go-difflib/LICENSE" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/github.com/pmezard/go-difflib/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/pmezard/go-difflib/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/github.com/pmezard/go-difflib/difflib/difflib.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/pmezard/go-difflib/difflib/difflib.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/github.com/pmezard/go-difflib/difflib/difflib_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/pmezard/go-difflib/difflib/difflib_test.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/github.com/sirupsen/logrus/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/sirupsen/logrus/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/github.com/sirupsen/logrus/.golangci.yml" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/sirupsen/logrus/.golangci.yml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/github.com/sirupsen/logrus/.travis.yml" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/sirupsen/logrus/.travis.yml" afterDir="false" />
@@ -194,14 +128,14 @@
       <change beforePath="$PROJECT_DIR$/src/github.com/tusamarco/toml/COPYING" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/tusamarco/toml/COPYING" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/github.com/tusamarco/toml/Makefile" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/tusamarco/toml/Makefile" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/github.com/tusamarco/toml/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/tusamarco/toml/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/github.com/tusamarco/toml/_examples/example.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/tusamarco/toml/_examples/example.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/github.com/tusamarco/toml/_examples/example.toml" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/tusamarco/toml/_examples/example.toml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/github.com/tusamarco/toml/_examples/hard.toml" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/tusamarco/toml/_examples/hard.toml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/github.com/tusamarco/toml/_examples/implicit.toml" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/tusamarco/toml/_examples/implicit.toml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/github.com/tusamarco/toml/_examples/invalid-apples.toml" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/tusamarco/toml/_examples/invalid-apples.toml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/github.com/tusamarco/toml/_examples/invalid.toml" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/tusamarco/toml/_examples/invalid.toml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/github.com/tusamarco/toml/_examples/readme1.toml" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/tusamarco/toml/_examples/readme1.toml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/github.com/tusamarco/toml/_examples/readme2.toml" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/tusamarco/toml/_examples/readme2.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/github.com/tusamarco/toml/_examples/example.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/github.com/tusamarco/toml/_examples/example.toml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/github.com/tusamarco/toml/_examples/hard.toml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/github.com/tusamarco/toml/_examples/implicit.toml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/github.com/tusamarco/toml/_examples/invalid-apples.toml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/github.com/tusamarco/toml/_examples/invalid.toml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/github.com/tusamarco/toml/_examples/readme1.toml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/github.com/tusamarco/toml/_examples/readme2.toml" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/src/github.com/tusamarco/toml/cmd/toml-test-decoder/COPYING" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/tusamarco/toml/cmd/toml-test-decoder/COPYING" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/github.com/tusamarco/toml/cmd/toml-test-decoder/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/tusamarco/toml/cmd/toml-test-decoder/README.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/github.com/tusamarco/toml/cmd/toml-test-decoder/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/tusamarco/toml/cmd/toml-test-decoder/main.go" afterDir="false" />
@@ -216,7 +150,7 @@
       <change beforePath="$PROJECT_DIR$/src/github.com/tusamarco/toml/decode_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/tusamarco/toml/decode_test.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/github.com/tusamarco/toml/doc.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/tusamarco/toml/doc.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/github.com/tusamarco/toml/encode.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/tusamarco/toml/encode.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/github.com/tusamarco/toml/encode_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/tusamarco/toml/encode_test.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/github.com/tusamarco/toml/encode_test.go" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/src/github.com/tusamarco/toml/encoding_types.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/tusamarco/toml/encoding_types.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/github.com/tusamarco/toml/encoding_types_1.1.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/tusamarco/toml/encoding_types_1.1.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/github.com/tusamarco/toml/lex.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/tusamarco/toml/lex.go" afterDir="false" />
@@ -226,6 +160,8 @@
       <change beforePath="$PROJECT_DIR$/src/github.com/tusamarco/toml/type_fields.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/github.com/tusamarco/toml/type_fields.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/golang.org/x/sys/unix/readdirent_getdirentries.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/golang.org/x/sys/unix/readdirent_getdirentries.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/golang.org/x/sys/unix/syscall_solaris.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/golang.org/x/sys/unix/syscall_solaris.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/golang.org/x/text/encoding/ianaindex/ascii.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/golang.org/x/text/encoding/ianaindex/ascii.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/golang.org/x/text/encoding/ianaindex/ascii_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/golang.org/x/text/encoding/ianaindex/ascii_test.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/gopkg.in/yaml.v3/.travis.yml" beforeDir="false" afterPath="$PROJECT_DIR$/src/gopkg.in/yaml.v3/.travis.yml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/gopkg.in/yaml.v3/LICENSE" beforeDir="false" afterPath="$PROJECT_DIR$/src/gopkg.in/yaml.v3/LICENSE" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/gopkg.in/yaml.v3/NOTICE" beforeDir="false" afterPath="$PROJECT_DIR$/src/gopkg.in/yaml.v3/NOTICE" afterDir="false" />
@@ -264,7 +200,7 @@
       </list>
     </option>
   </component>
-  <component name="GOROOT" url="file://$USER_HOME$/go/go1.15.6" />
+  <component name="GOROOT" url="file:///usr/local/Cellar/go/1.16/libexec" />
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
     <option name="ROOT_SYNC" value="DONT_SYNC" />
@@ -295,9 +231,8 @@
     <property name="DefaultGoTemplateProperty" value="Go File" />
     <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
     <property name="WebServerToolWindowFactoryState" value="false" />
-    <property name="configurable.Global.GOPATH.is.expanded" value="true" />
-    <property name="configurable.Module.GOPATH.is.expanded" value="false" />
-    <property name="configurable.Project.GOPATH.is.expanded" value="true" />
+    <property name="configurable..is.expanded" value="false" />
+    <property name="configurable.GoLibrariesConfigurable.is.expanded" value="true" />
     <property name="go.import.settings.migrated" value="true" />
     <property name="go.sdk.automatically.set" value="true" />
     <property name="go.tried.to.enable.integration.vgo.integrator" value="true" />
@@ -309,7 +244,7 @@
     <property name="node.js.selected.package.eslint" value="(autodetect)" />
     <property name="node.js.selected.package.tslint" value="(autodetect)" />
     <property name="run.code.analysis.last.selected.profile" value="pProject Default" />
-    <property name="settings.editor.selected.configurable" value="go.sdk" />
+    <property name="settings.editor.selected.configurable" value="com.goide.configuration.GoLibrariesConfigurableProvider" />
   </component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">

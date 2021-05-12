@@ -680,7 +680,7 @@ func (cluster *DataClusterImpl) checkFailoverIfFound() bool {
 		len(cluster.WriterNodes) < 1 &&
 		cluster.FailOverNode.HostgroupId == 0 {
 		//Huge alert
-		log.Error(fmt.Sprintf("!!!!!!!!!!!!!!! NO node Found For fail-over in the main segment %d you may want to use ActiveFailover = 2 if you have another node in a different segment  !!!!!!!!!!!!!",
+		log.Error(fmt.Sprintf("!!!!!!!!!!!!!!! NO node Found For fail-over in the main segment %d - check also for possible connection security errors, or if you have READ-ONLY flag=ON!!!!!!!!!!!!!",
 			cluster.MainSegment))
 		return false
 	}

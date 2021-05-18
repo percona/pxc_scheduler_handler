@@ -11,14 +11,14 @@
 #   => node_2 still writer and reader because there is no FailBack
 #   => node_3 status changed to ONLINE, node removed from hostgroup 9100, node added to reader hostrgroup 101
 
---let $pxc_scheduler_handler_config = writer_is_reader.toml
+--let $pxc_scheduler_handler_config = writer_is_reader_persist.toml
 --let $node_1_bwr_priority = 1
 --let $node_2_bwr_priority = 2
 --let $node_3_bwr_priority = 3
 
---let $node_1_brd_priority = 1
+--let $node_1_brd_priority = 3
 --let $node_2_brd_priority = 2
---let $node_3_brd_priority = 3
+--let $node_3_brd_priority = 1
 
 --let $node_to_kill=node_3
 --source pxc_node_kill.inc

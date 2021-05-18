@@ -18,6 +18,7 @@ writerIsAlsoReader = 1
 retryUp = 0
 retryDown = 2
 clusterId = 10
+persistPrimarySettings=0 #0 disable| 1 only persist Write settings | 2 persist Reand and Write settings
 
 [proxysql]
 port = 6032

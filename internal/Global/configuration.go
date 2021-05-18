@@ -83,6 +83,7 @@ type PxcCluster struct {
 	BckHgR             int
 	SingleWriter       int
 	MaxWriters         int
+	PersistPrimarySettings int `default:0`
 }
 
 //ProxySQL configuration class

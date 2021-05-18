@@ -215,7 +215,65 @@ OS = "na"
 - retryUp : [0] Number of retry the script should do before restoring a failed node
 - retryDown : [0] Number of retry the script should do to put DOWN a failing node
 - clusterId : 10 the ID for the cluster 
+- persistPrimarySettings : [0]{0|1|2} This option allow the new elected Primary (in case of fail-over) to maintain the Primary node values for weight/connections/Max values and so on.
+  (see Persist Primary section for explanation) - valid value 0|1 only Writer|2 Writer and Reader
  
+#### Persist Primary Values
+In pxc_scheduler_handler is possible to ask the application to keep the values assigned to the Primary Writer also when another node is elected, as in case of fail-over.<br>
+There are few conditions for this to work consistently:
+  - Cluster must be __Single Primary__
+  - When using __Fail Back__ given the Primary will have the same weight of the node coming back, FailBack will __NOT__ automatically work.<br>
+
+Said that you can define if you want ONLY the value for the WRITER changed, or if you want to modify also the corresponding READER.
+Let us use an example to have this clear.
+Given:
+```sql
++--------------+---------------+------+-----------+--------+--------+-------------+-----------------+---------------------+---------+----------------+-----------------------------+
+| hostgroup_id | hostname      | port | gtid_port | status | weight | compression | max_connections | max_replication_lag | use_ssl | max_latency_ms | comment                     |
++--------------+---------------+------+-----------+--------+--------+-------------+-----------------+---------------------+---------+----------------+-----------------------------+
+| 100          | 192.168.4.22  | 3306 | 0         | ONLINE | 1000   | 0           | 2000            | 0                   | 0       | 0              | Preferred writer            |
+| 101          | 192.168.4.22  | 3306 | 0         | ONLINE | 998    | 0           | 2000            | 0                   | 0       | 0              | last reader                 |
+| 101          | 192.168.4.23  | 3306 | 0         | ONLINE | 1000   | 0           | 2000            | 0                   | 0       | 0              | reader1                     |
+| 101          | 192.168.4.233 | 3306 | 0         | ONLINE | 1000   | 0           | 2000            | 0                   | 0       | 0              | reader2                     |
+| 8100         | 192.168.4.22  | 3306 | 0         | ONLINE | 1000   | 0           | 2000            | 0                   | 0       | 0              | Failover server preferred   |
+| 8100         | 192.168.4.23  | 3306 | 0         | ONLINE | 999    | 0           | 2000            | 0                   | 0       | 0              | Second preferred            |
+| 8100         | 192.168.4.233 | 3306 | 0         | ONLINE | 998    | 0           | 2000            | 0                   | 0       | 0              | Thirdh and last in the list |
+| 8101         | 192.168.4.22  | 3306 | 0         | ONLINE | 998    | 0           | 2000            | 0                   | 0       | 0              | Failover server preferred   |
+| 8101         | 192.168.4.23  | 3306 | 0         | ONLINE | 1000   | 0           | 2000            | 0                   | 0       | 0              | Second preferred            |
+| 8101         | 192.168.4.233 | 3306 | 0         | ONLINE | 1000   | 0           | 2000            | 0                   | 0       | 0              | Thirdh and last in the list |
++--------------+---------------+------+-----------+--------+--------+-------------+-----------------+---------------------+---------+----------------+-----------------------------+
+
+```
+If my current primary goes down, and I have `persistPrimarySettings = 1` The next primary will have:
+
+```sql
++--------------+---------------+------+-----------+--------+--------+-------------+-----------------+---------------------+---------+----------------+-----------------------------+
+| hostgroup_id | hostname      | port | gtid_port | status | weight | compression | max_connections | max_replication_lag | use_ssl | max_latency_ms | comment                     |
++--------------+---------------+------+-----------+--------+--------+-------------+-----------------+---------------------+---------+----------------+-----------------------------+
+| 100          | 192.168.4.23  | 3306 | 0         | ONLINE | 1000   | 0           | 2000            | 0                   | 0       | 0              | Second preferred            |
+| 101          | 192.168.4.23  | 3306 | 0         | ONLINE | 1000   | 0           | 2000            | 0                   | 0       | 0              | reader1                     |
+| 8100         | 192.168.4.23  | 3306 | 0         | ONLINE | 999    | 0           | 2000            | 0                   | 0       | 0              | Second preferred            |
+| 8101         | 192.168.4.23  | 3306 | 0         | ONLINE | 1000   | 0           | 2000            | 0                   | 0       | 0              | Second preferred            |
++--------------+---------------+------+-----------+--------+--------+-------------+-----------------+---------------------+---------+----------------+-----------------------------+
+
+```
+The node `192.168.4.23` will be promoted and values changed from what it has as default for the Writer, but Reader values will remain the ones defined as defaults.
+If instead the value of `persistPrimarySettings = 2`:
+```sql
++--------------+---------------+------+-----------+--------+--------+-------------+-----------------+---------------------+---------+----------------+-----------------------------+
+| hostgroup_id | hostname      | port | gtid_port | status | weight | compression | max_connections | max_replication_lag | use_ssl | max_latency_ms | comment                     |
++--------------+---------------+------+-----------+--------+--------+-------------+-----------------+---------------------+---------+----------------+-----------------------------+
+| 100          | 192.168.4.23  | 3306 | 0         | ONLINE | 1000   | 0           | 2000            | 0                   | 0       | 0              | Second preferred            |
+| 101          | 192.168.4.23  | 3306 | 0         | ONLINE | 998    | 0           | 2000            | 0                   | 0       | 0              | reader1                     |
+| 8100         | 192.168.4.23  | 3306 | 0         | ONLINE | 999    | 0           | 2000            | 0                   | 0       | 0              | Second preferred            |
+| 8101         | 192.168.4.23  | 3306 | 0         | ONLINE | 1000   | 0           | 2000            | 0                   | 0       | 0              | Second preferred            |
++--------------+---------------+------+-----------+--------+--------+-------------+-----------------+---------------------+---------+----------------+-----------------------------+
+
+```
+Both Read and Write values are changed.
+
+This will help in keeping consistent the behaviour of the node acting as Primary. 
+
 ## Examples of configurations in ProxySQL
 Simply pass max 2 arguments 
 

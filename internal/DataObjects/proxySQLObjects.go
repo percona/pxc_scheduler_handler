@@ -349,6 +349,9 @@ func (node *ProxySQLNodeImpl) ProcessChanges() bool {
 			} else {
 				SQLActionString = append(SQLActionString, node.SaveRetry(dataNode, hg, ip, portI))
 			} // "MOVE_UP_HG_CHANGE"
+		case 2010:
+				SQLActionString = append(SQLActionString, node.ResetNodeDefaults(dataNode, hg, ip, portI))
+			 // "RESET_DEFAULTS"
 		case 3001:
 			if dataNode.RetryDown >= node.MySQLCluster.RetryDown {
 				SQLActionString = append(SQLActionString, node.MoveNodeDownToHGCange(dataNode, hg, ip, portI))
@@ -416,6 +419,17 @@ func (node *ProxySQLNodeImpl) ProcessChanges() bool {
 	}
 	return true
 }
+
+//This function update the server with the defaults as for 8000 group
+func (node *ProxySQLNodeImpl) ResetNodeDefaults(dataNode DataNodeImpl, hg int, ip string, port int) string {
+	myString := fmt.Sprintf(",weight=%d,max_connections=%d,max_replication_lag=%d,max_latency_ms=%d",
+		dataNode.Weight,dataNode.MaxConnection,dataNode.MaxReplicationLag,dataNode.MaxReplicationLag)
+	myString = fmt.Sprintf(" UPDATE mysql_servers SET status='ONLINE' %s WHERE hostgroup_id=%d AND hostname='%s' AND port=%d",myString, hg, ip, port)
+	log.Debug(fmt.Sprintf("Preparing for node  %s:%d HG:%d SQL: %s", ip, port, hg, myString))
+	return myString
+
+}
+
 func (node *ProxySQLNodeImpl) MoveNodeUpFromOfflineSoft(dataNode DataNodeImpl, hg int, ip string, port int) string {
 
 	myString := fmt.Sprintf(" UPDATE mysql_servers SET status='ONLINE' WHERE hostgroup_id=%d AND hostname='%s' AND port=%d", hg, ip, port)
@@ -517,7 +531,7 @@ func (node *ProxySQLNodeImpl) SaveRetry(dataNode DataNodeImpl, hg int, ip string
 		node.MySQLCluster.HgWriterId,
 		node.MySQLCluster.HgReaderId,
 		dataNode.RetryDown)
-	myString := fmt.Sprintf(" UPDATE mysql_servers SET comment='%s%s' WHERE hostgroup_id=%d AND hostname='%s' AND port=%d", dataNode.Comment, retry, hg, ip, port)
+	myString := fmt.Sprintf(" UPDATE mysql_servers SET comment='%s %s' WHERE hostgroup_id=%d AND hostname='%s' AND port=%d", dataNode.Comment, retry, hg, ip, port)
 	log.Debug(fmt.Sprintf("Adding for node  %s:%d HG:%d SQL: %s", ip, port, hg, myString))
 	return myString
 }

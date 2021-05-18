@@ -42,14 +42,11 @@ DELETE FROM mysql_servers where hostgroup_id=100;
 #
 # Applying ProxySQL configuration
 #
-SELECT * FROM runtime_mysql_servers ORDER BY hostgroup_id, port;;
-hostgroup_id	hostname	port	gtid_port	status	weight	compression	max_connections	max_replication_lag	use_ssl	max_latency_ms	comment
-100	127.0.0.1	NODE_MYPORT_2	0	ONLINE	2	0	1000	0	0	0	Backup writer 2
-101	127.0.0.1	NODE_MYPORT_1	0	ONLINE	1	0	1000	0	0	0	READ
-101	127.0.0.1	NODE_MYPORT_3	0	ONLINE	3	0	1000	0	0	0	READ
-8100	127.0.0.1	NODE_MYPORT_1	0	ONLINE	1	0	1000	0	0	0	Backup writer 2
-8100	127.0.0.1	NODE_MYPORT_2	0	ONLINE	2	0	1000	0	0	0	Backup writer 2
-8101	127.0.0.1	NODE_MYPORT_3	0	ONLINE	3	0	1000	0	0	0	Backup reader 1
+SELECT hostgroup_id,hostname,port,gtid_port,status,weight,compression,max_connections,max_replication_lag,use_ssl,max_latency_ms FROM runtime_mysql_servers WHERE hostgroup_id in (100,101)  ORDER BY hostgroup_id, port;;
+hostgroup_id	hostname	port	gtid_port	status	weight	compression	max_connections	max_replication_lag	use_ssl	max_latency_ms
+100	127.0.0.1	NODE_MYPORT_2	0	ONLINE	2	0	1000	0	0	0
+101	127.0.0.1	NODE_MYPORT_1	0	ONLINE	1	0	1000	0	0	0
+101	127.0.0.1	NODE_MYPORT_3	0	ONLINE	3	0	1000	0	0	0
 #
 # Loading default ProxySQL configuration
 #

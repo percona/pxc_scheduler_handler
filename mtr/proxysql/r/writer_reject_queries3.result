@@ -41,17 +41,12 @@ INSERT INTO t1 VALUES (1), (2), (3);
 #
 SET GLOBAL wsrep_reject_queries=ALL;;
 INSERT INTO t1 VALUES (11), (12), (13);
-SELECT * FROM runtime_mysql_servers ORDER BY hostgroup_id, port;;
-hostgroup_id	hostname	port	gtid_port	status	weight	compression	max_connections	max_replication_lag	use_ssl	max_latency_ms	comment
-100	127.0.0.1	NODE_MYPORT_2	0	ONLINE	2	0	1000	0	0	0	WRITE
-100	127.0.0.1	NODE_MYPORT_3	0	ONLINE	1	0	1000	0	0	0	Backup writer 2
-101	127.0.0.1	NODE_MYPORT_2	0	ONLINE	2	0	1000	0	0	0	READ
-101	127.0.0.1	NODE_MYPORT_3	0	ONLINE	3	0	1000	0	0	0	READ
-8100	127.0.0.1	NODE_MYPORT_1	0	ONLINE	3	0	1000	0	0	0	Backup writer 1
-8100	127.0.0.1	NODE_MYPORT_2	0	ONLINE	2	0	1000	0	0	0	Backup writer 1
-8100	127.0.0.1	NODE_MYPORT_3	0	ONLINE	1	0	1000	0	0	0	Backup writer 2
-9100	127.0.0.1	NODE_MYPORT_1	0	ONLINE	3	0	1000	0	0	0	WRITE100_W_101_R_retry_up=0;100_W_101_R_retry_down=0;
-9101	127.0.0.1	NODE_MYPORT_1	0	ONLINE	1	0	1000	0	0	0	READ100_W_101_R_retry_up=0;100_W_101_R_retry_down=0;
+SELECT hostgroup_id,hostname,port,gtid_port,status,weight,compression,max_connections,max_replication_lag,use_ssl,max_latency_ms FROM runtime_mysql_servers WHERE hostgroup_id in (100,101)  ORDER BY hostgroup_id, port;;
+hostgroup_id	hostname	port	gtid_port	status	weight	compression	max_connections	max_replication_lag	use_ssl	max_latency_ms
+100	127.0.0.1	NODE_MYPORT_2	0	ONLINE	2	0	1000	0	0	0
+100	127.0.0.1	NODE_MYPORT_3	0	ONLINE	1	0	1000	0	0	0
+101	127.0.0.1	NODE_MYPORT_2	0	ONLINE	2	0	1000	0	0	0
+101	127.0.0.1	NODE_MYPORT_3	0	ONLINE	3	0	1000	0	0	0
 SELECT COUNT(*) FROM t1;
 COUNT(*)
 6
@@ -60,17 +55,13 @@ COUNT(*)
 #
 SET GLOBAL wsrep_reject_queries=NONE;;
 INSERT INTO t1 VALUES (21), (22), (23);
-SELECT * FROM runtime_mysql_servers ORDER BY hostgroup_id, port;;
-hostgroup_id	hostname	port	gtid_port	status	weight	compression	max_connections	max_replication_lag	use_ssl	max_latency_ms	comment
-100	127.0.0.1	NODE_MYPORT_2	0	ONLINE	2	0	1000	0	0	0	WRITE
-100	127.0.0.1	NODE_MYPORT_3	0	ONLINE	1	0	1000	0	0	0	Backup writer 2
-101	127.0.0.1	NODE_MYPORT_1	0	ONLINE	1	0	1000	0	0	0	READ100_W_101_R_retry_up=0;100_W_101_R_retry_down=0;
-101	127.0.0.1	NODE_MYPORT_2	0	ONLINE	2	0	1000	0	0	0	READ
-101	127.0.0.1	NODE_MYPORT_3	0	ONLINE	3	0	1000	0	0	0	READ
-8100	127.0.0.1	NODE_MYPORT_1	0	ONLINE	3	0	1000	0	0	0	Backup writer 1
-8100	127.0.0.1	NODE_MYPORT_2	0	ONLINE	2	0	1000	0	0	0	Backup writer 1
-8100	127.0.0.1	NODE_MYPORT_3	0	ONLINE	1	0	1000	0	0	0	Backup writer 2
-9100	127.0.0.1	NODE_MYPORT_1	0	ONLINE	3	0	1000	0	0	0	WRITE100_W_101_R_retry_up=0;100_W_101_R_retry_down=0;
+SELECT hostgroup_id,hostname,port,gtid_port,status,weight,compression,max_connections,max_replication_lag,use_ssl,max_latency_ms FROM runtime_mysql_servers WHERE hostgroup_id in (100,101)  ORDER BY hostgroup_id, port;;
+hostgroup_id	hostname	port	gtid_port	status	weight	compression	max_connections	max_replication_lag	use_ssl	max_latency_ms
+100	127.0.0.1	NODE_MYPORT_2	0	ONLINE	2	0	1000	0	0	0
+100	127.0.0.1	NODE_MYPORT_3	0	ONLINE	1	0	1000	0	0	0
+101	127.0.0.1	NODE_MYPORT_1	0	ONLINE	1	0	1000	0	0	0
+101	127.0.0.1	NODE_MYPORT_2	0	ONLINE	2	0	1000	0	0	0
+101	127.0.0.1	NODE_MYPORT_3	0	ONLINE	3	0	1000	0	0	0
 SELECT COUNT(*) FROM t1;
 COUNT(*)
 9

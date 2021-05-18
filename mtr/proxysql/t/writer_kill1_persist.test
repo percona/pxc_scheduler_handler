@@ -16,9 +16,9 @@
 --let $node_2_bwr_priority = 2
 --let $node_3_bwr_priority = 3
 
---let $node_1_brd_priority = 3
+--let $node_1_brd_priority = 1
 --let $node_2_brd_priority = 2
---let $node_3_brd_priority = 1
+--let $node_3_brd_priority = 3
 
 --let $node_to_kill=node_3
 --source pxc_node_kill.inc

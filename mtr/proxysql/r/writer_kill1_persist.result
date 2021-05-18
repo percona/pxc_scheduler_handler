@@ -1,4 +1,4 @@
-#
+# 
 # Loading default ProxySQL configuration
 #
 SELECT COUNT(*) FROM runtime_mysql_servers;

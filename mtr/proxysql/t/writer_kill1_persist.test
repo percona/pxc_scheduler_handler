@@ -1,4 +1,4 @@
-# 1. Setup 3 node PXC cluster a
+# 1. Setup 3 node PXC cluster
 # 2. Setup ProxySQL 
 #  node_1:          backup reader / backup wrtier
 #  node_2: reader / backup reader / backup writer

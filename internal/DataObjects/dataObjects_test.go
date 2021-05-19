@@ -299,6 +299,46 @@ func TestDataClusterImpl_cleanWriters(t *testing.T) {
 		})
 	}
 }
+
+//testing Primary Election
+func TestDataClusterImpl_identifyPrimaryBackupNode(t *testing.T) {
+	var tests = []ruleInt{}
+
+	clusterNode := testClusterFactory()
+	dns := []string{"127.0.0.1:3306", "127.0.0.1:3307","127.0.0.1:3308"}
+	for _, myDns := range dns {
+		testDataNode := clusterNode.testDataNodeFactoryDns(myDns)
+		currentHg := getHg()
+		testDataNode.Hostgroups = []Hostgroup{currentHg}
+		clusterNode.WriterNodes[myDns] = testDataNode
+	}
+	node := clusterNode.WriterNodes["127.0.0.1:3306"]
+	node.Weight = 10000
+	clusterNode.WriterNodes["127.0.0.1:3306"] = node
+
+
+	myArgs := args{clusterNode.WriterNodes["127.0.0.1:3306"],clusterNode.WriterNodes["127.0.0.1:3306"].Hostgroups[0],}
+
+	tests = rulesIdentifyPrimaryBackupNode(myArgs,clusterNode)
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			clusterNode.WriterNodes[tt.args.node.Dns]=tt.args.node
+			cluster := clusterNode.clusterNodeImplFactory()
+			cluster.WriterNodes = clusterNode.WriterNodes
+			cluster.FailOverNode = clusterNode.WriterNodes["127.0.0.1:3307"]
+			cluster.PersistPrimarySettings = tt.testClusterNodeImp.PersistPrimarySettings
+
+			value := cluster.identifyPrimaryBackupNode("127.0.0.1:3306")
+			//t.Error( "aa ",tt.testClusterNodeImp.PersistPrimarySettings, " ", value)
+			if value != tt.want {
+
+				t.Errorf(" %s identifyPrimaryBackupNode() = %v want %v",tt.name, value, tt.want)
+			}
+		})
+	}
+}
+
 /*
 Test Cluster method evaluateWriters [end]
 */

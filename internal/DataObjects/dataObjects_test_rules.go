@@ -264,10 +264,28 @@ func rulesTestCleanWriters (myArgs args,clusterNode testClusterNodeImpl )  []rul
 	}
 	return myRules
 }
-
 /*
 Test RULES Cluster method evaluateWriters [end]
 */
+
+/*
+Test RULES Cluster method evaluateWriters [start]
+*/
+func rulesIdentifyPrimaryBackupNode (myArgs args,clusterNode testClusterNodeImpl )  []ruleInt {
+	testDataNode := myArgs.node
+
+
+	myRules := []ruleInt{
+		{ "Check evaluateWriters - Identify Primary no changes", clusterNode,args{testDataNode,testDataNode.Hostgroups[0]},0},
+		{ "Check evaluateWriters - Identify Primary Only for Writer", changeClusterObjectIntAttribute(clusterNode,"PersistPrimarySettings",1),args{testDataNode,testDataNode.Hostgroups[0]},1},
+		{ "Check evaluateWriters - Identify Primary Only for Writer", changeClusterObjectIntAttribute(clusterNode,"PersistPrimarySettings",2),args{testDataNode,testDataNode.Hostgroups[0]},2},
+	}
+	return myRules
+}
+/*
+Test RULES Cluster method evaluateWriters [end]
+*/
+
 
 /*
 Test Cluster method evaluateReaders [start]
@@ -334,6 +352,13 @@ type rule struct {
 	want               bool
 }
 
+type ruleInt struct {
+	name               string
+	testClusterNodeImp testClusterNodeImpl
+	args               args
+	want               int
+}
+
 type valueGeneric struct {
 	Int64 int64
 	Bool  bool
@@ -389,6 +414,8 @@ type testClusterNodeImpl struct {
 	Status            int
 	WriterIsReader    int
 	WriterNodes       map[string]DataNodeImpl
+	PersistPrimarySettings int
+	PersistPrimary	  [2]DataNodeImpl
 }
 
 
@@ -500,6 +527,8 @@ func testClusterFactory() testClusterNodeImpl {
 		Status:            4,
 		WriterIsReader:    1,
 		WriterNodes:       make(map[string]DataNodeImpl),
+		PersistPrimarySettings: 0,
+
 	}
 	return cluster
 }

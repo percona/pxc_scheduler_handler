@@ -107,7 +107,7 @@ INSERT INTO t1 VALUES (11), (12), (13);
 
 --connection proxysql_admin
 --replace_result $NODE_MYPORT_1 NODE_MYPORT_1 $NODE_MYPORT_2 NODE_MYPORT_2 $NODE_MYPORT_3 NODE_MYPORT_3
---eval SELECT * FROM runtime_mysql_servers ORDER BY hostgroup_id, port;
+--eval SELECT hostgroup_id,hostname,port,gtid_port,status,weight,compression,max_connections,max_replication_lag,use_ssl,max_latency_ms FROM runtime_mysql_servers WHERE hostgroup_id in ($wHG,$rHG)  ORDER BY hostgroup_id, port;
 
 --connection conn_app_test
 # verify that writes reached the backend
@@ -139,7 +139,7 @@ INSERT INTO t1 VALUES (21), (22), (23);
 
 --connection proxysql_admin
 --replace_result $NODE_MYPORT_1 NODE_MYPORT_1 $NODE_MYPORT_2 NODE_MYPORT_2 $NODE_MYPORT_3 NODE_MYPORT_3
---eval SELECT * FROM runtime_mysql_servers ORDER BY hostgroup_id, port;
+--eval SELECT hostgroup_id,hostname,port,gtid_port,status,weight,compression,max_connections,max_replication_lag,use_ssl,max_latency_ms FROM runtime_mysql_servers WHERE hostgroup_id in ($wHG,$rHG)  ORDER BY hostgroup_id, port;
 
 
 --connection conn_app_test

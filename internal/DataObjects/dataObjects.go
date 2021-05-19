@@ -75,6 +75,10 @@ type DataCluster interface {
 	processWriterIsAlsoReader(readerNodes map[string]DataNodeImpl)
 	processUpAndDownReaders(actionNodes map[string]DataNodeImpl, readerNodes map[string]DataNodeImpl)
 	pushNewNode(node DataNodeImpl) bool
+	identifyPrimaryBackupNode(dns string) bool
+    copyPrimarySettingsToFailover()
+	resetNodeDefault(nodeIn DataNodeImpl, nodeDefault DataNodeImpl)
+
 }
 
 
@@ -100,6 +104,7 @@ type DataNode interface {
 	MOVE_SWAP_READER_TO_WRITER() int
 	MOVE_SWAP_WRITER_TO_READER() int
 	SAVE_RETRY() int
+	RESET_DEFAULTS() int
 
 	getPxcView(dml string) PxcClusterView
 	getInfo(wg *global.MyWaitGroup, cluster *DataClusterImpl) int
@@ -206,6 +211,8 @@ type DataClusterImpl struct {
 	Status            int
 	WriterIsReader    int
 	WriterNodes       map[string]DataNodeImpl
+	PersistPrimarySettings int
+	PersistPrimary	  [2]DataNodeImpl
 }
 
 type SyncMap struct {
@@ -256,6 +263,8 @@ func (cluster *DataClusterImpl) init(config global.Configuration, connectionProx
 	cluster.MainSegment = config.Pxcluster.MainSegment
 	cluster.ActiveFailover = config.Pxcluster.ActiveFailover
 	cluster.FailBack = config.Pxcluster.FailBack
+	cluster.PersistPrimarySettings = config.Pxcluster.PersistPrimarySettings
+	//cluster.PersistPrimary = []DataNodeImpl{(DataNodeImpl),new(DataNodeImpl)}
 	cluster.config = config
 
 	//Enable SSL support
@@ -368,7 +377,10 @@ func (cluster *DataClusterImpl) loadNodes(connectionProxy *sql.DB) bool {
 	if global.Performance {
 		global.SetPerformanceObj("loadNodes", true, log.InfoLevel)
 	}
+	backupPrimaryDns := ""
+	backupWeightMax := 0
 	var sb strings.Builder
+
 	sb.WriteString(strconv.Itoa(cluster.HgWriterId))
 	sb.WriteString("," + strconv.Itoa(cluster.HgReaderId))
 	sb.WriteString("," + strconv.Itoa(cluster.BakcupHgWriterId))
@@ -394,6 +406,7 @@ func (cluster *DataClusterImpl) loadNodes(connectionProxy *sql.DB) bool {
 		return false
 		//os.Exit(1)
 	}
+
 	//select hostgroup_id, hostname,port,gtid_port, status,weight, compression,max_connections, max_replication_lag,use_ssl,max_latency_ms,comment
 	for recordset.Next() {
 		var myNode DataNodeImpl
@@ -429,6 +442,11 @@ func (cluster *DataClusterImpl) loadNodes(connectionProxy *sql.DB) bool {
 			cluster.ReaderNodes[myNode.Dns] = myNode
 		case cluster.BakcupHgWriterId:
 			cluster.BackupWriters[myNode.Dns] = myNode
+			//We calculate in any case which node in the backup writer is the Primary, which for us is the one with higher weight, period!
+			if myNode.Weight > backupWeightMax {
+				backupWeightMax = myNode.Weight
+				backupPrimaryDns = myNode.Dns
+			}
 		case cluster.BackupHgReaderId:
 			cluster.BackupReaders[myNode.Dns] = myNode
 		case cluster.OffLineHgWriterId:
@@ -451,10 +469,31 @@ func (cluster *DataClusterImpl) loadNodes(connectionProxy *sql.DB) bool {
 		}
 
 	}
+
+	//if we have cluster.PersistPrimary we identify which is the primary node and add to the array
+	if cluster.PersistPrimarySettings > 0 && cluster.SinglePrimary{
+		cluster.identifyPrimaryBackupNode(backupPrimaryDns)
+	}
+
+	//collect performance
 	if global.Performance {
 		global.SetPerformanceObj("loadNodes", false, log.InfoLevel)
 	}
 	return true
+}
+
+//We identify and set the Primary node reference for Writer and reader in case of failover
+func (cluster *DataClusterImpl)identifyPrimaryBackupNode(dns string) int{
+
+	if cluster.PersistPrimarySettings > 0 {
+		cluster.PersistPrimary[0] = cluster.BackupWriters[dns]
+		if (cluster.PersistPrimarySettings > 1) {
+			cluster.PersistPrimary[1] = cluster.BackupReaders[dns]
+			return 2
+		}
+		return 1
+	}
+	return 0
 }
 
 //load values from db disk in ProxySQL
@@ -671,6 +710,26 @@ func (cluster *DataClusterImpl) cleanUpForLeftOver() bool {
 		}
 	}
 
+	//if we are working with Preserve Primary value we may need to reset the values in the 9000 HG
+	if cluster.PersistPrimarySettings > 0 {
+		for key, node := range cluster.OffLineWriters {
+			backupNode := cluster.BackupWriters[key]
+			if cluster.compareNodeDefault(node,backupNode) {
+				node = cluster.resetNodeDefault(node, backupNode)
+				node.ActionType = node.RESET_DEFAULTS()
+				cluster.ActionNodes[strconv.Itoa(node.ActionType)+"_"+strconv.Itoa(node.HostgroupId)+"_"+node.Dns] = node
+			}
+		}
+		for key, node := range cluster.OffLineReaders {
+			backupNode := cluster.BackupReaders[key]
+			if cluster.compareNodeDefault(node,backupNode){
+				node = cluster.resetNodeDefault(node, backupNode)
+				node.ActionType = node.RESET_DEFAULTS()
+				cluster.ActionNodes[strconv.Itoa(node.ActionType)+"_"+strconv.Itoa(node.HostgroupId)+"_"+node.Dns] = node
+			}
+		}
+	}
+
 	return true
 }
 
@@ -881,7 +940,7 @@ func (cluster *DataClusterImpl) checkBackOffline(node DataNodeImpl, currentHg Ho
 		}
 		node.ActionType = node.MOVE_UP_OFFLINE()
 		cluster.ActionNodes[strconv.Itoa(node.HostgroupId)+"_"+node.Dns] = node
-		log.Warning("Node: ", node.Dns, " ", node.WsrepNodeName, " HG: ", currentHg.Id, " Type ", currentHg.Type, " coming back ONLINE from previous OFFLINE_SOFT ")
+		log.Info("Node: ", node.Dns, " ", node.WsrepNodeName, " HG: ", currentHg.Id, " Type ", currentHg.Type, " coming back ONLINE from previous OFFLINE_SOFT ")
 		return node, true
 	}
 	return DataNodeImpl{}, false
@@ -924,7 +983,16 @@ func (cluster *DataClusterImpl) checkBackPrimary(node DataNodeImpl, currentHg Ho
 		}
 		node.ActionType = node.MOVE_UP_HG_CHANGE()
 		cluster.ActionNodes[strconv.Itoa(node.HostgroupId)+"_"+node.Dns] = node
-		log.Warning("Node: ", node.Dns, " ", node.WsrepNodeName, " HG: ", currentHg.Id, " Type ", currentHg.Type, " coming back ONLINE from previous Offline Special Host Group ",
+		//Replace the one above with the Backup Node to be sure we keep the default settings
+		//var bkNode DataNodeImpl
+		//if node.HostgroupId == cluster.HgWriterId + 9000 {
+		//	bkNode = cluster.BackupWriters[node.Dns]
+		//}else {
+		//	bkNode = cluster.BackupReaders[node.Dns]
+		//}
+		//bkNode.ActionType = node.MOVE_UP_HG_CHANGE()
+		//cluster.ActionNodes[strconv.Itoa(node.HostgroupId)+"_"+node.Dns] = bkNode
+		log.Info("Node: ", node.Dns, " ", node.WsrepNodeName, " HG: ", currentHg.Id, " Type ", currentHg.Type, " coming back ONLINE from previous Offline Special Host Group ",
 			node.HostgroupId)
 		return true
 	}
@@ -1108,8 +1176,13 @@ func (cluster *DataClusterImpl) evaluateWriters() bool {
 
 	//only if the failover node is a real node and not the default one HostgroupId = 0 then we add it to action list
 	if cluster.FailOverNode.HostgroupId != 0 &&
-		cluster.FailOverNode.HostgroupId != cluster.HgWriterId+9000 &&
+		//cluster.FailOverNode.HostgroupId != cluster.HgWriterId+9000 &&
 		cluster.RequireFailover {
+
+		//if cluster has Persistent Primary we must reset the New primary values with the one from primary
+		if cluster.PersistPrimarySettings > 0 && cluster.SinglePrimary{
+			cluster.copyPrimarySettingsToFailover()
+		}
 		cluster.ActionNodes[strconv.Itoa(cluster.HgWriterId)+"_"+cluster.FailOverNode.Dns] = cluster.FailOverNode
 		log.Warning(fmt.Sprintf("We can try to failover from Backup Writer HG : %s I will try to add it back", cluster.FailOverNode.Dns))
 	}
@@ -1286,7 +1359,7 @@ func (cluster *DataClusterImpl) processUpActionMap() {
 
 						} else if node.Dns == lowerNode.Dns &&
 							(cluster.RequireFailover || cluster.FailBack) {
-							log.Warn(fmt.Sprintf("Node %s coming back online but will not be promoted to Writer because lower Weight %d",
+							log.Info(fmt.Sprintf("Node %s coming back online but will not be promoted to Writer because lower Weight %d",
 								strconv.Itoa(lowerNode.HostgroupId)+"_"+lowerNode.Dns,
 								node.Weight))
 							delete(cluster.ActionNodes, key)
@@ -1298,12 +1371,12 @@ func (cluster *DataClusterImpl) processUpActionMap() {
 						//	delete(cluster.ActionNodes,strconv.Itoa(lowerNode.HostgroupId) +"_" + lowerNode.Dns)
 						//}
 					} else if len(cluster.WriterNodes) < cluster.MaxNumWriters && !cluster.RequireFailover {
-						log.Warning(fmt.Sprintf("Node %s is trying to come UP in writer HG: %d but cannot promote given we already have enough writers %d ", key, cluster.HgWriterId, len(cluster.WriterNodes)))
+						log.Info(fmt.Sprintf("Node %s is trying to come UP in writer HG: %d but cannot promote given we already have enough writers %d ", key, cluster.HgWriterId, len(cluster.WriterNodes)))
 						delete(cluster.ActionNodes, key)
 
 					} else {
 						//In this case we cannot put back another writer and node must be removed from Actionlist
-						log.Warning(fmt.Sprintf("Node %s is trying to come UP in writer HG: %d but cannot promote given we already have enough writers %d ", key, cluster.HgWriterId, len(cluster.WriterNodes)))
+						log.Info(fmt.Sprintf("Node %s is trying to come UP in writer HG: %d but cannot promote given we already have enough writers %d ", key, cluster.HgWriterId, len(cluster.WriterNodes)))
 						delete(cluster.ActionNodes, key)
 					}
 				} else {
@@ -1499,7 +1572,57 @@ func (cluster *DataClusterImpl) pushNewNode(node DataNodeImpl) bool {
 
 	return true
 }
+//In this method we modify the value of the failover to match the Promary
+func (cluster *DataClusterImpl) copyPrimarySettingsToFailover() {
+	cluster.FailOverNode.Weight = cluster.PersistPrimary[0].Weight
+	cluster.FailOverNode.Compression = cluster.PersistPrimary[0].Compression
+	cluster.FailOverNode.MaxConnection = cluster.PersistPrimary[0].MaxConnection
+	cluster.FailOverNode.MaxReplicationLag = cluster.PersistPrimary[0].MaxReplicationLag
+	cluster.FailOverNode.MaxLatency = cluster.PersistPrimary[0].MaxLatency
+	cluster.FailOverNode.ActionType=cluster.FailOverNode.INSERT_WRITE()
+	delete(cluster.ActionNodes,strconv.Itoa(cluster.HgWriterId + 9000) + "_" + cluster.FailOverNode.Dns)
+	cluster.FailOverNode.ProxyStatus="ONLINE"
 
+	if cluster.PersistPrimarySettings > 1{
+		myDns := cluster.PersistPrimary[0].Dns
+		myReader := cluster.ReaderNodes[cluster.FailOverNode.Dns]
+		myBkupReader := cluster.BackupReaders[myDns]
+		myReader.Weight = myBkupReader.Weight
+		myReader.Compression = myBkupReader.Compression
+		myReader.MaxConnection = myBkupReader.MaxConnection
+		myReader.MaxReplicationLag = myBkupReader.MaxReplicationLag
+		myReader.MaxLatency = myBkupReader.MaxLatency
+		myReader.ActionType = myReader.INSERT_READ()
+		delete(cluster.ActionNodes,strconv.Itoa(cluster.HgReaderId + 9000) + "_" + cluster.FailOverNode.Dns)
+		cluster.ActionNodes[strconv.Itoa(cluster.HgReaderId)+"_"+myReader.Dns] = myReader
+	}
+
+
+}
+//This function reset the node values to their defaults defined in BackupHG
+func (cluster *DataClusterImpl) resetNodeDefault(nodeIn DataNodeImpl, nodeDefault DataNodeImpl) DataNodeImpl{
+	nodeIn.Weight = nodeDefault.Weight
+	nodeIn.Compression = nodeDefault.Compression
+	nodeIn.MaxConnection = nodeDefault.MaxConnection
+	nodeIn.MaxReplicationLag = nodeDefault.MaxReplicationLag
+	nodeIn.MaxLatency = nodeDefault.MaxLatency
+
+	return nodeIn
+}
+
+func (cluster *DataClusterImpl) compareNodeDefault(nodeIn DataNodeImpl, nodeDefault DataNodeImpl) bool{
+	if 	nodeIn.Weight == nodeDefault.Weight &&
+		nodeIn.Compression == nodeDefault.Compression &&
+		nodeIn.MaxConnection == nodeDefault.MaxConnection &&
+		nodeIn.MaxReplicationLag == nodeDefault.MaxReplicationLag &&
+		nodeIn.MaxLatency == nodeDefault.MaxLatency{
+		return false
+	}else{
+		return true
+	}
+
+
+}
 // *** DATA NODE SECTION =============================================
 
 
@@ -1700,6 +1823,9 @@ func (node *DataNodeImpl) MOVE_UP_OFFLINE() int {
 func (node *DataNodeImpl) MOVE_UP_HG_CHANGE() int {
 	return 1010 // move a node from HG 9000 (plus hg id) to reader HG
 }
+func (node *DataNodeImpl)RESET_DEFAULTS() int{
+	return 2010 //reset the mysql server node values to defaults has declared in group 8000
+}
 func (node *DataNodeImpl) MOVE_DOWN_HG_CHANGE() int {
 	return 3001 // move a node from original HG to maintenance HG (HG 9000 (plus hg id) ) kill all existing connections
 }
@@ -1740,6 +1866,8 @@ func (node *DataNodeImpl) ReturnTextFromCode(code int) string {
 		return "MOVE_UP_OFFLINE"
 	case 1010:
 		return "MOVE_UP_HG_CHANGE"
+	case 2010:
+		return "RESET_DEFAULTS"
 	case 3001:
 		return "MOVE_DOWN_HG_CHANGE"
 	case 3010:

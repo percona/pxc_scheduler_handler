@@ -1,4 +1,3 @@
-
 /*
  * Copyright (c) Marco Tusa 2021 - present
  *                     GNU GENERAL PUBLIC LICENSE
@@ -34,12 +33,11 @@ func TestLockerImpl_findLock(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-				nodes[tt.proxysqlNode1.Dns] = tt.proxysqlNode1
-				nodes[tt.proxysqlNode2.Dns] = tt.proxysqlNode2
+			nodes[tt.proxysqlNode1.Dns] = tt.proxysqlNode1
+			nodes[tt.proxysqlNode2.Dns] = tt.proxysqlNode2
 
-
-			if _,got := locker.findLock(nodes); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf(" %s findLock() = %v, want %v",tt.name, got, tt.want)
+			if _, got := locker.findLock(nodes); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf(" %s findLock() = %v, want %v", tt.name, got, tt.want)
 			}
 		})
 	}

@@ -1,4 +1,3 @@
-
 /*
  * Copyright (c) Marco Tusa 2021 - present
  *                     GNU GENERAL PUBLIC LICENSE
@@ -53,48 +52,48 @@ type Configuration struct {
 
 //Pxc configuration class
 type PxcCluster struct {
-	ActiveFailover     int
-	FailBack           bool
-	CheckTimeOut       int
-	ClusterId          int
-	Debug              int //Deprecated: this is redundant and not in use
-	Development        bool
-	DevelopmentTime    int32
-	Host               string
-	LogDir             string
-	LogLevel           string
-	MainSegment        int
-	MaxNumWriters      int
-	OS                 string
-	Password           string
-	Port               int
-	RetryDown          int
-	RetryUp            int
-	SinglePrimary      bool
-	SslClient          string
-	SslKey             string
-	SslCa              string
-	SslcertificatePath string
-	User               string
-	WriterIsAlsoReader int
-	HgW                int
-	HgR                int
-	BckHgW             int
-	BckHgR             int
-	SingleWriter       int
-	MaxWriters         int
+	ActiveFailover         int
+	FailBack               bool
+	CheckTimeOut           int
+	ClusterId              int
+	Debug                  int //Deprecated: this is redundant and not in use
+	Development            bool
+	DevelopmentTime        int32
+	Host                   string
+	LogDir                 string
+	LogLevel               string
+	MainSegment            int
+	MaxNumWriters          int
+	OS                     string
+	Password               string
+	Port                   int
+	RetryDown              int
+	RetryUp                int
+	SinglePrimary          bool
+	SslClient              string
+	SslKey                 string
+	SslCa                  string
+	SslcertificatePath     string
+	User                   string
+	WriterIsAlsoReader     int
+	HgW                    int
+	HgR                    int
+	BckHgW                 int
+	BckHgR                 int
+	SingleWriter           int
+	MaxWriters             int
 	PersistPrimarySettings int `default:0`
 }
 
 //ProxySQL configuration class
 type ProxySql struct {
-	Host         string
-	Password     string
-	Port         int
-	User         string
-	Clustered    bool
+	Host                     string
+	Password                 string
+	Port                     int
+	User                     string
+	Clustered                bool
 	RespectManualOfflineSoft bool `default:false`
-	LockFilePath string
+	LockFilePath             string
 }
 
 //Global scheduler conf

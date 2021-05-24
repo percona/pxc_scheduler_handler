@@ -1,4 +1,3 @@
-
 /*
  * Copyright (c) Marco Tusa 2021 - present
  *                     GNU GENERAL PUBLIC LICENSE
@@ -28,8 +27,8 @@ import (
 	"fmt"
 	global "pxc_scheduler_handler/internal/Global"
 	SQL "pxc_scheduler_handler/internal/Sql/Proxy"
-
 )
+
 /*
 Interfaces
 */
@@ -54,9 +53,6 @@ type ProxySQLNode interface {
 	SaveRetry(dataNode DataNodeImpl, hg int, ip string, port int) string
 	executeSQLChanges(SQLActionString []string) bool
 }
-
-
-
 
 /*
 Cluster object and methods
@@ -350,8 +346,8 @@ func (node *ProxySQLNodeImpl) ProcessChanges() bool {
 				SQLActionString = append(SQLActionString, node.SaveRetry(dataNode, hg, ip, portI))
 			} // "MOVE_UP_HG_CHANGE"
 		case 2010:
-				SQLActionString = append(SQLActionString, node.ResetNodeDefaults(dataNode, hg, ip, portI))
-			 // "RESET_DEFAULTS"
+			SQLActionString = append(SQLActionString, node.ResetNodeDefaults(dataNode, hg, ip, portI))
+			// "RESET_DEFAULTS"
 		case 3001:
 			if dataNode.RetryDown >= node.MySQLCluster.RetryDown {
 				SQLActionString = append(SQLActionString, node.MoveNodeDownToHGCange(dataNode, hg, ip, portI))
@@ -378,10 +374,10 @@ func (node *ProxySQLNodeImpl) ProcessChanges() bool {
 			} // "MOVE_OUT_MAINTENANCE"
 		case 4010:
 			SQLActionString = append(SQLActionString, node.DeleteDataNode(dataNode, node.MySQLCluster.HgReaderId, ip, portI)) // "DELETE before insert to be sure no conflict arise"
-			SQLActionString = append(SQLActionString, node.InsertRead(dataNode, hg, ip, portI)) // "INSERT_READ"
+			SQLActionString = append(SQLActionString, node.InsertRead(dataNode, hg, ip, portI))                               // "INSERT_READ"
 		case 4020:
 			SQLActionString = append(SQLActionString, node.DeleteDataNode(dataNode, node.MySQLCluster.HgWriterId, ip, portI)) // "DELETE before insert to be sure no conflict arise"
-			SQLActionString = append(SQLActionString, node.InsertWrite(dataNode, hg, ip, portI)) // "INSERT_WRITE"
+			SQLActionString = append(SQLActionString, node.InsertWrite(dataNode, hg, ip, portI))                              // "INSERT_WRITE"
 		case 5000:
 			SQLActionString = append(SQLActionString, node.DeleteDataNode(dataNode, hg, ip, portI)) // "DELETE_NODE"
 		case 5001:
@@ -423,8 +419,8 @@ func (node *ProxySQLNodeImpl) ProcessChanges() bool {
 //This function update the server with the defaults as for 8000 group
 func (node *ProxySQLNodeImpl) ResetNodeDefaults(dataNode DataNodeImpl, hg int, ip string, port int) string {
 	myString := fmt.Sprintf(",weight=%d,max_connections=%d,max_replication_lag=%d,max_latency_ms=%d",
-		dataNode.Weight,dataNode.MaxConnection,dataNode.MaxReplicationLag,dataNode.MaxReplicationLag)
-	myString = fmt.Sprintf(" UPDATE mysql_servers SET status='ONLINE' %s WHERE hostgroup_id=%d AND hostname='%s' AND port=%d",myString, hg, ip, port)
+		dataNode.Weight, dataNode.MaxConnection, dataNode.MaxReplicationLag, dataNode.MaxReplicationLag)
+	myString = fmt.Sprintf(" UPDATE mysql_servers SET status='ONLINE' %s WHERE hostgroup_id=%d AND hostname='%s' AND port=%d", myString, hg, ip, port)
 	log.Debug(fmt.Sprintf("Preparing for node  %s:%d HG:%d SQL: %s", ip, port, hg, myString))
 	return myString
 
@@ -602,4 +598,3 @@ func (hgw *Hostgroup) init(id int, hgType string, size int) *Hostgroup {
 
 	return hg
 }
-

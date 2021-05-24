@@ -1,4 +1,3 @@
-
 /*
  * Copyright (c) Marco Tusa 2021 - present
  *                     GNU GENERAL PUBLIC LICENSE

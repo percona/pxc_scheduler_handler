@@ -1,4 +1,3 @@
-
 /*
  * Copyright (c) Marco Tusa 2021 - present
  *                     GNU GENERAL PUBLIC LICENSE
@@ -33,7 +32,6 @@ import (
 	"time"
 )
 
-
 type Locker interface {
 	Init(config *global.Configuration) bool
 	CheckFileLock() *ProxySQLNodeImpl
@@ -43,7 +41,6 @@ type Locker interface {
 	SetLockFile() bool
 	RemoveLockFile() bool
 }
-
 
 type (
 	//LockerImpl is the Object handling the Lock at cluster level and the local process for the node demanded to run the scheduler
@@ -197,7 +194,7 @@ func (locker *LockerImpl) findLock(nodes map[string]ProxySQLNodeImpl) (map[strin
 			//convert nanoseconds to seconds
 			lockTime := (locker.ClusterCurrentLockTime - node.LastLockTime) / 1000000000
 
-			log.Debug(fmt.Sprintf("processing node %s with locktime %d cluster lock time %d ",node.Dns, node.LastLockTime, locker.ClusterLastLockTime ))
+			log.Debug(fmt.Sprintf("processing node %s with locktime %d cluster lock time %d ", node.Dns, node.LastLockTime, locker.ClusterLastLockTime))
 			if lockTime > locker.LockClusterTimeout {
 				log.Debug(fmt.Sprintf("The lock on node %s has expired from %d seconds", node.Dns, lockTime))
 				node.IsLockExpired = true
@@ -212,7 +209,7 @@ func (locker *LockerImpl) findLock(nodes map[string]ProxySQLNodeImpl) (map[strin
 				winningNode = node.Dns
 			}
 		}
-		log.Debug(fmt.Sprintf("Winning node %s",winningNode))
+		log.Debug(fmt.Sprintf("Winning node %s", winningNode))
 		nodes[node.Dns] = node
 	}
 
@@ -327,4 +324,3 @@ func (locker *LockerImpl) RemoveLockFile() bool {
 	}
 	return true
 }
-

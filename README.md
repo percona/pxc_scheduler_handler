@@ -206,9 +206,11 @@ OS = "na"
 - sslCa : "ca.pem" In case of use of SSL for backend we need to be able to use the right credential
 - sslCertificatePath : ["/full-path/ssl_test"] Full path for the SSL certificates
 - hgW : Writer HG
-- hgR : Reader HG 
-- bckHgW : Backup HG in the 8XXX range (hgW + 8000)
-- bckHgR :  Backup HG in the 8XXX range (hgR + 8000)
+- hgR : Reader HG
+- ConfigHgRange : The value that should be used to calculate the Configuration Host Groups. This was 8000 hard-coded,  and now configurable `default:8000`
+- MaintenanceHgRange : The value that should be used to calculate the Maintenance Host Groups. This was 9000 hard-coded,  and now configurable `default:9000`
+- ~~bckHgW : Backup HG in the 8XXX range (hgW + 8000)~~ DEPRECATED A warning is raised in the log
+- ~~bckHgR :  Backup HG in the 8XXX range (hgR + 8000)~~ DEPRECATED A warning is raised in the log
 - singlePrimary : [true] This is the recommended way, always use Galera in Single Primary to avoid write conflicts
 - maxNumWriters : [1] If SinglePrimary is false you can define how many nodes to have as Writers at the same time
 - writerIsAlsoReader : [1] Possible values 0 - 1. The default is 1, if you really want to exclude the writer from read set it to 0. When the cluster will lose its last reader, the writer will be elected as Reader, no matter what. 

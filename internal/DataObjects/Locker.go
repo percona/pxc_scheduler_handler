@@ -75,6 +75,7 @@ func (locker *LockerImpl) Init(config *global.Configuration) bool {
 	locker.MyServerIp = config.Proxysql.Host
 	locker.MyServerPort = config.Proxysql.Port
 	var MyServer = new(ProxySQLNodeImpl)
+	MyServer.Config = config
 	locker.MyServer = MyServer
 	locker.MyServer.Ip = locker.MyServerIp
 	locker.FileLockPath = config.Proxysql.LockFilePath

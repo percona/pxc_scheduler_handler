@@ -103,7 +103,7 @@ func main() {
 		//Return our full configuration from file
 		var config = global.GetConfig(currPath + configFile)
 
-		//Let us do a sanity check on the configuration to prevent most obvious issues
+		//Let us do a sanity check on the configuration to prevent most obvious issues and normalize some params
 		if !config.SanityCheck() {
 			os.Exit(1)
 		}

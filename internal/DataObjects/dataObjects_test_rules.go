@@ -223,12 +223,12 @@ func rulesTestCheckBackPrimary(myArgs args, clusterNode testClusterNodeImpl) []r
 	testDataNode = changeDataObjectAnyAttribute(testDataNode, "HostgroupId", valueGeneric{Int64: 9100})
 
 	myRules := []rule{
-		{"Back online Node from 9000 HG no changes", clusterNode, args{testDataNode, testDataNode.Hostgroups[0]}, true},
-		{"Back online Node from 9000 HG change WsrepStatus", clusterNode, args{changeDataObjectAnyAttribute(testDataNode, "WsrepStatus", valueGeneric{Int64: 2}), testDataNode.Hostgroups[0]}, false},
-		{"Back online Node from 9000 HG change HostgroupId", clusterNode, args{changeDataObjectAnyAttribute(testDataNode, "HostgroupId", valueGeneric{Int64: 100}), testDataNode.Hostgroups[0]}, false},
-		{"Back online Node from 9000 HG change WsrepClusterStatus", clusterNode, args{changeDataObjectAnyAttribute(testDataNode, "WsrepClusterStatus", valueGeneric{myString: "Not Primary"}), testDataNode.Hostgroups[0]}, false},
-		{"Back online Node from 9000 HG change PxcMaintMode", clusterNode, args{changeDataObjectAnyAttribute(testDataNode, "PxcMaintMode", valueGeneric{myString: "MAINTENANCE"}), testDataNode.Hostgroups[0]}, false},
-		{"Back online Node from 9000 HG change WsrepRejectqueries", clusterNode, args{changeDataObjectAnyAttribute(testDataNode, "WsrepRejectqueries", valueGeneric{Bool: true}), testDataNode.Hostgroups[0]}, false},
+		{"Back online Node from Maintenance HG no changes", clusterNode, args{testDataNode, testDataNode.Hostgroups[0]}, true},
+		{"Back online Node from Maintenance HG change WsrepStatus", clusterNode, args{changeDataObjectAnyAttribute(testDataNode, "WsrepStatus", valueGeneric{Int64: 2}), testDataNode.Hostgroups[0]}, false},
+		{"Back online Node from Maintenance HG change HostgroupId", clusterNode, args{changeDataObjectAnyAttribute(testDataNode, "HostgroupId", valueGeneric{Int64: 100}), testDataNode.Hostgroups[0]}, false},
+		{"Back online Node from Maintenance HG change WsrepClusterStatus", clusterNode, args{changeDataObjectAnyAttribute(testDataNode, "WsrepClusterStatus", valueGeneric{myString: "Not Primary"}), testDataNode.Hostgroups[0]}, false},
+		{"Back online Node from Maintenance HG change PxcMaintMode", clusterNode, args{changeDataObjectAnyAttribute(testDataNode, "PxcMaintMode", valueGeneric{myString: "MAINTENANCE"}), testDataNode.Hostgroups[0]}, false},
+		{"Back online Node from Maintenance HG change WsrepRejectqueries", clusterNode, args{changeDataObjectAnyAttribute(testDataNode, "WsrepRejectqueries", valueGeneric{Bool: true}), testDataNode.Hostgroups[0]}, false},
 	}
 	return myRules
 }

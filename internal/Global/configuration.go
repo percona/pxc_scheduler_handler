@@ -78,13 +78,18 @@ type PxcCluster struct {
 	WriterIsAlsoReader     int
 	HgW                    int
 	HgR                    int
-	ConfigHgRange		   int `default:8000`
-	MaintenanceHgRange     int `default:9000`
-	BckHgW                 int `default:0`
-	BckHgR                 int `default:0`
+	ConfigHgRange		   int `default:"8000"`
+	MaintenanceHgRange     int `default:"9000"`
+	BckHgW                 int `default:"0"`
+	BckHgR                 int `default:"0"`
 	SingleWriter           int
 	MaxWriters             int
-	PersistPrimarySettings int `default:0`
+	PersistPrimarySettings int `default:"0"`
+}
+func (conf *Configuration) fillDefaults(){
+	conf.Pxcluster.MaintenanceHgRange = 9000
+	conf.Pxcluster.ConfigHgRange = 8000
+	conf.Pxcluster.PersistPrimarySettings = 0
 }
 
 //ProxySQL configuration class
@@ -114,6 +119,7 @@ type GlobalScheduler struct {
 //Methods to return the config as map
 func GetConfig(path string) Configuration {
 	var config Configuration
+	config.fillDefaults()
 	if _, err := toml.DecodeFile(path, &config); err != nil {
 		fmt.Println(err)
 		syscall.Exit(2)
@@ -122,6 +128,15 @@ func GetConfig(path string) Configuration {
 }
 
 func (conf *Configuration) SanityCheck() bool {
+	//check for defaults
+	//if conf.Pxcluster.MaintenanceHgRange == 0 {
+	//	conf.Pxcluster.MaintenanceHgRange = 9000
+	//}
+	//if conf.Pxcluster.ConfigHgRange == 0 {
+	//	conf.Pxcluster.ConfigHgRange = 8000
+	//}
+
+
 	//check for single primary and writer is also reader
 	if conf.Pxcluster.MaxNumWriters > 1 &&
 		conf.Pxcluster.SinglePrimary {

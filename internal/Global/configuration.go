@@ -128,15 +128,6 @@ func GetConfig(path string) Configuration {
 }
 
 func (conf *Configuration) SanityCheck() bool {
-	//check for defaults
-	//if conf.Pxcluster.MaintenanceHgRange == 0 {
-	//	conf.Pxcluster.MaintenanceHgRange = 9000
-	//}
-	//if conf.Pxcluster.ConfigHgRange == 0 {
-	//	conf.Pxcluster.ConfigHgRange = 8000
-	//}
-
-
 	//check for single primary and writer is also reader
 	if conf.Pxcluster.MaxNumWriters > 1 &&
 		conf.Pxcluster.SinglePrimary {

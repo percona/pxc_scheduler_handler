@@ -57,6 +57,7 @@ type DataCluster interface {
 	checkUpSaveRetry(node DataNodeImpl, currentHg Hostgroup) bool
 	checkBackNew(node DataNodeImpl) bool
 	checkBackPrimary(node DataNodeImpl, currentHg Hostgroup) bool
+	checkBackDesyncButUnderReplicaLag(node DataNodeImpl, currentHg Hostgroup) bool
 	checkReadOnly(node DataNodeImpl, currentHg Hostgroup) bool
 	checkPxcMaint(node DataNodeImpl, currentHg Hostgroup) bool
 	checkDonorReject(node DataNodeImpl, currentHg Hostgroup) bool
@@ -912,6 +913,9 @@ func (cluster *DataClusterImpl) evaluateNode(node DataNodeImpl) DataNodeImpl {
 				return node
 			}
 
+			if cluster.checkBackDesyncButUnderReplicaLag(node, currentHg){
+				return node;
+			}
 			//# in the case node is not in one of the declared state
 			//# BUT it has the counter retry set THEN I reset it to 0 whatever it was because
 			//# I assume it is ok now
@@ -990,17 +994,18 @@ func (cluster *DataClusterImpl) checkBackPrimary(node DataNodeImpl, currentHg Ho
 }
 
 func (cluster *DataClusterImpl) checkBackDesyncButUnderReplicaLag(node DataNodeImpl, currentHg Hostgroup) bool {
-	if node.HostgroupId >= cluster.MaintenanceHgRange &&
+	if node.HostgroupId < cluster.MaintenanceHgRange &&
 		node.WsrepStatus == 2 &&
 		!node.WsrepRejectqueries &&
 		node.PxcMaintMode == "DISABLED" &&
+		node.ProxyStatus == "OFFLINE_SOFT" &&
 		node.WsrepClusterStatus == "Primary" {
 		if node.MaxReplicationLag > 0 &&
 			node.WsrepLocalRecvQueue < (node.MaxReplicationLag/2){
 			if cluster.RetryUp > 0 {
 				node.RetryUp++
 			}
-			node.ActionType = node.MOVE_UP_HG_CHANGE()
+			node.ActionType = node.MOVE_UP_OFFLINE()
 			cluster.ActionNodes[strconv.Itoa(node.HostgroupId)+"_"+node.Dns] = node
 			log.Infof("Node: %s %s HG: %d Type: %s  coming back ONLINE from previous Offline Special Host %d given wsrep_local_recv_queue(%d) is less than HALF of the  MaxReplicationLag(%d) ",
 				node.Dns,
@@ -1112,6 +1117,7 @@ func (cluster *DataClusterImpl) checkAnyNotReadyStatus(node DataNodeImpl, curren
 }
 
 func (cluster *DataClusterImpl) checkWsrepDesync(node DataNodeImpl, currentHg Hostgroup) bool {
+	var act bool = false
 	if node.WsrepStatus == 2 &&
 		!node.ReadOnly &&
 		node.ProxyStatus != "OFFLINE_SOFT" {
@@ -1121,9 +1127,16 @@ func (cluster *DataClusterImpl) checkWsrepDesync(node DataNodeImpl, currentHg Ho
 			node.ActionType = node.NOTHING_TO_DO()
 			//return node
 		} else {
+			//If we have desync but the MaxReplicationLAag is set then we evaluate it
 			if node.MaxReplicationLag > 0 &&
 				node.WsrepLocalRecvQueue > node.MaxReplicationLag {
 				//if cluster retry > 0 then we manage the node as well
+				act = true
+			}else if node.MaxReplicationLag == 0 {
+				act = true
+			}
+
+			if act{
 				if cluster.RetryDown > 0 {
 					node.RetryDown++
 				}

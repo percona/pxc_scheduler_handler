@@ -147,7 +147,7 @@ func (conf *Configuration) SanityCheck() bool {
 	//check for HG consistency
 	// here HG and backup HG must match
 
-	if conf.Pxcluster.BckHgW > 0 || conf.Pxcluster.BckHgR > 0 {
+	if conf.Pxcluster.BckHgW >= 0 || conf.Pxcluster.BckHgR >= 0 {
 		log.SetReportCaller(false)
 		log.Warning(fmt.Sprintf("Configuration hostgroups (BckHgW & BckHgR) options are DEPRECATED Please configure only ConfigHgRange instead. IE HGw=%d, HGr=%d, ConfigHgRange=%d",
 			conf.Pxcluster.HgW,

@@ -152,6 +152,7 @@ type DataNodeImpl struct {
 	WsrepProvider           map[string]string
 	WsrepReady              bool
 	WsrepRejectqueries      bool
+	WsrepLocalRecvQueue		int
 	WsrepSegment            int
 	WsrepStatus             int
 	WsrepClusterSize        int
@@ -980,19 +981,39 @@ func (cluster *DataClusterImpl) checkBackPrimary(node DataNodeImpl, currentHg Ho
 		}
 		node.ActionType = node.MOVE_UP_HG_CHANGE()
 		cluster.ActionNodes[strconv.Itoa(node.HostgroupId)+"_"+node.Dns] = node
-		//Replace the one above with the Backup Node to be sure we keep the default settings
-		//var bkNode DataNodeImpl
-		//if node.HostgroupId == cluster.HgWriterId + cluster.MaintenanceHgRange {
-		//	bkNode = cluster.BackupWriters[node.Dns]
-		//}else {
-		//	bkNode = cluster.BackupReaders[node.Dns]
-		//}
-		//bkNode.ActionType = node.MOVE_UP_HG_CHANGE()
-		//cluster.ActionNodes[strconv.Itoa(node.HostgroupId)+"_"+node.Dns] = bkNode
+
 		log.Info("Node: ", node.Dns, " ", node.WsrepNodeName, " HG: ", currentHg.Id, " Type ", currentHg.Type, " coming back ONLINE from previous Offline Special Host Group ",
 			node.HostgroupId)
 		return true
 	}
+	return false
+}
+
+func (cluster *DataClusterImpl) checkBackDesyncButUnderReplicaLag(node DataNodeImpl, currentHg Hostgroup) bool {
+	if node.HostgroupId >= cluster.MaintenanceHgRange &&
+		node.WsrepStatus == 2 &&
+		!node.WsrepRejectqueries &&
+		node.PxcMaintMode == "DISABLED" &&
+		node.WsrepClusterStatus == "Primary" {
+		if node.MaxReplicationLag > 0 &&
+			node.WsrepLocalRecvQueue < (node.MaxReplicationLag/2){
+			if cluster.RetryUp > 0 {
+				node.RetryUp++
+			}
+			node.ActionType = node.MOVE_UP_HG_CHANGE()
+			cluster.ActionNodes[strconv.Itoa(node.HostgroupId)+"_"+node.Dns] = node
+			log.Infof("Node: %s %s HG: %d Type: %s  coming back ONLINE from previous Offline Special Host %d given wsrep_local_recv_queue(%d) is less than HALF of the  MaxReplicationLag(%d) ",
+				node.Dns,
+				node.WsrepNodeName,
+				currentHg.Id,
+				currentHg.Type,
+				node.HostgroupId,
+				node.WsrepLocalRecvQueue,
+				node.MaxReplicationLag)
+			return true
+		}
+	}
+
 	return false
 }
 
@@ -1099,15 +1120,19 @@ func (cluster *DataClusterImpl) checkWsrepDesync(node DataNodeImpl, currentHg Ho
 				" But I will not move to OFFLINE_SOFT given last node left in the Host group")
 			node.ActionType = node.NOTHING_TO_DO()
 			//return node
-		} else { //if cluster retry > 0 then we manage the node as well
-			if cluster.RetryDown > 0 {
-				node.RetryDown++
+		} else {
+			if node.MaxReplicationLag > 0 &&
+				node.WsrepLocalRecvQueue > node.MaxReplicationLag {
+				//if cluster retry > 0 then we manage the node as well
+				if cluster.RetryDown > 0 {
+					node.RetryDown++
+				}
+				node.ActionType = node.MOVE_DOWN_OFFLINE()
+				cluster.ActionNodes[strconv.Itoa(node.HostgroupId)+"_"+node.Dns] = node
+				log.Warning("Node: ", node.Dns, " ", node.WsrepNodeName, " HG: ", currentHg.Id, " Type ", currentHg.Type, " is in state ", node.WsrepStatus,
+					" moving it to OFFLINE_SOFT given we have other nodes in the Host group")
+				return true
 			}
-			node.ActionType = node.MOVE_DOWN_OFFLINE()
-			cluster.ActionNodes[strconv.Itoa(node.HostgroupId)+"_"+node.Dns] = node
-			log.Warning("Node: ", node.Dns, " ", node.WsrepNodeName, " HG: ", currentHg.Id, " Type ", currentHg.Type, " is in state ", node.WsrepStatus,
-				" moving it to OFFLINE_SOFT given we have other nodes in the Host group")
-			return true
 		}
 
 	}
@@ -1993,6 +2018,7 @@ func (node *DataNodeImpl) setParameters() {
 
 	node.WsrepClusterName = node.Variables["wsrep_cluster_name"]
 	node.WsrepClusterStatus = node.Status["wsrep_cluster_status"]
+	node.WsrepLocalRecvQueue = global.ToInt(node.Status["wsrep_local_recv_queue"])
 	node.WsrepNodeName = node.Variables["wsrep_node_name"]
 	node.WsrepClusterSize = global.ToInt(node.Status["wsrep_cluster_size"])
 	node.WsrepPcWeight = global.ToInt(node.WsrepProvider["pc.weight"])

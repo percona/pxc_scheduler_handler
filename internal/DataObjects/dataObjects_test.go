@@ -210,6 +210,31 @@ func TestDataClusterImpl_checkBackOffLine(t *testing.T) {
 	}
 }
 
+func TestDataClusterImpl_checkBackDesyncButUnderReplicaLag(t *testing.T) {
+	var tests = []rule{}
+
+	clusterNode := testClusterFactory()
+	testDataNode := clusterNode.testDataNodeFactory()
+	currentHg := getHg()
+	testDataNode.Hostgroups = []Hostgroup{currentHg}
+
+	myArgs := args{testDataNode, testDataNode.Hostgroups[0]}
+
+	tests = rulesTestCheckBackDesyncButUnderReplicaLag(myArgs, clusterNode)
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cluster := clusterNode.clusterNodeImplFactory()
+			//t.Error( "aa ",tt.args.node.WsrepDonorrejectqueries, " ", tt.args.currentHg.Size)
+			if  got := cluster.checkBackDesyncButUnderReplicaLag(tt.args.node, tt.args.currentHg); got != tt.want {
+
+				t.Errorf(" %s checkBackDesyncButUnderReplicaLag() = %v, want %v", tt.name, got, tt.want)
+			}
+		})
+	}
+}
+
+
 func TestDataClusterImpl_checkBackNew(t *testing.T) {
 	var tests = []rule{}
 

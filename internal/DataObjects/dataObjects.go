@@ -1125,14 +1125,18 @@ func (cluster *DataClusterImpl) checkWsrepDesync(node DataNodeImpl, currentHg Ho
 			log.Warning("Node: ", node.Dns, " ", node.WsrepNodeName, " HG: ", currentHg.Id, " Type ", currentHg.Type, " is in state ", node.WsrepStatus,
 				" But I will not move to OFFLINE_SOFT given last node left in the Host group")
 			node.ActionType = node.NOTHING_TO_DO()
-			//return node
-		} else {
+			return false
+		} else if currentHg.Size > 1 {
 			//If we have desync but the MaxReplicationLAag is set then we evaluate it
-			if node.MaxReplicationLag > 0 &&
+			if node.MaxReplicationLag != 0 &&
 				node.WsrepLocalRecvQueue > node.MaxReplicationLag {
 				//if cluster retry > 0 then we manage the node as well
 				act = true
-			}else if node.MaxReplicationLag == 0 {
+			}else if node.MaxReplicationLag != 0 &&
+				node.WsrepLocalRecvQueue < node.MaxReplicationLag {
+				//if cluster retry > 0 then we manage the node as well
+				act = false
+			}else  {
 				act = true
 			}
 

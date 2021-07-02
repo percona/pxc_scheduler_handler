@@ -36,6 +36,7 @@ Here we will test all the methods the checker use to decide if a node should go 
 func rulesTestCheckWsrepDesync(myArgs args, clusterNode testClusterNodeImpl) []rule {
 	testDataNode := myArgs.node
 
+
 	myRules := []rule{
 		{"No change W", clusterNode, args{testDataNode, testDataNode.Hostgroups[0]}, false},
 		{"Change in W but only 1", clusterNode, args{
@@ -51,6 +52,23 @@ func rulesTestCheckWsrepDesync(myArgs args, clusterNode testClusterNodeImpl) []r
 		{"Change in R and 2 in HG", clusterNode, args{
 			changeDataObjectAnyAttribute(testDataNode, "WsrepStatus", valueGeneric{Int64: 2}),
 			changeHostgGroupStringAttribute(changeHostgGroupIntAttribute(testDataNode.Hostgroups[0], "Size", 2), "Type", "R")}, true},
+
+		{"Change 2 HG R and Local Replica queue > MaxReplicationLag", clusterNode, args{
+			changeDataObjectAnyAttribute(
+				   			changeDataObjectAnyAttribute(
+													changeDataObjectAnyAttribute(testDataNode, "WsrepStatus", valueGeneric{Int64: 2}),
+					 "WsrepLocalRecvQueue",valueGeneric{Int64: 200}),
+		   "MaxReplicationLag",valueGeneric{Int64: 100}),
+			changeHostgGroupStringAttribute(changeHostgGroupIntAttribute(testDataNode.Hostgroups[0], "Size", 2), "Type", "R")}, true},
+
+		{"Change 2 HG R and Local Replica queue < MaxReplicationLag", clusterNode, args{
+			changeDataObjectAnyAttribute(
+				changeDataObjectAnyAttribute(
+					changeDataObjectAnyAttribute(testDataNode, "WsrepStatus", valueGeneric{Int64: 2}),
+					"WsrepLocalRecvQueue",valueGeneric{Int64: 20}),
+				"MaxReplicationLag",valueGeneric{Int64: 100}),
+			changeHostgGroupStringAttribute(changeHostgGroupIntAttribute(testDataNode.Hostgroups[0], "Size", 2), "Type", "R")}, false},
+
 	}
 	return myRules
 }
@@ -203,6 +221,32 @@ func rulesTestCheckBackOffLine(myArgs args, clusterNode testClusterNodeImpl) []r
 	return myRules
 }
 
+
+func rulesTestCheckBackDesyncButUnderReplicaLag(myArgs args, clusterNode testClusterNodeImpl) []rule {
+	testDataNode := myArgs.node
+	testDataNode = changeDataObjectAnyAttribute(testDataNode, "WsrepStatus", valueGeneric{Int64: 4})
+	testDataNode = changeDataObjectAnyAttribute(testDataNode, "ProxyStatus", valueGeneric{myString: "OFFLINE_SOFT"})
+	testDataNode = changeDataObjectAnyAttribute(testDataNode, "WsrepClusterStatus", valueGeneric{myString: "Primary"})
+	testDataNode = changeDataObjectAnyAttribute(testDataNode, "PxcMaintMode", valueGeneric{myString: "DISABLED"})
+	testDataNode = changeDataObjectAnyAttribute(testDataNode, "WsrepRejectqueries", valueGeneric{Bool: false})
+
+	myRules := []rule{
+
+		{"Back from OFFLINE_SOFT no changes ", clusterNode, args{testDataNode, testDataNode.Hostgroups[0]}, false},
+		{"Back from OFFLINE_SOFT  when Local Replica queue < of 50% MaxReplicationLag", clusterNode, args{
+			changeDataObjectAnyAttribute(
+				changeDataObjectAnyAttribute(
+					changeDataObjectAnyAttribute(testDataNode, "WsrepStatus", valueGeneric{Int64: 2}),
+					"WsrepLocalRecvQueue",valueGeneric{Int64: 49}),
+				"MaxReplicationLag",valueGeneric{Int64: 100}),
+			changeHostgGroupStringAttribute(changeHostgGroupIntAttribute(testDataNode.Hostgroups[0], "Size", 2), "Type", "R")}, true},
+	}
+	return myRules
+}
+
+
+
+
 func rulesTestCheckBackNew(myArgs args, clusterNode testClusterNodeImpl) []rule {
 	testDataNode := myArgs.node
 
@@ -351,6 +395,8 @@ type testClusterNodeImpl struct {
 	BackupWriters          map[string]DataNodeImpl
 	BackupHgReaderId       int
 	BakcupHgWriterId       int
+	ConfigHgRange		   int
+	MaintenanceHgRange	   int
 	CheckTimeout           int
 	ClusterIdentifier      int
 	ClusterSize            int
@@ -414,7 +460,7 @@ func (clusterNode testClusterNodeImpl) testDataNodeFactoryDns(dns string) DataNo
 		Ip:                "127.0.0.1",
 		MaxConnection:     300,
 		MaxLatency:        100,
-		MaxReplicationLag: 100,
+		MaxReplicationLag: 0,
 		Name:              "testNode",
 		NodeTCPDown:       false,
 		Password:          "password",
@@ -462,6 +508,8 @@ func testClusterFactory() testClusterNodeImpl {
 		BackupWriters:          make(map[string]DataNodeImpl),
 		BackupHgReaderId:       8101,
 		BakcupHgWriterId:       8100,
+		ConfigHgRange:			8000,
+		MaintenanceHgRange:     9000,
 		CheckTimeout:           60,
 		ClusterIdentifier:      10,
 		ClusterSize:            3,
@@ -584,6 +632,8 @@ func (tt *testClusterNodeImpl) clusterNodeImplFactory() *DataClusterImpl {
 		BackupWriters:     tt.BackupWriters,
 		BackupHgReaderId:  tt.BackupHgReaderId,
 		BakcupHgWriterId:  tt.BakcupHgWriterId,
+		ConfigHgRange:	   tt.ConfigHgRange,
+		MaintenanceHgRange:tt.MaintenanceHgRange,
 		CheckTimeout:      tt.CheckTimeout,
 		ClusterIdentifier: tt.ClusterIdentifier,
 		ClusterSize:       tt.ClusterSize,

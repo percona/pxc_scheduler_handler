@@ -291,6 +291,7 @@ func (locker *LockerImpl) SetLockFile() bool {
 	}
 	fullFile := locker.FileLockPath + string(os.PathSeparator) + locker.FileLock
 	if _, err := os.Stat(fullFile); err == nil && !locker.isLooped {
+		log.Error("A lock file named: %s  already exists.\n If this is a refuse of a dirty execution remove it manually to have the check able to run\n", fullFile)
 		fmt.Printf("A lock file named: %s  already exists.\n If this is a refuse of a dirty execution remove it manually to have the check able to run\n", fullFile)
 		return false
 	} else {

@@ -1,5 +1,27 @@
 ![logo](./docs/pxc_scheduler_handler.png "Logo")
 
+- [Concept](#concept)
+  * [Understand the HGs relation](#understand-the-hgs-relation)
+  * [Failover](#failover)
+  * [Failback](#failback)
+  * [Other notes about how nodes are managed](#other-notes-about-how-nodes-are-managed)
+- [Working with ProxySQL cluster](#working-with-proxysql-cluster)
+  * [Related Parameters](#related-parameters)
+  * [Example of proxySql setup](#example-of-proxysql-setup)
+- [How to configure PXC Scheduler Handler](#how-to-configure-pxc-scheduler-handler)
+  * [Global](#global)
+  * [ProxySQL](#proxysql)
+  * [Pxccluster](#pxccluster)
+    + [Persist Primary Values](#persist-primary-values)
+    + [Specify custom Configuration and Maintenance Hostgroups](#specify-custom-configuration-and-maintenance-hostgroups)
+    + [Use of max_replication_lag to handle Desync state](#use-of-max-replication-lag-to-handle-desync-state)
+- [Examples of configurations in ProxySQL](#examples-of-configurations-in-proxysql)
+- [Logic Rules used in the check](#logic-rules-used-in-the-check)
+- [Security settings](#security-settings)
+- [Download and compile from source](#download-and-compile-from-source)
+- [Release Notes](#release-notes)
+- [Details](#details)
+
 ## Concept
 PXC Scheduler Handler is an application that can run as standalone or invoked from ProxySQL scheduler. Its function is to manage integration between ProxySQL and Galera (from Codership), including its different implementations like PXC.
 The scope of PXC Scheduler Handler is to maintain the ProxySQL mysql_server table, in a way that the PXC cluster managed will suffer of minimal negative effects due to possible data node: failures, service degradation and maintenance.
@@ -40,7 +62,7 @@ In our example:
 The settings used in the 8XXX HGs like weight, use of SSL etc. are used as templates when in the need to deal with the nodes in the managed HGs (10, 11). This is it, settings in 8010/11 are persistent, the ones in 10/11 are not.
 
 
-## Failover
+### Failover
 A fail-over will occur anytime a Primary writer node will need to be demoted. This can be for planned maintenance as well as a node crash. To be able to fail-over PXC Scheduler Handler require to have valid Node(s) in the corresponding 8XXX HostGroup (8000 + original HG id).
 Given that assume we have:
 ```editorconfig
@@ -56,7 +78,7 @@ PXC Scheduler Handler by default IS NOT doing failback, this is by design. Never
 What is a failback? Assume you have only ONE writer (Primary writer) elected because its weight is the highest in the 8XXX writer HG. If this node is removed another will take its place. When the original Node will come back and failback is active, this node will be re-elected as Primary, while the one who take its place is moved to OFFLINE_SOFT.
 Why failback is bad? Because with automatic failback, your resurrecting node will be immediately move to production. This is not a good practice when in real production environment, because normally is better to warmup the Buffer-Pool to reduce the access to storage layer, and then move the node as Primary writer.
 
-## Other notes about how nodes are managed
+### Other notes about how nodes are managed
 If a node is the only one in a segment, the check will behave accordingly. IE if a node is the only one in the MAIN segment, it will not put the node in OFFLINE_SOFT when the node become donor to prevent the cluster to become unavailable for the applications. As mention is possible to declare a segment as MAIN, quite useful when managing prod and DR site.
 
 The check can be configure to perform retry in a X interval. Where X is the time define in the ProxySQL scheduler. As such if the check is set to have 2 retry for UP and 4 for down, it will loop that number before doing anything.
@@ -113,7 +135,7 @@ Implementation may be different than what is listed right now:
 None of the above is implemented
 
 
-## Example of proxySql setup 
+### Example of proxySql setup 
 Assuming we have 3 nodes:
 - node4 : `192.168.4.22`
 - node5 : `192.168.4.23`
@@ -165,7 +187,7 @@ First let us see what we have:
     - pxccluster
     - proxysql
     
-### Global:
+### Global
 ```[global]
 debug = true
 logLevel = "debug"
@@ -276,7 +298,7 @@ Both Read and Write values are changed.
 
 This will help in keeping consistent the behaviour of the node acting as Primary. 
 
-### Specify custom Configuration and Maintenance Hostgroups
+#### Specify custom Configuration and Maintenance Hostgroups
 ***(from version [1.2.0]())*** </br>
 This feature [FR-28](https://github.com/Tusamarco/pxc_scheduler_handler/issues/28),
 was requesting to have the values of the two special groups (8000 and 9000) configurable.
@@ -315,7 +337,7 @@ INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,com
 LOAD MYSQL SERVERS TO RUNTIME; SAVE MYSQL SERVERS TO DISK;    
 ```
 
-### Use of max_replication_lag to handle Desync state
+#### Use of max_replication_lag to handle Desync state
 ***(from version [1.2.0]())*** </br>
 [FR-30](https://github.com/Tusamarco/pxc_scheduler_handler/issues/30)  was asking to have the possibility to do not alter the status of a node when it is Desync IF a value for `max_replication_lag` is specified.
 The original behaviour was that any node in `desync` state and with another node in the same hostgroup, is moved to `OFFLINE_SOFT`.
@@ -359,7 +381,7 @@ update scheduler set active=1 where id=10;
 LOAD SCHEDULER TO RUNTIME;
 ```
 
-## Logic Rules used in the check:
+## Logic Rules used in the check
 Set to offline_soft :
 
 - any non 4 or 2 state, read only =ON donor node reject queries - 0 size of cluster > 2 of nodes in the same segments more then one writer, node is NOT read_only
@@ -421,7 +443,7 @@ The script will auto-loop as if call by the scheduler.
 ## Release Notes
 see [release notes](releases.md)
 
-#### Details
+## Details
 
 
 ![function flow](./docs/flow-Funtions-calls-flow.png "Function flow")

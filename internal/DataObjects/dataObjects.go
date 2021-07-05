@@ -57,6 +57,7 @@ type DataCluster interface {
 	checkUpSaveRetry(node DataNodeImpl, currentHg Hostgroup) bool
 	checkBackNew(node DataNodeImpl) bool
 	checkBackPrimary(node DataNodeImpl, currentHg Hostgroup) bool
+	checkBackDesyncButUnderReplicaLag(node DataNodeImpl, currentHg Hostgroup) bool
 	checkReadOnly(node DataNodeImpl, currentHg Hostgroup) bool
 	checkPxcMaint(node DataNodeImpl, currentHg Hostgroup) bool
 	checkDonorReject(node DataNodeImpl, currentHg Hostgroup) bool
@@ -152,6 +153,7 @@ type DataNodeImpl struct {
 	WsrepProvider           map[string]string
 	WsrepReady              bool
 	WsrepRejectqueries      bool
+	WsrepLocalRecvQueue		int
 	WsrepSegment            int
 	WsrepStatus             int
 	WsrepClusterSize        int
@@ -170,6 +172,7 @@ type DataClusterImpl struct {
 	BackupWriters     map[string]DataNodeImpl
 	BackupHgReaderId  int
 	BakcupHgWriterId  int
+	ConfigHgRange     int
 	CheckTimeout      int
 	ClusterIdentifier int //cluster_id
 	ClusterSize       int
@@ -192,6 +195,7 @@ type DataClusterImpl struct {
 	NodesPxc               *SyncMap //[string] DataNodeImpl // <ip:port,datanode>
 	NodesPxcMaint          []DataNodeImpl
 	MaxNumWriters          int
+	MaintenanceHgRange     int
 	OffLineReaders         map[string]DataNodeImpl
 	OffLineWriters         map[string]DataNodeImpl
 	OffLineHgReaderID      int
@@ -324,7 +328,7 @@ func (cluster *DataClusterImpl) init(config global.Configuration, connectionProx
 func (cluster *DataClusterImpl) getNodesInfo() bool {
 	var waitingGroup global.MyWaitGroup
 
-	//Before getting the information, we check if any node in the 8000 is gone lost and if so we try to add it back
+	//Before getting the information, we check if any node in the ConfigHgRange is gone lost and if so we try to add it back
 	cluster.NodesPxc.internal = cluster.checkMissingForNodes(cluster.NodesPxc.internal)
 
 	// Process the check by node
@@ -502,6 +506,8 @@ func (cluster *DataClusterImpl) getParametersFromProxySQL(config global.Configur
 	cluster.WriterIsReader = config.Pxcluster.WriterIsAlsoReader
 	cluster.RetryUp = config.Pxcluster.RetryUp
 	cluster.RetryDown = config.Pxcluster.RetryDown
+	cluster.ConfigHgRange = config.Pxcluster.ConfigHgRange
+	cluster.MaintenanceHgRange = config.Pxcluster.MaintenanceHgRange
 	//)
 	if log.GetLevel() == log.DebugLevel {
 		log.Debug("Cluster arguments ", " clusterid=", cluster.ClusterIdentifier,
@@ -517,8 +523,8 @@ func (cluster *DataClusterImpl) getParametersFromProxySQL(config global.Configur
 			" check_timeout:", cluster.CheckTimeout,
 			" main_segment:", cluster.MainSegment)
 	}
-	cluster.OffLineHgReaderID = 9000 + cluster.HgReaderId
-	cluster.OffLineHgWriterId = 9000 + cluster.HgWriterId
+	cluster.OffLineHgReaderID = cluster.MaintenanceHgRange + cluster.HgReaderId
+	cluster.OffLineHgWriterId = cluster.MaintenanceHgRange + cluster.HgWriterId
 	return true
 	//}
 
@@ -577,11 +583,11 @@ func (cluster *DataClusterImpl) consolidateNodes() bool {
 }
 
 /*
-We have only active HostGroups here like the R/W ones and the special 9000
+We have only active HostGroups here like the R/W ones and the special Maintenance
 */
 func (cluster *DataClusterImpl) consolidateHGs() bool {
-	specialWrite := cluster.HgWriterId + 9000
-	specialRead := cluster.HgReaderId + 9000
+	specialWrite := cluster.HgWriterId + cluster.MaintenanceHgRange
+	specialRead := cluster.HgReaderId + cluster.MaintenanceHgRange
 	hgM := map[int]Hostgroup{
 		cluster.HgWriterId: {
 			Id:    cluster.HgWriterId,
@@ -688,7 +694,7 @@ func (cluster *DataClusterImpl) cleanUpForLeftOver() bool {
 	//arrayOfMaps := [2]map[string]DataNodeImpl{cluster.WriterNodes, cluster.ReaderNodes}
 	for key, node := range cluster.WriterNodes {
 		if _, ok := cluster.OffLineWriters[key]; ok {
-			node.HostgroupId = cluster.HgWriterId + 9000
+			node.HostgroupId = cluster.HgWriterId + cluster.MaintenanceHgRange
 			node.ActionType = node.DELETE_NODE()
 			cluster.ActionNodes[strconv.Itoa(node.ActionType)+"_"+strconv.Itoa(node.HostgroupId)+"_"+node.Dns] = node
 			delete(cluster.OffLineWriters, key)
@@ -696,14 +702,14 @@ func (cluster *DataClusterImpl) cleanUpForLeftOver() bool {
 	}
 	for key, node := range cluster.ReaderNodes {
 		if _, ok := cluster.OffLineReaders[key]; ok {
-			node.HostgroupId = cluster.HgReaderId + 9000
+			node.HostgroupId = cluster.HgReaderId + cluster.MaintenanceHgRange
 			node.ActionType = node.DELETE_NODE()
 			cluster.ActionNodes[strconv.Itoa(node.ActionType)+"_"+strconv.Itoa(node.HostgroupId)+"_"+node.Dns] = node
 			delete(cluster.OffLineReaders, key)
 		}
 	}
 
-	//if we are working with Preserve Primary value we may need to reset the values in the 9000 HG
+	//if we are working with Preserve Primary value we may need to reset the values in the Maintenance HG
 	if cluster.PersistPrimarySettings > 0 {
 		for key, node := range cluster.OffLineWriters {
 			backupNode := cluster.BackupWriters[key]
@@ -786,8 +792,8 @@ func (cluster *DataClusterImpl) evaluateAllProcessedNodes() bool {
 				cluster.evaluateNode(node)
 
 			} else if node.ProxyStatus == "SHUNNED" &&
-				node.HostgroupId < 8000 {
-				//Any Shunned Node is moved to Special HG 9000
+				node.HostgroupId < cluster.ConfigHgRange {
+				//Any Shunned Node is moved to Special HG Maintenance
 				if cluster.RetryDown > 0 {
 					node.RetryDown++
 				}
@@ -799,10 +805,10 @@ func (cluster *DataClusterImpl) evaluateAllProcessedNodes() bool {
 				//	delete(cluster.WriterNodes,node.Dns)
 				//}
 				log.Warning("Node: ", node.Dns, " ", node.WsrepNodeName, " HG: ", cluster.Hostgroups[node.HostgroupId].Id, " Type ", cluster.Hostgroups[node.HostgroupId].Type, " is im PROXYSQL state ", node.ProxyStatus,
-					" moving it to HG ", node.HostgroupId+9000, " given SHUNNED")
+					" moving it to HG ", node.HostgroupId+cluster.MaintenanceHgRange, " given SHUNNED")
 
 			}
-			// Align with 8000 HGs
+			// Align with config HGs
 			cluster.alignBackupNode(node)
 		}
 	}
@@ -838,14 +844,14 @@ func (cluster *DataClusterImpl) evaluateNode(node DataNodeImpl) DataNodeImpl {
 			//# 2) Node is not read only
 			//# 3) at least another node in the HG
 
-			//ony node not in config HG or special 9000 will be processed
-			if node.HostgroupId < 9000 {
+			//ony node not in config HG or special Maintenance will be processed
+			if node.HostgroupId < cluster.MaintenanceHgRange {
 				// desync
 				if cluster.checkWsrepDesync(node, currentHg) {
 					return node
 				}
 
-				// Node is in unsafe state we will move to maintenance group 9000
+				// Node is in unsafe state we will move to maintenance group Maintenance
 				if cluster.checkAnyNotReadyStatus(node, currentHg) {
 					return node
 				}
@@ -899,7 +905,7 @@ func (cluster *DataClusterImpl) evaluateNode(node DataNodeImpl) DataNodeImpl {
 			}
 
 			/*
-				When a new node is coming in we do not put it online directly, but instead we will insert it in the special group 9000
+				When a new node is coming in we do not put it online directly, but instead we will insert it in the special group Maintenance
 				this will allow us to process it correctly and validate the state.
 				Then we will put online
 			*/
@@ -907,6 +913,9 @@ func (cluster *DataClusterImpl) evaluateNode(node DataNodeImpl) DataNodeImpl {
 				return node
 			}
 
+			if cluster.checkBackDesyncButUnderReplicaLag(node, currentHg){
+				return node;
+			}
 			//# in the case node is not in one of the declared state
 			//# BUT it has the counter retry set THEN I reset it to 0 whatever it was because
 			//# I assume it is ok now
@@ -919,7 +928,7 @@ func (cluster *DataClusterImpl) evaluateNode(node DataNodeImpl) DataNodeImpl {
 }
 
 func (cluster *DataClusterImpl) checkBackOffline(node DataNodeImpl, currentHg Hostgroup) (DataNodeImpl, bool) {
-	if node.HostgroupId < 8000 &&
+	if node.HostgroupId < cluster.ConfigHgRange &&
 		node.WsrepStatus == 4 &&
 		node.ProxyStatus == "OFFLINE_SOFT" &&
 		!node.WsrepRejectqueries &&
@@ -954,8 +963,8 @@ func (cluster *DataClusterImpl) checkUpSaveRetry(node DataNodeImpl, currentHg Ho
 
 func (cluster *DataClusterImpl) checkBackNew(node DataNodeImpl) bool {
 	if node.NodeIsNew &&
-		node.HostgroupId < 9000 {
-		node.HostgroupId = node.HostgroupId + 9000
+		node.HostgroupId < cluster.MaintenanceHgRange {
+		node.HostgroupId = node.HostgroupId + cluster.MaintenanceHgRange
 		node.ActionType = node.INSERT_READ()
 		cluster.ActionNodes[strconv.Itoa(node.HostgroupId)+"_"+node.Dns] = node
 		log.Info(fmt.Sprintf("I am going to re-insert a declared node in Backup HGs that went missed in ProxySQL mysql_server table "))
@@ -966,7 +975,7 @@ func (cluster *DataClusterImpl) checkBackNew(node DataNodeImpl) bool {
 }
 
 func (cluster *DataClusterImpl) checkBackPrimary(node DataNodeImpl, currentHg Hostgroup) bool {
-	if node.HostgroupId >= 9000 &&
+	if node.HostgroupId >= cluster.MaintenanceHgRange &&
 		node.WsrepStatus == 4 &&
 		!node.WsrepRejectqueries &&
 		node.PxcMaintMode == "DISABLED" &&
@@ -976,19 +985,40 @@ func (cluster *DataClusterImpl) checkBackPrimary(node DataNodeImpl, currentHg Ho
 		}
 		node.ActionType = node.MOVE_UP_HG_CHANGE()
 		cluster.ActionNodes[strconv.Itoa(node.HostgroupId)+"_"+node.Dns] = node
-		//Replace the one above with the Backup Node to be sure we keep the default settings
-		//var bkNode DataNodeImpl
-		//if node.HostgroupId == cluster.HgWriterId + 9000 {
-		//	bkNode = cluster.BackupWriters[node.Dns]
-		//}else {
-		//	bkNode = cluster.BackupReaders[node.Dns]
-		//}
-		//bkNode.ActionType = node.MOVE_UP_HG_CHANGE()
-		//cluster.ActionNodes[strconv.Itoa(node.HostgroupId)+"_"+node.Dns] = bkNode
+
 		log.Info("Node: ", node.Dns, " ", node.WsrepNodeName, " HG: ", currentHg.Id, " Type ", currentHg.Type, " coming back ONLINE from previous Offline Special Host Group ",
 			node.HostgroupId)
 		return true
 	}
+	return false
+}
+
+func (cluster *DataClusterImpl) checkBackDesyncButUnderReplicaLag(node DataNodeImpl, currentHg Hostgroup) bool {
+	if node.HostgroupId < cluster.MaintenanceHgRange &&
+		node.WsrepStatus == 2 &&
+		!node.WsrepRejectqueries &&
+		node.PxcMaintMode == "DISABLED" &&
+		node.ProxyStatus == "OFFLINE_SOFT" &&
+		node.WsrepClusterStatus == "Primary" {
+		if node.MaxReplicationLag > 0 &&
+			node.WsrepLocalRecvQueue < (node.MaxReplicationLag/2){
+			if cluster.RetryUp > 0 {
+				node.RetryUp++
+			}
+			node.ActionType = node.MOVE_UP_OFFLINE()
+			cluster.ActionNodes[strconv.Itoa(node.HostgroupId)+"_"+node.Dns] = node
+			log.Infof("Node: %s %s HG: %d Type: %s  coming back ONLINE from previous Offline Special Host %d given wsrep_local_recv_queue(%d) is less than HALF of the  MaxReplicationLag(%d) ",
+				node.Dns,
+				node.WsrepNodeName,
+				currentHg.Id,
+				currentHg.Type,
+				node.HostgroupId,
+				node.WsrepLocalRecvQueue,
+				node.MaxReplicationLag)
+			return true
+		}
+	}
+
 	return false
 }
 
@@ -1010,7 +1040,7 @@ func (cluster *DataClusterImpl) checkReadOnly(node DataNodeImpl, currentHg Hostg
 func (cluster *DataClusterImpl) checkPxcMaint(node DataNodeImpl, currentHg Hostgroup) bool {
 	if node.PxcMaintMode != "DISABLED" &&
 		node.ProxyStatus != "OFFLINE_SOFT" &&
-		node.HostgroupId < 8000 {
+		node.HostgroupId < cluster.ConfigHgRange {
 		node.ActionType = node.MOVE_DOWN_OFFLINE()
 		//when we do not increment retry is because we want an immediate action like in this case. So let us set the retry to max.
 		node.RetryDown = cluster.RetryDown + 1
@@ -1026,14 +1056,14 @@ func (cluster *DataClusterImpl) checkDonorReject(node DataNodeImpl, currentHg Ho
 	if node.WsrepDonorrejectqueries &&
 		node.WsrepStatus == 2 &&
 		currentHg.Size > 1 &&
-		node.HostgroupId < 8000 {
+		node.HostgroupId < cluster.ConfigHgRange {
 		if cluster.RetryDown > 0 {
 			node.RetryDown++
 		}
 		node.ActionType = node.MOVE_DOWN_HG_CHANGE()
 		cluster.ActionNodes[strconv.Itoa(node.HostgroupId)+"_"+node.Dns] = node
 		log.Warning("Node: ", node.Dns, " ", node.WsrepNodeName, " HG: ", currentHg.Id, " Type ", currentHg.Type, " has WSREP Reject queries active ",
-			"moving it to HG ", node.HostgroupId+9000)
+			"moving it to HG ", node.HostgroupId+cluster.MaintenanceHgRange)
 		return true
 
 	}
@@ -1042,14 +1072,14 @@ func (cluster *DataClusterImpl) checkDonorReject(node DataNodeImpl, currentHg Ho
 
 func (cluster *DataClusterImpl) checkRejectQueries(node DataNodeImpl, currentHg Hostgroup) bool {
 	if node.WsrepRejectqueries &&
-		node.HostgroupId < 8000 {
+		node.HostgroupId < cluster.ConfigHgRange {
 		if cluster.RetryDown > 0 {
 			node.RetryDown++
 		}
 		node.ActionType = node.MOVE_DOWN_HG_CHANGE()
 		cluster.ActionNodes[strconv.Itoa(node.HostgroupId)+"_"+node.Dns] = node
 		log.Warning("Node: ", node.Dns, " ", node.WsrepNodeName, " HG: ", currentHg.Id, " Type ", currentHg.Type, " has WSREP Reject queries active ",
-			"moving it to HG ", node.HostgroupId+9000)
+			"moving it to HG ", node.HostgroupId+cluster.MaintenanceHgRange)
 		return true
 	}
 	return false
@@ -1063,7 +1093,7 @@ func (cluster *DataClusterImpl) checkNotPrimary(node DataNodeImpl, currentHg Hos
 		node.ActionType = node.MOVE_DOWN_HG_CHANGE()
 		cluster.ActionNodes[strconv.Itoa(node.HostgroupId)+"_"+node.Dns] = node
 		log.Warning("Node: ", node.Dns, " ", node.WsrepNodeName, " HG: ", currentHg.Id, " Type ", currentHg.Type, " is NOT in Primary state ",
-			" moving it to HG ", node.HostgroupId+9000, " given unsafe node state")
+			" moving it to HG ", node.HostgroupId+cluster.MaintenanceHgRange, " given unsafe node state")
 		return true
 	}
 	return false
@@ -1079,7 +1109,7 @@ func (cluster *DataClusterImpl) checkAnyNotReadyStatus(node DataNodeImpl, curren
 		node.ActionType = node.MOVE_DOWN_HG_CHANGE()
 		cluster.ActionNodes[strconv.Itoa(node.HostgroupId)+"_"+node.Dns] = node
 		log.Warning("Node: ", node.Dns, " ", node.WsrepNodeName, " HG: ", currentHg.Id, " Type ", currentHg.Type, " is in state ", node.WsrepStatus,
-			"moving it to HG ", node.HostgroupId+9000, " given unsafe node state")
+			"moving it to HG ", node.HostgroupId+cluster.MaintenanceHgRange, " given unsafe node state")
 
 		return true
 	}
@@ -1087,6 +1117,7 @@ func (cluster *DataClusterImpl) checkAnyNotReadyStatus(node DataNodeImpl, curren
 }
 
 func (cluster *DataClusterImpl) checkWsrepDesync(node DataNodeImpl, currentHg Hostgroup) bool {
+	var act bool = false
 	if node.WsrepStatus == 2 &&
 		!node.ReadOnly &&
 		node.ProxyStatus != "OFFLINE_SOFT" {
@@ -1094,16 +1125,31 @@ func (cluster *DataClusterImpl) checkWsrepDesync(node DataNodeImpl, currentHg Ho
 			log.Warning("Node: ", node.Dns, " ", node.WsrepNodeName, " HG: ", currentHg.Id, " Type ", currentHg.Type, " is in state ", node.WsrepStatus,
 				" But I will not move to OFFLINE_SOFT given last node left in the Host group")
 			node.ActionType = node.NOTHING_TO_DO()
-			//return node
-		} else { //if cluster retry > 0 then we manage the node as well
-			if cluster.RetryDown > 0 {
-				node.RetryDown++
+			return false
+		} else if currentHg.Size > 1 {
+			//If we have desync but the MaxReplicationLAag is set then we evaluate it
+			if node.MaxReplicationLag != 0 &&
+				node.WsrepLocalRecvQueue > node.MaxReplicationLag {
+				//if cluster retry > 0 then we manage the node as well
+				act = true
+			}else if node.MaxReplicationLag != 0 &&
+				node.WsrepLocalRecvQueue < node.MaxReplicationLag {
+				//if cluster retry > 0 then we manage the node as well
+				act = false
+			}else  {
+				act = true
 			}
-			node.ActionType = node.MOVE_DOWN_OFFLINE()
-			cluster.ActionNodes[strconv.Itoa(node.HostgroupId)+"_"+node.Dns] = node
-			log.Warning("Node: ", node.Dns, " ", node.WsrepNodeName, " HG: ", currentHg.Id, " Type ", currentHg.Type, " is in state ", node.WsrepStatus,
-				" moving it to OFFLINE_SOFT given we have other nodes in the Host group")
-			return true
+
+			if act{
+				if cluster.RetryDown > 0 {
+					node.RetryDown++
+				}
+				node.ActionType = node.MOVE_DOWN_OFFLINE()
+				cluster.ActionNodes[strconv.Itoa(node.HostgroupId)+"_"+node.Dns] = node
+				log.Warning("Node: ", node.Dns, " ", node.WsrepNodeName, " HG: ", currentHg.Id, " Type ", currentHg.Type, " is in state ", node.WsrepStatus,
+					" moving it to OFFLINE_SOFT given we have other nodes in the Host group")
+				return true
+			}
 		}
 
 	}
@@ -1155,7 +1201,7 @@ func (cluster *DataClusterImpl) evaluateWriters() bool {
 	// Writer are evaluated on the base of the WEIGHT in the config group 8000
 	cluster.processUpActionMap()
 
-	//check if in special HG 9000 and if so remove it from backupWriters
+	//check if in special HG Maintenance and if so remove it from backupWriters
 	for key := range cluster.OffLineWriters {
 		if _, ok := backupWriters[key]; ok {
 			delete(backupWriters, key)
@@ -1169,7 +1215,7 @@ func (cluster *DataClusterImpl) evaluateWriters() bool {
 
 	//only if the failover node is a real node and not the default one HostgroupId = 0 then we add it to action list
 	if cluster.FailOverNode.HostgroupId != 0 &&
-		//cluster.FailOverNode.HostgroupId != cluster.HgWriterId+9000 &&
+		//cluster.FailOverNode.HostgroupId != cluster.HgWriterId+cluster.MaintenanceHgRange &&
 		cluster.RequireFailover {
 
 		//if cluster has Persistent Primary we must reset the New primary values with the one from primary
@@ -1574,7 +1620,7 @@ func (cluster *DataClusterImpl) copyPrimarySettingsToFailover() {
 	cluster.FailOverNode.MaxReplicationLag = cluster.PersistPrimary[0].MaxReplicationLag
 	cluster.FailOverNode.MaxLatency = cluster.PersistPrimary[0].MaxLatency
 	cluster.FailOverNode.ActionType = cluster.FailOverNode.INSERT_WRITE()
-	delete(cluster.ActionNodes, strconv.Itoa(cluster.HgWriterId+9000)+"_"+cluster.FailOverNode.Dns)
+	delete(cluster.ActionNodes, strconv.Itoa(cluster.HgWriterId+cluster.MaintenanceHgRange)+"_"+cluster.FailOverNode.Dns)
 	cluster.FailOverNode.ProxyStatus = "ONLINE"
 
 	if cluster.PersistPrimarySettings > 1 {
@@ -1587,7 +1633,7 @@ func (cluster *DataClusterImpl) copyPrimarySettingsToFailover() {
 		myReader.MaxReplicationLag = myBkupReader.MaxReplicationLag
 		myReader.MaxLatency = myBkupReader.MaxLatency
 		myReader.ActionType = myReader.INSERT_READ()
-		delete(cluster.ActionNodes, strconv.Itoa(cluster.HgReaderId+9000)+"_"+cluster.FailOverNode.Dns)
+		delete(cluster.ActionNodes, strconv.Itoa(cluster.HgReaderId+cluster.MaintenanceHgRange)+"_"+cluster.FailOverNode.Dns)
 		cluster.ActionNodes[strconv.Itoa(cluster.HgReaderId)+"_"+myReader.Dns] = myReader
 	}
 
@@ -1812,13 +1858,13 @@ func (node *DataNodeImpl) MOVE_UP_OFFLINE() int {
 	return 1000 // move a node from OFFLINE_SOFT
 }
 func (node *DataNodeImpl) MOVE_UP_HG_CHANGE() int {
-	return 1010 // move a node from HG 9000 (plus hg id) to reader HG
+	return 1010 // move a node from HG Maintenance (plus hg id) to reader HG
 }
 func (node *DataNodeImpl) RESET_DEFAULTS() int {
-	return 2010 //reset the mysql server node values to defaults has declared in group 8000
+	return 2010 //reset the mysql server node values to defaults has declared in group config (8000)
 }
 func (node *DataNodeImpl) MOVE_DOWN_HG_CHANGE() int {
-	return 3001 // move a node from original HG to maintenance HG (HG 9000 (plus hg id) ) kill all existing connections
+	return 3001 // move a node from original HG to maintenance HG (HG Maintenance (plus hg id) ) kill all existing connections
 }
 
 func (node *DataNodeImpl) MOVE_DOWN_OFFLINE() int {
@@ -1989,6 +2035,7 @@ func (node *DataNodeImpl) setParameters() {
 
 	node.WsrepClusterName = node.Variables["wsrep_cluster_name"]
 	node.WsrepClusterStatus = node.Status["wsrep_cluster_status"]
+	node.WsrepLocalRecvQueue = global.ToInt(node.Status["wsrep_local_recv_queue"])
 	node.WsrepNodeName = node.Variables["wsrep_node_name"]
 	node.WsrepClusterSize = global.ToInt(node.Status["wsrep_cluster_size"])
 	node.WsrepPcWeight = global.ToInt(node.WsrepProvider["pc.weight"])

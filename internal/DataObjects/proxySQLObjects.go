@@ -130,6 +130,7 @@ type ProxySQLNodeImpl struct {
 	IsLockExpired   bool
 	LastLockTime    int64
 	Comment         string
+	Config 			*global.Configuration
 }
 
 type Hostgroup struct {
@@ -438,12 +439,12 @@ func (node *ProxySQLNodeImpl) MoveNodeDownToOfflineSoft(dataNode DataNodeImpl, h
 	return myString
 }
 func (node *ProxySQLNodeImpl) MoveNodeUpFromHGCange(dataNode DataNodeImpl, hg int, ip string, port int) string {
-	myString := fmt.Sprintf(" UPDATE mysql_servers SET hostgroup_id=%d WHERE hostgroup_id=%d AND hostname='%s' AND port=%d", hg-9000, hg, ip, port)
+	myString := fmt.Sprintf(" UPDATE mysql_servers SET hostgroup_id=%d WHERE hostgroup_id=%d AND hostname='%s' AND port=%d", hg-node.Config.Pxcluster.MaintenanceHgRange, hg, ip, port)
 	log.Debug(fmt.Sprintf("Preparing for node  %s:%d HG:%d SQL: %s", ip, port, hg, myString))
 	return myString
 }
 func (node *ProxySQLNodeImpl) MoveNodeDownToHGCange(dataNode DataNodeImpl, hg int, ip string, port int) string {
-	myString := fmt.Sprintf(" UPDATE mysql_servers SET hostgroup_id=%d WHERE hostgroup_id=%d AND hostname='%s' AND port=%d", hg+9000, hg, ip, port)
+	myString := fmt.Sprintf(" UPDATE mysql_servers SET hostgroup_id=%d WHERE hostgroup_id=%d AND hostname='%s' AND port=%d", hg+node.Config.Pxcluster.MaintenanceHgRange, hg, ip, port)
 	log.Debug(fmt.Sprintf("Preparing for node  %s:%d HG:%d SQL: %s", ip, port, hg, myString))
 	return myString
 }
@@ -453,7 +454,7 @@ When inserting a node we need to differentiate when is a NEW node coming from th
 */
 func (node *ProxySQLNodeImpl) InsertRead(dataNode DataNodeImpl, hg int, ip string, port int) string {
 	if dataNode.NodeIsNew {
-		hg = node.MySQLCluster.HgReaderId + 9000
+		hg = node.MySQLCluster.HgReaderId + node.Config.Pxcluster.MaintenanceHgRange
 	} else {
 		hg = node.MySQLCluster.HgReaderId
 	}
@@ -481,7 +482,7 @@ When inserting a node we need to differentiate when is a NEW node coming from th
 */
 func (node *ProxySQLNodeImpl) InsertWrite(dataNode DataNodeImpl, hg int, ip string, port int) string {
 	if dataNode.NodeIsNew {
-		hg = node.MySQLCluster.HgWriterId + 9000
+		hg = node.MySQLCluster.HgWriterId + node.Config.Pxcluster.MaintenanceHgRange
 	} else {
 		hg = node.MySQLCluster.HgWriterId
 	}

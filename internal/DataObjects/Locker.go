@@ -75,6 +75,7 @@ func (locker *LockerImpl) Init(config *global.Configuration) bool {
 	locker.MyServerIp = config.Proxysql.Host
 	locker.MyServerPort = config.Proxysql.Port
 	var MyServer = new(ProxySQLNodeImpl)
+	MyServer.Config = config
 	locker.MyServer = MyServer
 	locker.MyServer.Ip = locker.MyServerIp
 	locker.FileLockPath = config.Proxysql.LockFilePath
@@ -290,6 +291,7 @@ func (locker *LockerImpl) SetLockFile() bool {
 	}
 	fullFile := locker.FileLockPath + string(os.PathSeparator) + locker.FileLock
 	if _, err := os.Stat(fullFile); err == nil && !locker.isLooped {
+		log.Errorf("A lock file named: %s  already exists.\n If this is a refuse of a dirty execution remove it manually to have the check able to run\n", fullFile)
 		fmt.Printf("A lock file named: %s  already exists.\n If this is a refuse of a dirty execution remove it manually to have the check able to run\n", fullFile)
 		return false
 	} else {

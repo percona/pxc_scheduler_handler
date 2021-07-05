@@ -78,11 +78,18 @@ type PxcCluster struct {
 	WriterIsAlsoReader     int
 	HgW                    int
 	HgR                    int
-	BckHgW                 int
-	BckHgR                 int
+	ConfigHgRange		   int `default:"8000"`
+	MaintenanceHgRange     int `default:"9000"`
+	BckHgW                 int `default:"0"`
+	BckHgR                 int `default:"0"`
 	SingleWriter           int
 	MaxWriters             int
-	PersistPrimarySettings int `default:0`
+	PersistPrimarySettings int `default:"0"`
+}
+func (conf *Configuration) fillDefaults(){
+	conf.Pxcluster.MaintenanceHgRange = 9000
+	conf.Pxcluster.ConfigHgRange = 8000
+	conf.Pxcluster.PersistPrimarySettings = 0
 }
 
 //ProxySQL configuration class
@@ -112,6 +119,7 @@ type GlobalScheduler struct {
 //Methods to return the config as map
 func GetConfig(path string) Configuration {
 	var config Configuration
+	config.fillDefaults()
 	if _, err := toml.DecodeFile(path, &config); err != nil {
 		fmt.Println(err)
 		syscall.Exit(2)
@@ -123,26 +131,33 @@ func (conf *Configuration) SanityCheck() bool {
 	//check for single primary and writer is also reader
 	if conf.Pxcluster.MaxNumWriters > 1 &&
 		conf.Pxcluster.SinglePrimary {
-		log.Error("Configuration error cannot have SinglePrimary true and MaxNumWriter >1")
+		log.SetReportCaller(true)
+		log.Fatal("Configuration error cannot have SinglePrimary true and MaxNumWriter >1")
 		return false
 		//os.Exit(1)
 	}
 
 	if conf.Pxcluster.WriterIsAlsoReader != 1 && (conf.Pxcluster.MaxWriters > 1 || !conf.Pxcluster.SinglePrimary) {
-		log.Error("Configuration error cannot have WriterIsAlsoReader NOT = 1 and use more than one Writer")
+		log.SetReportCaller(true)
+		log.Fatal("Configuration error cannot have WriterIsAlsoReader NOT = 1 and use more than one Writer")
 		return false
 		//os.Exit(1)
 	}
 
 	//check for HG consistency
 	// here HG and backup HG must match
-	if conf.Pxcluster.HgW+8000 != conf.Pxcluster.BckHgW || conf.Pxcluster.HgR+8000 != conf.Pxcluster.BckHgR {
-		log.Error(fmt.Sprintf("Hostgroups and Backup HG do not match. HGw %d - BKHGw %d; HGr %d - BKHGr %d",
+
+	if conf.Pxcluster.BckHgW >= 0 || conf.Pxcluster.BckHgR >= 0 {
+		log.SetReportCaller(false)
+		log.Warning(fmt.Sprintf("Configuration hostgroups (BckHgW & BckHgR) options are DEPRECATED Please configure only ConfigHgRange instead. IE HGw=%d, HGr=%d, ConfigHgRange=%d",
 			conf.Pxcluster.HgW,
-			conf.Pxcluster.BckHgW,
 			conf.Pxcluster.HgR,
-			conf.Pxcluster.BckHgR))
-		return false
+			conf.Pxcluster.ConfigHgRange))
+
+		conf.Pxcluster.BckHgW = conf.Pxcluster.ConfigHgRange + conf.Pxcluster.HgW
+		conf.Pxcluster.BckHgR = conf.Pxcluster.ConfigHgRange + conf.Pxcluster.HgR
+
+//		return false
 		//os.Exit(1)
 	}
 
@@ -151,7 +166,8 @@ func (conf *Configuration) SanityCheck() bool {
 		log.Warn(fmt.Sprintf("LockFilePath is invalid. Currently set to: |%s|  I will set to /tmp/ ", conf.Proxysql.LockFilePath))
 		conf.Proxysql.LockFilePath = "/tmp"
 		if !CheckIfPathExists(conf.Proxysql.LockFilePath) {
-			log.Error(fmt.Sprintf("LockFilePath is not accessible currently set to: |%s|", conf.Proxysql.LockFilePath))
+			log.SetReportCaller(true)
+			log.Fatal(fmt.Sprintf("LockFilePath is not accessible currently set to: |%s|", conf.Proxysql.LockFilePath))
 			return false
 			//os.Exit(1)
 		}

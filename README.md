@@ -207,8 +207,8 @@ OS = "na"
 - sslCertificatePath : ["/full-path/ssl_test"] Full path for the SSL certificates
 - hgW : Writer HG
 - hgR : Reader HG
-- ConfigHgRange : The value that should be used to calculate the Configuration Host Groups. This was 8000 hard-coded,  and now configurable `default:8000`
-- MaintenanceHgRange : The value that should be used to calculate the Maintenance Host Groups. This was 9000 hard-coded,  and now configurable `default:9000`
+- [ConfigHgRange](#specify-custom-configuration-and-maintenance-hostgroups) : The value that should be used to calculate the Configuration Host Groups. This was 8000 hard-coded,  and now configurable `default:8000`
+- [MaintenanceHgRange](#specify-custom-configuration-and-maintenance-hostgroups) : The value that should be used to calculate the Maintenance Host Groups. This was 9000 hard-coded,  and now configurable `default:9000`
 - ~~bckHgW : Backup HG in the 8XXX range (hgW + 8000)~~ DEPRECATED A warning is raised in the log
 - ~~bckHgR :  Backup HG in the 8XXX range (hgR + 8000)~~ DEPRECATED A warning is raised in the log
 - singlePrimary : [true] This is the recommended way, always use Galera in Single Primary to avoid write conflicts
@@ -275,6 +275,74 @@ If instead the value of `persistPrimarySettings = 2`:
 Both Read and Write values are changed.
 
 This will help in keeping consistent the behaviour of the node acting as Primary. 
+
+### Specify custom Configuration and Maintenance Hostgroups
+***(from version [1.2.0]())*** </br>
+This feature [FR-28](https://github.com/Tusamarco/pxc_scheduler_handler/issues/28),
+was requesting to have the values of the two special groups (8000 and 9000) configurable.
+The group 8000 was internally used for configuration purpose, while the group 9000 was used to put a node offline for maintenance.
+</br>New
+- configHgRange
+- maintenanceHgRange
+
+Deprecated
+- bckHgW
+- bckHgWR
+
+The implementation is compatible with the previous behaviour so if the new params are not specified they will be default to old hardcoded values.
+If instead they are specified the new values are used.
+For instance
+```
+  hgW = 100
+  hgR = 101
+  configHgRange = 88000
+  maintenanceHgRange = 99000
+```
+In this case the value of the Configuration Hostgroups will be 88000 + Hg(W|R) = 88100 | 88101
+The same will happen with the Maintenance Hostgroups 99000 + Hg(W|R) = 99100 | 99101
+
+Of course the configuration hostgroups must be present when creating/adding the servers in Proxysql mysql_server tables:
+```bigquery
+INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('192.168.4.22',88100,3306,1000,2000,'Failover server preferred');
+INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('192.168.4.23',88100,3306,999,2000,'Second preferred');    
+INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('192.168.4.233',88100,3306,998,2000,'Thirdh and last in the list');      
+
+INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('192.168.4.22',88101,3306,998,2000,'Failover server preferred');
+INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('192.168.4.23',88101,3306,999,2000,'Second preferred');    
+INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('192.168.4.233',88101,3306,1000,2000,'Thirdh and last in the list');      
+
+
+LOAD MYSQL SERVERS TO RUNTIME; SAVE MYSQL SERVERS TO DISK;    
+```
+
+### Use of max_replication_lag to handle Desync state
+***(from version [1.2.0]())*** </br>
+[FR-30](https://github.com/Tusamarco/pxc_scheduler_handler/issues/30)  was asking to have the possibility to do not alter the status of a node when it is Desync IF a value for `max_replication_lag` is specified.
+The original behaviour was that any node in `desync` state and with another node in the same hostgroup, is moved to `OFFLINE_SOFT`.
+That would allow the node to continue to serve existing request, but will prevent it to accept new ones.
+
+With the implementation of this feature, node without `max_replication_lag` specified will continue to behave exactly the same.
+
+If instead a node has `max_replication_lag` is specified, the node will NOT be set as `OFFLINE_SOFT` unless its `wsrep_local_recv_queue` exceed the value of the `max_replication_lag` for `retryDown` times.
+
+The node will come back from `OFFLINE_SOFT` if its `wsrep_local_recv_queue` is __HALF__ of the `max_replication_lag` for `retryUp` times.
+
+IE:
+```
+max_replication_lag = 500
+retryDown =2
+retryUp =1
+
+wsrep_local_recv_queue = 300 --> Node will remain in ONLINE state
+wsrep_local_recv_queue = 500 --> retryDown = 1 --> ONLINE
+wsrep_local_recv_queue = 500 --> retryDown = 2 --> OFFLINE_SOFT
+
+wsrep_local_recv_queue = 500 --> OFFLINE_SOFT
+wsrep_local_recv_queue = 300 --> OFFLINE_SOFT
+wsrep_local_recv_queue = 230 --> retryUp = 1 --> ONLINE
+
+```
+
 
 ## Examples of configurations in ProxySQL
 Simply pass max 2 arguments 
@@ -350,6 +418,9 @@ Then to test it OUTSIDE the ProxySQL scheduler script, in the config file `[Glob
 The script will auto-loop as if call by the scheduler. 
 
  
+## Release Notes
+see [release notes](releases.md)
+
 #### Details
 
 

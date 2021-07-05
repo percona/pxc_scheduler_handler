@@ -361,6 +361,7 @@ wsrep_local_recv_queue = 500 --> retryDown = 2 --> OFFLINE_SOFT
 
 wsrep_local_recv_queue = 500 --> OFFLINE_SOFT
 wsrep_local_recv_queue = 300 --> OFFLINE_SOFT
+wsrep_local_recv_queue = 230 --> retryUp = 0 --> OFFLINE_SOFT
 wsrep_local_recv_queue = 230 --> retryUp = 1 --> ONLINE
 
 ```

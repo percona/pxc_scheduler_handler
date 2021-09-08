@@ -245,13 +245,34 @@ func rulesTestCheckBackDesyncButUnderReplicaLag(myArgs args, clusterNode testClu
 }
 
 
+func rulesTestProcessIdentifyLowerNodeToRemove(myArgs args, clusterNode testClusterNodeImpl) []rule {
+	testDataNode := myArgs.node
 
+	myRules := []rule{
+		{"Backup Node has lower weight No action ", clusterNode, args{changeDataObjectAnyAttribute(testDataNode, "Weight", valueGeneric{Int64: 100}), testDataNode.Hostgroups[0]}, false},
+		{"Backup Node has Higher weigh so another node must go ", clusterNode, args{changeDataObjectAnyAttribute(testDataNode, "Weight", valueGeneric{Int64: 2000}), testDataNode.Hostgroups[0]}, true},
+		{"Backup Node has mid weigh so another node must go ", clusterNode, args{changeDataObjectAnyAttribute(testDataNode, "Weight", valueGeneric{Int64: 999}), testDataNode.Hostgroups[0]}, true},
+	}
+	return myRules
+}
+
+
+func rulesTestProcessIdentifyLowerNodeToRemoveForFailback(myArgs args, clusterNode testClusterNodeImpl) []rule {
+	testDataNode := myArgs.node
+
+	myRules := []rule{
+		{"Failback Node has lower weight No action ", clusterNode, args{changeDataObjectAnyAttribute(testDataNode, "Weight", valueGeneric{Int64: 100}), testDataNode.Hostgroups[0]}, false},
+		{"Failback Node has Higher weigh so another node must go ", clusterNode, args{changeDataObjectAnyAttribute(testDataNode, "Weight", valueGeneric{Int64: 2000}), testDataNode.Hostgroups[0]}, true},
+		{"Failback Node has mid weigh so no action as well ", clusterNode, args{changeDataObjectAnyAttribute(testDataNode, "Weight", valueGeneric{Int64: 999}), testDataNode.Hostgroups[0]}, false},
+	}
+	return myRules
+}
 
 func rulesTestCheckBackNew(myArgs args, clusterNode testClusterNodeImpl) []rule {
 	testDataNode := myArgs.node
 
 	myRules := []rule{
-		{"Back online Node is new no changes ", clusterNode, args{testDataNode, testDataNode.Hostgroups[0]}, false},
+		{"Backup Node has lower weight No action ", clusterNode, args{testDataNode, testDataNode.Hostgroups[0]}, false},
 		{"Back online Node is new no changes ", clusterNode, args{changeDataObjectAnyAttribute(testDataNode, "NodeIsNew", valueGeneric{Bool: true}), testDataNode.Hostgroups[0]}, true},
 	}
 	return myRules

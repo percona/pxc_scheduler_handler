@@ -459,6 +459,90 @@ func TestDataClusterImpl_processWriterIsAlsoReader(t *testing.T) {
 	}
 }
 
+
+func TestDataClusterImpl_identifyLowerNodeToRemove(t *testing.T) {
+	var tests = []rule{}
+
+	clusterNode := testClusterFactory()
+	dns := []string{"127.0.0.1:3306", "127.0.0.1:3307", "127.0.0.1:3308"}
+
+	weight := 1000
+	for _, myDns := range dns {
+		testDataNode := clusterNode.testDataNodeFactoryDns(myDns)
+		currentHg := getHgOpt(100, 3, "W")
+		testDataNode.HostgroupId = 100
+		testDataNode.Hostgroups = []Hostgroup{currentHg}
+		testDataNode.Weight = weight
+		weight--
+		clusterNode.WriterNodes[myDns] = testDataNode
+	}
+	myBackupWriterNode := clusterNode.testDataNodeFactoryDns("127.0.0.5:3306")
+	myBackupWriterNode.HostgroupId=8100
+	myBackupWriterNode.Hostgroups = []Hostgroup{getHgOpt(8100, 3, "W")}
+	myBackupWriterNode.Weight = 1000
+
+	myArgs := args{myBackupWriterNode, myBackupWriterNode.Hostgroups[0]}
+
+	tests = rulesTestProcessIdentifyLowerNodeToRemove(myArgs, clusterNode)
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			//t.Error("  AAA ", tt.args.node.ActionType)
+			cluster := clusterNode.clusterNodeImplFactory()
+			testNode := tt.args.node
+			cluster.WriterNodes = clusterNode.WriterNodes
+			cluster.Hostgroups[tt.args.node.Hostgroups[0].Id] = tt.args.node.Hostgroups[0]
+			if got := cluster.identifyLowerNodeToRemove(testNode); got != tt.want {
+
+				t.Errorf(" %s TestDataClusterImpl_identifyLowerNodeToRemove() = %v, want %v", tt.name, got, tt.want)
+			}
+		})
+	}
+}
+
+
+
+func TestDataClusterImpl_identifyLowerNodeToRemoveBecauseFailback(t *testing.T) {
+	var tests = []rule{}
+
+	clusterNode := testClusterFactory()
+	dns := []string{"127.0.0.1:3307", "127.0.0.1:3308"}
+
+	weight := 1000
+	for _, myDns := range dns {
+		testDataNode := clusterNode.testDataNodeFactoryDns(myDns)
+		currentHg := getHgOpt(100, 3, "W")
+		testDataNode.HostgroupId = 100
+		testDataNode.Hostgroups = []Hostgroup{currentHg}
+		testDataNode.Weight = weight
+		weight--
+		clusterNode.WriterNodes[myDns] = testDataNode
+	}
+	myFailBackWriterNode := clusterNode.testDataNodeFactoryDns("127.0.0.1:3306")
+	myFailBackWriterNode.HostgroupId=100
+	myFailBackWriterNode.Hostgroups = []Hostgroup{getHgOpt(100, 3, "W")}
+	myFailBackWriterNode.Weight = 1000
+	myFailBackWriterNode.WsrepSegment=1
+
+	myArgs := args{myFailBackWriterNode, myFailBackWriterNode.Hostgroups[0]}
+
+	tests = rulesTestProcessIdentifyLowerNodeToRemoveForFailback(myArgs, clusterNode)
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cluster := clusterNode.clusterNodeImplFactory()
+			testNode := tt.args.node
+			cluster.WriterNodes = clusterNode.WriterNodes
+			cluster.Hostgroups[tt.args.node.Hostgroups[0].Id] = tt.args.node.Hostgroups[0]
+			cluster.MainSegment =1
+			cluster.ActiveFailover = 2
+			if got := cluster.identifyLowerNodeToRemoveBecauseFailback(testNode); got != tt.want {
+
+				t.Errorf(" %s TestDataClusterImpl_identifyLowerNodeToRemoveBecauseFailback() = %v, want %v", tt.name, got, tt.want)
+			}
+		})
+	}
+}
 /*
 Test Cluster method evaluateReaders [end]
 */

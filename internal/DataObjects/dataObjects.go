@@ -76,6 +76,8 @@ type DataCluster interface {
 	processUpAndDownReaders(actionNodes map[string]DataNodeImpl, readerNodes map[string]DataNodeImpl)
 	pushNewNode(node DataNodeImpl) bool
 	identifyPrimaryBackupNode(dns string) bool
+	identifyLowerNodeToRemove(node DataNodeImpl) bool
+	identifyLowerNodeToRemoveBecauseFailback(node DataNodeImpl) bool
 	copyPrimarySettingsToFailover()
 	resetNodeDefault(nodeIn DataNodeImpl, nodeDefault DataNodeImpl)
 }
@@ -1262,56 +1264,81 @@ func (cluster *DataClusterImpl) processFailoverFailBack(backupWriters map[string
 						log.Warning(fmt.Sprintf("Failover require node identified as candidate: %s .", key))
 					}
 
-					// If we have exceeded the number of writers, the one with lower Weight will be removed
+				// If we have exceeded the number of writers, the one with lower Weight will be removed
 				} else if _, ok := cluster.WriterNodes[node.Dns]; ok &&
 					len(cluster.WriterNodes) > cluster.MaxNumWriters &&
 					node.ProxyStatus == "ONLINE" {
-					lowerNode := node
-					for _, wNode := range cluster.WriterNodes {
-						if wNode.Weight < lowerNode.Weight &&
-							wNode.Weight < node.Weight {
-							lowerNode = wNode
-						}
-					}
-					lowerNode.HostgroupId = cluster.HgWriterId
-					lowerNode.ActionType = node.DELETE_NODE()
-					if _, ok := cluster.ActionNodes[strconv.Itoa(cluster.HgWriterId)+"_"+lowerNode.Dns]; !ok {
-						cluster.ActionNodes[strconv.Itoa(cluster.HgWriterId)+"_"+node.Dns] = lowerNode
-					}
+					//for each node in the cluster writers we check if need to remove any
+					cluster.identifyLowerNodeToRemove(node)
 
-					// Now if we have failback and we have a writer with HIGHER weight coming back we need to identify the one with lower again and remove it
+				// Now if we have failback and we have a writer with HIGHER weight coming back we need to identify the one with lower again and remove it
 				} else if len(cluster.WriterNodes) == cluster.MaxNumWriters &&
 					!cluster.RequireFailover &&
 					cluster.FailBack {
-					//we need to loop the writers
-					for _, nodeB := range cluster.WriterNodes {
-						if node.Weight > nodeB.Weight &&
-							(node.WsrepSegment == cluster.MainSegment || cluster.ActiveFailover > 1) {
-							node.ActionType = node.INSERT_WRITE()
-							node.HostgroupId = cluster.HgWriterId
-
-							// the node with lower weight is removed
-							nodeB.RetryDown = cluster.RetryDown + 1
-							nodeB.ActionType = nodeB.MOVE_DOWN_OFFLINE()
-							cluster.ActionNodes[strconv.Itoa(cluster.HgWriterId)+"_"+node.Dns] = node
-							cluster.ActionNodes[strconv.Itoa(cluster.HgWriterId)+"_"+nodeB.Dns] = nodeB
-
-							//let also add it to the Writers to prevent double insertion
-							cluster.WriterNodes[node.Dns] = node
-							//remove failover flag from cluster
-							cluster.RequireFailover = false
-
-							log.Warn(fmt.Sprintf("Failback! Node %s is going down while Node %s is coming up as Writer ",
-								strconv.Itoa(nodeB.HostgroupId)+"_"+nodeB.Dns,
-								strconv.Itoa(node.HostgroupId)+"_"+node.Dns))
-							//if found we just exit no need to loop more
-							break
-						}
-					}
+					//we have a node coming back because failback so WHO is going tobe removed?
+					cluster.identifyLowerNodeToRemoveBecauseFailback(node)
 				}
 			}
 		}
 	}
+}
+
+//We identify who of the node in the Writers pool need to go away because failback
+func (cluster *DataClusterImpl) identifyLowerNodeToRemoveBecauseFailback(node DataNodeImpl) bool {
+	//we need to loop the writers
+	for _, nodeB := range cluster.WriterNodes {
+		if node.Weight > nodeB.Weight &&
+			(node.WsrepSegment == cluster.MainSegment || cluster.ActiveFailover > 1) {
+			node.ActionType = node.INSERT_WRITE()
+			node.HostgroupId = cluster.HgWriterId
+
+			// the node with lower weight is removed
+			nodeB.RetryDown = cluster.RetryDown + 1
+			nodeB.ActionType = nodeB.MOVE_DOWN_OFFLINE()
+			cluster.ActionNodes[strconv.Itoa(cluster.HgWriterId)+"_"+node.Dns] = node
+			cluster.ActionNodes[strconv.Itoa(cluster.HgWriterId)+"_"+nodeB.Dns] = nodeB
+
+			//let also add it to the Writers to prevent double insertion
+			cluster.WriterNodes[node.Dns] = node
+			//remove failover flag from cluster
+			cluster.RequireFailover = false
+
+			log.Warn(fmt.Sprintf("Failback! Node %s is going down while Node %s is coming up as Writer ",
+				strconv.Itoa(nodeB.HostgroupId)+"_"+nodeB.Dns,
+				strconv.Itoa(node.HostgroupId)+"_"+node.Dns))
+			//if found we just exit no need to loop more
+			return true
+			//break
+		}
+	}
+	return false
+}
+
+//We identify which Node is the one with the lowest weight that needs to be removed from active writers list
+func (cluster *DataClusterImpl) identifyLowerNodeToRemove(node DataNodeImpl) bool{
+	lowerNode := node
+	for _, wNode := range cluster.WriterNodes {
+		if wNode.Weight < lowerNode.Weight &&
+			wNode.Weight < node.Weight {
+			log.Debug("Lower node found ", wNode.Dns ," weight new ", wNode.Weight, " current lower ", lowerNode.Dns, " Lower node weight ", lowerNode.Weight)
+			lowerNode = wNode
+		}
+
+	}
+	lowerNode.HostgroupId = cluster.HgWriterId
+	lowerNode.ActionType = node.DELETE_NODE()
+	if _, ok := cluster.ActionNodes[strconv.Itoa(cluster.HgWriterId)+"_"+lowerNode.Dns]; !ok {
+		log.Debug("We are removing node with lower weight ", lowerNode.Dns, " Weight " , lowerNode.Weight )
+		cluster.ActionNodes[strconv.Itoa(cluster.HgWriterId)+"_"+node.Dns] = lowerNode
+		// Given we are going to remove this node from writer we also remove it from the collection (see also FR-34)
+		delete(cluster.WriterNodes, node.Dns)
+
+		if lowerNode.Dns== node.Dns {
+			return false
+		}
+		return true
+	}
+	return false
 }
 
 func (cluster *DataClusterImpl) processUpActionMap() {

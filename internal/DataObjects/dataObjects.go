@@ -23,6 +23,7 @@ import (
 	"database/sql"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"os"
 	"regexp"
 	"strconv"
@@ -424,7 +425,7 @@ func (cluster *DataClusterImpl) loadNodes(connectionProxy *sql.DB) bool {
 			&myNode.ConnUsed)
 		myNode.User = cluster.MonitorUser
 		myNode.Password = cluster.MonitorPassword
-		myNode.Dns = myNode.Ip + ":" + strconv.Itoa(myNode.Port)
+		myNode.Dns =  net.JoinHostPort(myNode.Ip ,strconv.Itoa(myNode.Port))
 		if len(myNode.Comment) > 0 {
 			myNode.getRetry(cluster.HgWriterId, cluster.HgReaderId)
 		}
@@ -1763,7 +1764,7 @@ func (node *DataNodeImpl) GetConnection() bool {
 		}
 	}
 
-	db, err := sql.Open("mysql", node.User+":"+node.Password+"@tcp("+node.Dns+")/performance_schema"+attributes)
+	db, err := sql.Open("mysql", node.User+":"+node.Password+"@tcp("+net.JoinHostPort(node.Ip, strconv.Itoa(node.Port))+")/performance_schema"+attributes)
 
 	//defer db.Close()
 	node.Connection = db

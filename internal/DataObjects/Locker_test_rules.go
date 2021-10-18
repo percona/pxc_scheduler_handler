@@ -18,6 +18,7 @@
 package DataObjects
 
 import (
+	"net"
 	global "pxc_scheduler_handler/internal/Global"
 	"strconv"
 	"time"
@@ -106,7 +107,7 @@ func testProxySQLNodeFactory(ip string, port int, comment string) ProxySQLNodeIm
 		LastLockTime:    0,
 		Comment:         comment,
 	}
-	node.Dns = ip + ":" + strconv.Itoa(port)
+	node.Dns = net.JoinHostPort(ip ,strconv.Itoa(port))
 	return node
 
 }

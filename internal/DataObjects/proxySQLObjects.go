@@ -20,13 +20,12 @@ package DataObjects
 import (
 	"context"
 	"database/sql"
-	log "github.com/sirupsen/logrus"
-	"strconv"
-	"strings"
-
 	"fmt"
+	log "github.com/sirupsen/logrus"
+	"net"
 	global "pxc_scheduler_handler/internal/Global"
 	SQL "pxc_scheduler_handler/internal/Sql/Proxy"
+	"strconv"
 )
 
 /*
@@ -88,7 +87,7 @@ func (cluster ProxySQLClusterImpl) GetProxySQLnodes(myNode *ProxySQLNodeImpl) bo
 		newNode.Weight = weight
 		newNode.Port = port
 		newNode.Comment = comment
-		newNode.Dns = newNode.Ip + ":" + strconv.Itoa(newNode.Port)
+		newNode.Dns = net.JoinHostPort(newNode.Ip , strconv.Itoa(newNode.Port))
 		newNode.User = cluster.User
 		newNode.Password = cluster.Password
 
@@ -153,7 +152,7 @@ func (node *ProxySQLNodeImpl) Init(config *global.Configuration) bool {
 	}
 	node.User = config.Proxysql.User
 	node.Password = config.Proxysql.Password
-	node.Dns = config.Proxysql.Host + ":" + strconv.Itoa(config.Proxysql.Port)
+	node.Dns = net.JoinHostPort(config.Proxysql.Host ,strconv.Itoa(config.Proxysql.Port))
 	node.Port = config.Proxysql.Port
 
 	//Establish connection to the destination Proxysql node
@@ -235,7 +234,7 @@ func (node *ProxySQLNodeImpl) GetConnection() bool {
 	//dns := node.User + ":" + node.Password + "@tcp(" + node.Dns + ":"+ strconv.Itoa(node.Port) +")/admin" //
 	//if log.GetLevel() == log.DebugLevel {log.Debug(dns)}
 
-	db, err := sql.Open("mysql", node.User+":"+node.Password+"@tcp("+node.Dns+")/main?timeout=1s")
+	db, err := sql.Open("mysql", node.User+":"+node.Password+"@tcp("+net.JoinHostPort(node.Ip, strconv.Itoa(node.Port))+")/main?timeout=1s")
 
 	//defer db.Close()
 	node.Connection = db
@@ -328,8 +327,9 @@ func (node *ProxySQLNodeImpl) ProcessChanges() bool {
 		dataNode := dataNodePxc
 		actionCode := dataNode.ActionType
 		hg := dataNode.HostgroupId
-		ip := dataNode.Dns[0:strings.Index(dataNode.Dns, ":")]
-		port := dataNode.Dns[strings.Index(dataNode.Dns, ":")+1:]
+		ip, port, _ := net.SplitHostPort(dataNode.Dns)
+		//ip := dataNode.Dns[0:strings.Index(dataNode.Dns, ":")]
+		//port := dataNode.Dns[strings.Index(dataNode.Dns, ":")+1:]
 		portI := global.ToInt(port)
 		switch actionCode {
 		case 0:

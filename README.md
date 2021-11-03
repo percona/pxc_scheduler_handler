@@ -136,6 +136,12 @@ None of the above is implemented
 
 
 ### Example of proxySql setup 
+
+__Very Important Note:__
+PXC_scheduler_Handler, is a replacement of the native Proxysql galera support. 
+As such __ANY__ reference to the hostgroup that you are going to manage with it, __MUST__ be removed from the table :`mysql_galera_hostgroup.`
+Following the example below, the `mysql_galera_hostgroups` table must not have entries for hostgroups 100,101,8100,8101,9100,9101. If you keep that then the two products will collide with unexpected results. 
+
 Assuming we have 3 nodes:
 - node4 : `192.168.4.22`
 - node5 : `192.168.4.23`

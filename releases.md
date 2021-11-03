@@ -7,7 +7,38 @@ Given a version number MAJOR.MINOR.PATCH, increment the:
 
 Additional labels for pre-release and build metadata are available as extensions to the MAJOR.MINOR.PATCH format.
 
-
+## Release 1.3.0
+This release see only the addition of IPv6 support in the pxc_scheduler_handler.
+You just need to add the proper IPv6 in the mysql_server table:
+```
+mysql> select hostgroup_id,hostname,port from mysql_servers ;
++--------------+---------------------+------+
+| hostgroup_id | hostname            | port |
++--------------+---------------------+------+
+| 100          | 2001:db8:0:f101::5  | 3306 |
+| 101          | 2001:db8:0:f101::21 | 3306 |
+| 101          | 2001:db8:0:f101::31 | 3306 |
+| 101          | 2001:db8:0:f101::5  | 3306 |
+| 8100         | 2001:db8:0:f101::21 | 3306 |
+| 8100         | 2001:db8:0:f101::31 | 3306 |
+| 8100         | 2001:db8:0:f101::5  | 3306 |
+| 8101         | 2001:db8:0:f101::21 | 3306 |
+| 8101         | 2001:db8:0:f101::31 | 3306 |
+| 8101         | 2001:db8:0:f101::5  | 3306 |
++--------------+---------------------+------+
+```
+To use IPv6 with PXC you need to modify your my.cnf as:
+```
+wsrep-cluster-address                                       = gcomm://[2001:db8:0:f101::5]:4567,[2001:db8:0:f101::21]:4567,[2001:db8:0:f101::31]:4567
+wsrep-node-address                                          = [2001:db8:0:f101::31]:4567
+wsrep-node-incoming-address                         = [2001:db8:0:f101::31]:3306
+wsrep-provider-options                                      = "gmcast.listen_addr=tcp://[::]:4567"
+```
+and be sure to add this section as well:
+```
+[sst]
+sockopt=,pf=ip6
+```
 ## Release 1.2.0
 In this release we have implemented two Feature Requests (FR) coming directly from Percona Global service (GS).
 The first one is [FR-28](https://github.com/Tusamarco/pxc_scheduler_handler/issues/28) which was requested by Percona Support.

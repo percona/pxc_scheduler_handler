@@ -257,7 +257,10 @@ func (cluster *DataClusterImpl) init(config global.Configuration, connectionProx
 		global.SetPerformanceObj("data_cluster_init", true, log.InfoLevel)
 	}
 	//set parameters from the config file
-	cluster.Debug = config.Global.Debug
+	if log.GetLevel() == log.DebugLevel {
+		cluster.Debug = true
+	}
+
 	cluster.ClusterIdentifier = config.Pxcluster.ClusterId
 	cluster.CheckTimeout = config.Pxcluster.CheckTimeOut
 	cluster.MainSegment = config.Pxcluster.MainSegment
@@ -1348,10 +1351,11 @@ func (cluster *DataClusterImpl) processUpActionMap() {
 		//While evaluating the nodes that are coming up we also check if it is a Failover Node
 		var hgI int
 		var portI = 0
+		var ipaddress = ""
 		currentHg := cluster.Hostgroups[node.HostgroupId]
 		hg := key[0:strings.Index(key, "_")]
-		ip := key[strings.Index(key, "_")+1 : strings.Index(key, ":")]
-		port := key[strings.Index(key, ":")+1:]
+		ipaddress = string(key[len(hg)+1:len(key)])
+		ip, port, _ := net.SplitHostPort(ipaddress)
 		hgI = global.ToInt(hg)
 		portI = global.ToInt(port)
 		// We process only WRITERS
@@ -1460,10 +1464,11 @@ func (cluster *DataClusterImpl) processDownActionMap() {
 	for key, node := range cluster.ActionNodes {
 		var hgI int
 		var portI = 0
+		var ipaddress = ""
 		currentHg := cluster.Hostgroups[node.HostgroupId]
 		hg := key[0:strings.Index(key, "_")]
-		ip := key[strings.Index(key, "_")+1 : strings.Index(key, ":")]
-		port := key[strings.Index(key, ":")+1:]
+		ipaddress = string(key[len(hg)+1:len(key)])
+		ip, port, _ := net.SplitHostPort(ipaddress)
 		hgI = global.ToInt(hg)
 		portI = global.ToInt(port)
 

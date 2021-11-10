@@ -121,7 +121,7 @@ func GetConfig(path string) Configuration {
 	var config Configuration
 	config.fillDefaults()
 	if _, err := toml.DecodeFile(path, &config); err != nil {
-		fmt.Println(err)
+		log.Error(err)
 		syscall.Exit(2)
 	}
 	return config

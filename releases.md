@@ -6,6 +6,15 @@ Given a version number MAJOR.MINOR.PATCH, increment the:
 - PATCH version when you make backwards compatible bug fixes. 
 
 Additional labels for pre-release and build metadata are available as extensions to the MAJOR.MINOR.PATCH format.
+## Release 1.3.1
+This is a bug/function release
+Fixed:
+- Fixed a logic bug in the sanity check that was printing a warning without reason.
+- Fixed a IPv6 issue in parsing the IP when moving up and down a node
+- Updated documentation about variable case sensitivity
+- Modified default config to have INFO log level and not debug
+- Updated documentation to clarify different log levels
+- Modified error handling when loading config file to be print with [ERROR] tag
 
 ## Release 1.3.0
 This release see only the addition of IPv6 support in the pxc_scheduler_handler.

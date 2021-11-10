@@ -121,7 +121,7 @@ func GetConfig(path string) Configuration {
 	var config Configuration
 	config.fillDefaults()
 	if _, err := toml.DecodeFile(path, &config); err != nil {
-		fmt.Println(err)
+		log.Error(err)
 		syscall.Exit(2)
 	}
 	return config
@@ -147,7 +147,7 @@ func (conf *Configuration) SanityCheck() bool {
 	//check for HG consistency
 	// here HG and backup HG must match
 
-	if conf.Pxcluster.BckHgW >= 0 || conf.Pxcluster.BckHgR >= 0 {
+	if conf.Pxcluster.BckHgW > 0 || conf.Pxcluster.BckHgR > 0 {
 		log.SetReportCaller(false)
 		log.Warning(fmt.Sprintf("Configuration hostgroups (BckHgW & BckHgR) options are DEPRECATED Please configure only ConfigHgRange instead. IE HGw=%d, HGr=%d, ConfigHgRange=%d",
 			conf.Pxcluster.HgW,
@@ -159,6 +159,9 @@ func (conf *Configuration) SanityCheck() bool {
 
 //		return false
 		//os.Exit(1)
+	} else{
+		conf.Pxcluster.BckHgW = conf.Pxcluster.ConfigHgRange + conf.Pxcluster.HgW
+		conf.Pxcluster.BckHgR = conf.Pxcluster.ConfigHgRange + conf.Pxcluster.HgR
 	}
 
 	//Check for correct LockFilePath

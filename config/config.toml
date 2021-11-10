@@ -33,7 +33,6 @@ lockfilepath ="/var/run/pxc_scheduler_handler"
 respectManualOfflineSoft=false
 
 [global]
-debug = true
 logLevel = "info"
 logTarget = "stdout" #stdout | file
 logFile = "/var/log/pxc_scheduler_handler/pscheduler.log"

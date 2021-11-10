@@ -30,7 +30,6 @@ lockfilepath ="/var/run/"
 
 
 [global]
-debug = true
 logLevel = "info"
 logTarget = "file" #stdout | file
 logFile = "/var/log/pscheduler.log"

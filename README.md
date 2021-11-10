@@ -186,6 +186,9 @@ Please note that active_failover=1, is the only deterministic method to failover
 
 ## How to configure PXC Scheduler Handler
 There are many options that can be set, and I foresee we will have to add even more. Given that I have abandoned the previous style of using command line and move to config-file definition. Yes this is a bit more expensive, given the file access but it is minimal.
+Keep in mind I am following the CamelCase go standard, for variables and configuration variables as well.
+Said that, the variables in the configuration file are not case sensitive.
+Given that `singlePrimary` or `Singleprimary` or `singleprimary` will be the same. But I suggest you to keep the CamelCase. 
 
 First let us see what we have:
 - 3 sections
@@ -195,7 +198,6 @@ First let us see what we have:
     
 ### Global
 ```[global]
-debug = true
 logLevel = "debug"
 logTarget = "stdout" #stdout | file
 logFile = "/Users/marcotusa/work/temp/pscheduler.log"
@@ -205,10 +207,9 @@ performance = true
 OS = "na"
 ```
 
-- debug : [false] will active some additional features to debug locally as more verbose logs
 - daemonize : [false] Will allow the script to run in a loop without the need to be call by ProxySQL scheduler 
 - daemonInterval : Define in ms the time for looping when in daemon mode
-- loglevel : [error] Define the log level to be used 
+- loglevel : [info] options are: `[error,warning,info,debug]` Define the log level to be used. When using `debug` it will print additional information on the execution, and it can be very verbose.  
 - logTarget : [stdout] Can be either a file or stdout 
 - logFile : In case file for loging define the target 
 - OS : for future use

@@ -30,15 +30,18 @@ import (
 	global "pxc_scheduler_handler/internal/Global"
 )
 
+var (
+	pxcSchedulerHandlerVersion string = "1.0.0"
+)
+
 /*
-Main function must contains only initial parameter, log system init and main object init
+Main function must contain only initial parameter, log system init and main object init
 */
 func main() {
 	//global setup of basic parameters
 	const (
 		Separator = string(os.PathSeparator)
 	)
-	pxcSchedulerHandlerVersion := "1.0.0"
 	var daemonLoopWait = 0
 	var daemonLoop = 0
 	//var lockId string //LockId is compose by clusterID_HG_W_HG_R
@@ -120,9 +123,9 @@ func main() {
 		}
 
 		//In case we have development mode active then loop here
-		if config.Global.Daemonize {
+		if config.Global.Development {
 			daemonLoop = 2
-			daemonLoopWait = config.Global.DaemonInterval
+			daemonLoopWait = config.Global.DevInterval
 		}
 		//set the locker on file
 		if !locker.SetLockFile() {
@@ -219,7 +222,7 @@ func main() {
 		//remove lock and wait
 		locker.RemoveLockFile()
 
-		if config.Global.Daemonize {
+		if config.Global.Development {
 			time.Sleep(time.Duration(daemonLoopWait) * time.Millisecond)
 		} else {
 			i++

@@ -79,7 +79,7 @@ func (locker *LockerImpl) Init(config *global.Configuration) bool {
 	locker.MyServer = MyServer
 	locker.MyServer.Ip = locker.MyServerIp
 	locker.FileLockPath = config.Proxysql.LockFilePath
-	locker.isLooped = config.Global.Daemonize
+	locker.isLooped = config.Global.Development
 	locker.LockFileTimeout = config.Global.LockFileTimeout
 	locker.LockClusterTimeout = config.Global.LockClusterTimeout
 

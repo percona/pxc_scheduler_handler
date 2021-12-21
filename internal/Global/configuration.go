@@ -60,7 +60,7 @@ type PxcCluster struct {
 	Development            bool
 	DevelopmentTime        int32
 	Host                   string
-	LogDir                 string
+	//LogDir                 string
 	LogLevel               string
 	MainSegment            int
 	MaxNumWriters          int
@@ -109,8 +109,8 @@ type GlobalScheduler struct {
 	LogLevel           string
 	LogTarget          string // #stdout | file
 	LogFile            string //"/tmp/pscheduler"
-	Daemonize          bool
-	DaemonInterval     int
+	Development        bool
+	DevInterval        int
 	Performance        bool
 	LockFileTimeout    int64
 	LockClusterTimeout int64

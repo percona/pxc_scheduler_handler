@@ -38,7 +38,7 @@ func main() {
 	const (
 		Separator = string(os.PathSeparator)
 	)
-	pxcSchedulerHandlerVersion := "1.0.0"
+	pxcSchedulerHandlerVersion := "1.3.1"
 	var daemonLoopWait = 0
 	var daemonLoop = 0
 	//var lockId string //LockId is compose by clusterID_HG_W_HG_R

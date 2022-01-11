@@ -3,7 +3,7 @@
 activeFailover = 1
 failBack = false
 checkTimeOut = 2000
-# debug = 1 //Deprecated: this is redundant and not in use
+
 mainSegment = 0
 sslClient = "client-cert.pem"
 sslKey = "client-key.pem"
@@ -13,8 +13,7 @@ hgW = 100
 hgR = 101
 configHgRange =8000
 maintenanceHgRange =9000
-bckHgW = 8100 #deprecated
-bckHgR = 8101 #deprecated
+
 singlePrimary = true
 maxNumWriters = 1
 writerIsAlsoReader = 1

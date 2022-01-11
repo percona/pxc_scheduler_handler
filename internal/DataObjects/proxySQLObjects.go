@@ -93,9 +93,8 @@ func (cluster ProxySQLClusterImpl) GetProxySQLnodes(myNode *ProxySQLNodeImpl) bo
 
 		// Given Proxysql is NOT removing a non healthy node from proxySQL_cluster I must add a step here to check and eventually remove failing ProxySQL nodes
 		if newNode.GetConnection() {
-			if newNode.Dns != myNode.Dns {
 				newNode.CloseConnection()
-			}
+
 			cluster.Nodes[newNode.Dns] = *newNode
 		} else {
 			log.Error(fmt.Sprintf("ProxySQL Node %s is down or not reachable PLEASE REMOVE IT from the proxysql_servers table OR fix the issue", newNode.Dns))

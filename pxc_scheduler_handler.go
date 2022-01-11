@@ -30,15 +30,17 @@ import (
 	global "pxc_scheduler_handler/internal/Global"
 )
 
+var pxcSchedulerHandlerVersion = "1.3.1"
+
 /*
-Main function must contains only initial parameter, log system init and main object init
+Main function must contain only initial parameter, log system init and main object init
 */
 func main() {
 	//global setup of basic parameters
 	const (
 		Separator = string(os.PathSeparator)
 	)
-	pxcSchedulerHandlerVersion := "1.3.1"
+
 	var daemonLoopWait = 0
 	var daemonLoop = 0
 	//var lockId string //LockId is compose by clusterID_HG_W_HG_R
@@ -153,6 +155,11 @@ func main() {
 
 			if locker.CheckClusterLock() != nil {
 				//our node has the lock
+				locker.MyServer.CloseConnection()
+				if log.GetLevel() == log.DebugLevel {
+					log.Info("ProxySQL Cluster Connection close")
+				}
+
 				if !initProxySQLNode(proxysqlNode, config) {
 					locker.RemoveLockFile()
 					os.Exit(1)

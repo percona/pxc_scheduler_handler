@@ -211,7 +211,7 @@ OS = "na"
 - daemonInterval : Define in ms the time for looping when in daemon mode
 - loglevel : [info] options are: `[error,warning,info,debug]` Define the log level to be used. When using `debug` it will print additional information on the execution, and it can be very verbose.  
 - logTarget : [stdout] Can be either a file or stdout 
-- logFile : In case file for loging define the target 
+- logFile : In case file for logging define the target 
 - OS : for future use
 -  lockfiletimeout  Time ins seconds after which the file lock is considered expired [local instance lock]
 -  lockclustertimeout Time in seconds after which the cluster lock is considered expired
@@ -243,8 +243,8 @@ OS = "na"
 - singlePrimary : [true] This is the recommended way, always use Galera in Single Primary to avoid write conflicts
 - maxNumWriters : [1] If SinglePrimary is false you can define how many nodes to have as Writers at the same time
 - writerIsAlsoReader : [1] Possible values 0 - 1. The default is 1, if you really want to exclude the writer from read set it to 0. When the cluster will lose its last reader, the writer will be elected as Reader, no matter what. 
-- retryUp : [0] Number of retry the script should do before restoring a failed node
-- retryDown : [0] Number of retry the script should do to put DOWN a failing node
+- retryUp : [0] Number of retries the application should do before restoring a failed node
+- retryDown : [0] Number of retries the application should do to put DOWN a failing node
 - clusterId : 10 the ID for the cluster 
 - persistPrimarySettings : [0]{0|1|2} This option allow the new elected Primary (in case of fail-over) to maintain the Primary node values for weight/connections/Max values and so on.
   (see Persist Primary section for explanation) - valid value 0|1 only Writer|2 Writer and Reader

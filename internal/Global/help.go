@@ -40,18 +40,16 @@ Parameters for the executable --configfile <file name> --configpath <full path> 
 
 Parameters in the config file:
 Global:
-	debug = true
-	logLevel = "debug"
+	logLevel = "info"
 	logTarget = "stdout" #stdout | file
 	logFile = "/Users/marcotusa/work/temp/pscheduler.log"
-	development = true
-	devInterval = 2000
+	daemonize = false
+	daemonInterval = 2000
 	performance = true
 	OS = "na"
-	debug : [false] will active some additional features to debug locally as more verbose logs
-	development : [false] Will allow the script to run in a loop without the need to be call by ProxySQL scheduler
-	devInterval : Define in ms the time for looping when in development mode
-	loglevel : [error] Define the log level to be used
+	daemonize : [false] Will allow the script to run in a loop without the need to be call by ProxySQL scheduler
+	daemonInterval : Define in ms the time for looping when in development mode
+	loglevel : [info] Define the log level to be used
 	logTarget : [stdout] Can be either a file or stdout
 	logFile : In case file for loging define the target
 	OS : for future use
@@ -65,7 +63,7 @@ ProxySQL
 Pxccluster
 	activeFailover : [1] Failover method
 	failBack : [false] If we should fail-back automatically or wait for manual intervention
-	checkTimeOut : [4000] This is one of the most important settings. When checking the Backend node (MySQL), it is possible that the node will not be able to answer in a consistent amount of time, due the different level of load. If this exceeds the Timeout, a warning will be print in the log, and the node will not be processed. Parsing the log it is possible to identify which is the best value for checkTimeOut to satisfy the need of speed and at the same time to give the nodes the time they need to answer.
+	checkTimeOut : [4000] This is one of the most important settings. When checking the Backend node (MySQL), it is possible that the node will not be able to answer in a consistent amount of time, due the different level of load. If this exceeds the Timeout, a warning will be printed in the log, and the node will not be processed. Parsing the log it is possible to identify which is the best value for checkTimeOut to satisfy the need of speed and at the same time to give the nodes the time they need to answer.
 	debug : [0] Some additional debug specific for the pxc cluster
 	mainSegment : [1] This is another very important value to set, it defines which is the MAIN segment for failover
 	sslClient : "client-cert.pem" In case of use of SSL for backend we need to be able to use the right credential
@@ -74,14 +72,17 @@ Pxccluster
 	sslCertificatePath : ["/full-path/ssl_test"] Full path for the SSL certificates
 	hgW : Writer HG
 	hgR : Reader HG
-	bckHgW : Backup HG in the 8XXX range (hgW + 8000)
-	bckHgR : Backup HG in the 8XXX range (hgR + 8000)
+    configHgRange =8000      : The starting value of the configuration groups (hgW + configHgRange) and (hgR + configHgRange) 
+	maintenanceHgRange =9000 : The starting value of the maintenance groups (hgW + maintenanceHgRange) and (hgR + maintenanceHgRange)
+	(Deprecated) bckHgW : Backup HG in the 8XXX range (hgW + 8000)
+	(Deprecated) bckHgR : Backup HG in the 8XXX range (hgR + 8000)
 	singlePrimary : [true] This is the recommended way, always use Galera in Single Primary to avoid write conflicts
 	maxNumWriters : [1] If SinglePrimary is false you can define how many nodes to have as Writers at the same time
 	writerIsAlsoReader : [1] Possible values 0 - 1. The default is 1, if you really want to exclude the writer from read set it to 0. When the cluster will lose its last reader, the writer will be elected as Reader, no matter what.
-	retryUp : [0] Number of retry the script should do before restoring a failed node
-	retryDown : [0] Number of retry the script should do to put DOWN a failing node
+	retryUp : [0] Number of retries the application should do before restoring a failed node
+	retryDown : [0] Number of retries the application should do to put DOWN a failing node
 	clusterId : 10 the ID for the cluster
+
 	Examples of configurations in ProxySQL
 	Simply pass max 2 arguments
 

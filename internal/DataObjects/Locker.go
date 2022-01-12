@@ -113,7 +113,9 @@ func (locker *LockerImpl) CheckClusterLock() *ProxySQLNodeImpl {
 	// 1 get connection
 	// 2 get all we need from ProxySQL
 	// 3 put the lock if we can
-	global.SetPerformanceObj("Cluster lock", true, log.InfoLevel)
+	if global.Performance {
+		global.SetPerformanceObj("Cluster lock", true, log.InfoLevel)
+	}
 	proxySQLCluster := new(ProxySQLClusterImpl)
 	if !locker.MyServer.IsInitialized {
 		if !locker.MyServer.Init(locker.myConfig) {
@@ -130,21 +132,28 @@ func (locker *LockerImpl) CheckClusterLock() *ProxySQLNodeImpl {
 		if proxySQLCluster.GetProxySQLnodes(locker.MyServer) && len(proxySQLCluster.Nodes) > 0 {
 			if nodes, ok := locker.findLock(proxySQLCluster.Nodes); ok && nodes != nil {
 				if locker.PushSchedulerLock(nodes) {
-					global.SetPerformanceObj("Cluster lock", false, log.InfoLevel)
+					if global.Performance {
+						global.SetPerformanceObj("Cluster lock", false, log.InfoLevel)
+					}
 					return locker.MyServer
 				} else {
-					global.SetPerformanceObj("Cluster lock", false, log.InfoLevel)
+					if global.Performance {
+						global.SetPerformanceObj("Cluster lock", false, log.InfoLevel)
+					}
 					return nil
 				}
 			} else {
 				log.Info(fmt.Sprintf("Cannot put a lock on the cluster for this scheduler %s another node hold the lock and acting", locker.MyServer.Dns))
-				global.SetPerformanceObj("Cluster lock", false, log.InfoLevel)
+				if global.Performance {
+					global.SetPerformanceObj("Cluster lock", false, log.InfoLevel)
+				}
 				return nil
 			}
 		}
 	}
-
-	global.SetPerformanceObj("Cluster lock", false, log.InfoLevel)
+	if global.Performance {
+		global.SetPerformanceObj("Cluster lock", false, log.InfoLevel)
+	}
 	return locker.MyServer
 }
 

@@ -300,6 +300,14 @@ func (locker *LockerImpl) SetLockFile() bool {
 	}
 	fullFile := locker.FileLockPath + string(os.PathSeparator) + locker.FileLock
 	if _, err := os.Stat(fullFile); err == nil && !locker.isLooped {
+		// TODO
+		/*
+		- add option for file lock timeout in ms
+		- add function to identify if lock information in side lock file exceeds tiemout [return true|false]
+			if true we remove the lockfile and continue
+			if false we raise the error and exit
+		*/
+
 		log.Errorf("A lock file named: %s  already exists.\n If this is a refuse of a dirty execution remove it manually to have the check able to run\n", fullFile)
 		fmt.Printf("A lock file named: %s  already exists.\n If this is a refuse of a dirty execution remove it manually to have the check able to run\n", fullFile)
 		return false

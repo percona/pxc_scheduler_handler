@@ -2048,7 +2048,15 @@ func (node DataNodeImpl) getInfo(wg *global.MyWaitGroup, cluster *DataClusterImp
 	log.Debug("node ", node.Dns, " done")
 
 	// we close the connection as soon as done
+	if global.Performance {
+		global.SetPerformanceObj(fmt.Sprintf("Closing connection for node %s", node.Dns), true, log.DebugLevel)
+	}
+
 	node.CloseConnection()
+
+	if global.Performance {
+		global.SetPerformanceObj(fmt.Sprintf("Closing connection for node %s", node.Dns), false, log.DebugLevel)
+	}
 
 	//We decrease the counter running go routines
 	wg.DecreaseCounter()

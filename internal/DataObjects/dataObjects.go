@@ -272,6 +272,9 @@ func (cluster *DataClusterImpl) init(config global.Configuration, connectionProx
 
 	//Enable SSL support
 	if config.Pxcluster.SslClient != "" && config.Pxcluster.SslKey != "" && config.Pxcluster.SslCa != "" {
+		if global.Performance {
+			global.SetPerformanceObj("ssl_certificates_read", true, log.InfoLevel)
+		}
 		ssl := new(SslCertificates)
 		ssl.sslClient = config.Pxcluster.SslClient
 		ssl.sslKey = config.Pxcluster.SslKey
@@ -288,6 +291,9 @@ func (cluster *DataClusterImpl) init(config global.Configuration, connectionProx
 			ssl.sslCertificatePath = path
 		}
 		cluster.Ssl = ssl
+		if global.Performance {
+			global.SetPerformanceObj("ssl_certificates_read", false, log.InfoLevel)
+		}
 	}
 
 	//Get parameters from the config file
@@ -332,6 +338,9 @@ func (cluster *DataClusterImpl) init(config global.Configuration, connectionProx
 // We will use the Nodes list with all the IP:Port pair no matter what HG to check the nodes and then will assign the information to the relevant node collection
 // like Bkup(r/w) or Readers/Writers
 func (cluster *DataClusterImpl) getNodesInfo() bool {
+	if global.Performance {
+		global.SetPerformanceObj("Get_Nodes_Info", true, log.InfoLevel)
+	}
 	var waitingGroup global.MyWaitGroup
 
 	//Before getting the information, we check if any node in the ConfigHgRange is gone lost and if so we try to add it back
@@ -348,6 +357,9 @@ func (cluster *DataClusterImpl) getNodesInfo() bool {
 			log.Debug("Retrieving information from node: ", key)
 		}
 	}
+
+	log.Debug(fmt.Sprintf("waitingGroup composed by : #%d nodes", waitingGroup.ReportCounter()))
+
 	start := time.Now().UnixNano()
 	for i := 0; i < cluster.CheckTimeout; i++ {
 		time.Sleep(1 * time.Millisecond)
@@ -361,9 +373,15 @@ func (cluster *DataClusterImpl) getNodesInfo() bool {
 	timems := (end - start) / 1000000
 	log.Debug("time taken :", timems, " checkTimeOut : ", cluster.CheckTimeout)
 	if int(timems) > cluster.CheckTimeout {
-		log.Error("CheckTimeout exceeded try to increase it above the execution time : ", timems)
+		log.Warning("CheckTimeout exceeded try to increase it above the execution time : ", timems)
+		if waitingGroup.ReportCounter() > 0 {
+			log.Debug("waitingGroup composed by [after loop]: #", waitingGroup.ReportCounter())
+		}
 		//os.Exit(1)
 
+	}
+	if global.Performance {
+		global.SetPerformanceObj("Get_Nodes_Info", false, log.InfoLevel)
 	}
 	return true
 }
@@ -501,7 +519,9 @@ func (cluster *DataClusterImpl) identifyPrimaryBackupNode(dns string) int {
 
 //load values from db disk in ProxySQL
 func (cluster *DataClusterImpl) getParametersFromProxySQL(config global.Configuration) bool {
-
+	if global.Performance {
+		global.SetPerformanceObj("Get_Parametes_from_ProxySQL", true, log.InfoLevel)
+	}
 	cluster.ClusterIdentifier = config.Pxcluster.ClusterId
 	cluster.HgWriterId = config.Pxcluster.HgW
 	cluster.HgReaderId = config.Pxcluster.HgR
@@ -531,6 +551,9 @@ func (cluster *DataClusterImpl) getParametersFromProxySQL(config global.Configur
 	}
 	cluster.OffLineHgReaderID = cluster.MaintenanceHgRange + cluster.HgReaderId
 	cluster.OffLineHgWriterId = cluster.MaintenanceHgRange + cluster.HgWriterId
+	if global.Performance {
+		global.SetPerformanceObj("Get_Parametes_from_ProxySQL", false, log.InfoLevel)
+	}
 	return true
 	//}
 
@@ -2060,6 +2083,7 @@ func (node DataNodeImpl) getInfo(wg *global.MyWaitGroup, cluster *DataClusterImp
 
 	//We decrease the counter running go routines
 	wg.DecreaseCounter()
+	log.Debug(fmt.Sprintf("waitingGroup decreased by node %s: , now contains #%d",node.Dns,wg.ReportCounter() ))
 	return 0
 }
 

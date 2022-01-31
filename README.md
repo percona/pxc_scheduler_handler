@@ -24,7 +24,7 @@
 
 ## Concept
 PXC Scheduler Handler is an application that can run as standalone or invoked from ProxySQL scheduler. Its function is to manage integration between ProxySQL and Galera (from Codership), including its different implementations like PXC.
-The scope of PXC Scheduler Handler is to maintain the ProxySQL mysql_server table, in a way that the PXC cluster managed will suffer of minimal negative effects due to possible data node: failures, service degradation and maintenance.
+The scope of PXC Scheduler Handler is to maintain the ProxySQL mysql_servers table, in a way that the PXC cluster managed will suffer of minimal negative effects due to possible data node: failures, service degradation and maintenance.
 
 PXC Scheduler Handler is also ProxySQL cluster aware and can deal with multiple instances running on more ProxySQL cluster nodes. When in presence of a cluster the application will attempt to set a lock at cluster level such that no other node will interfere with the actions.
 
@@ -63,7 +63,7 @@ The settings used in the 8XXX HGs like weight, use of SSL etc. are used as templ
 
 
 ### Failover
-A fail-over will occur anytime a Primary writer node will need to be demoted. This can be for planned maintenance as well as a node crash. To be able to fail-over PXC Scheduler Handler require to have valid Node(s) in the corresponding 8XXX HostGroup (8000 + original HG id).
+A fail-over will occur anytime a Primary writer node will need to be demoted. This can be for planned maintenance as well as a node crash. To be able to fail-over PXC Scheduler Handler requires to have valid Node(s) in the corresponding 8XXX HostGroup (8000 + original HG id).
 Given that assume we have:
 ```editorconfig
 node4 : 192.168.4.22 Primary Writer
@@ -81,7 +81,7 @@ Why failback is bad? Because with automatic failback, your resurrecting node wil
 ### Other notes about how nodes are managed
 If a node is the only one in a segment, the check will behave accordingly. IE if a node is the only one in the MAIN segment, it will not put the node in OFFLINE_SOFT when the node become donor to prevent the cluster to become unavailable for the applications. As mention is possible to declare a segment as MAIN, quite useful when managing prod and DR site.
 
-The check can be configure to perform retry in a X interval. Where X is the time define in the ProxySQL scheduler. As such if the check is set to have 2 retry for UP and 4 for down, it will loop that number before doing anything.
+The check can be configured to perform retry in a X interval. Where X is the time define in the ProxySQL scheduler. As such if the check is set to have 2 retry for UP and 4 for down, it will loop that number before doing anything.
 
 This feature is very useful in some not well known cases where Galera behave weird. IE whenever a node is set to READ_ONLY=1, galera desync and resync the node. A check not taking this into account will cause a node to be set OFFLINE and back for no reason.
 
@@ -94,7 +94,7 @@ ProxySQL do not even has idea if a ProxySQL cluster node is up or down. To be pr
 Given this the script must not only get the list of ProxySQL nodes but validate them.
 
 In terms of checks we do:
-We check if the node were we are has a lock or if can acquire one.
+We check if the node where we are has a lock or if can acquire one.
 If not we will return nil to indicate the program must exit given either there is already another node holding the lock or this node is not in a good state to acquire a lock.
 All the DB operations are done connecting locally to the ProxySQL node running the scheduler.
 
@@ -111,7 +111,7 @@ Checks for:
 clustered = true
 
 [global]
-lockfiletimeout = 60 #seconds 
+lockfiletimeout = 60 #seconds
 lockclustertimeout = 600 # seconds
 ```
 Last important thing. When using Proxysql in cluster mode the address indicated in the `[proxysql]` section `host` __MUST__ be the same reported in the `proxysql_servers` table or the cluster operations will fail.
@@ -123,7 +123,7 @@ TODO
  - add support for MySQL Group Replication
  - add support for Scheduler
 Roadmap
-This is an overview of the features related to clustering, and not a complete list. None the following is impletemented yet.
+This is an overview of the features related to clustering, and not a complete list. None the following is implemented yet.
 Implementation may be different than what is listed right now:
  - support for master election: the word master was intentionally chosen instead of leader
  - only master proxy is writable/configurable
@@ -135,12 +135,12 @@ Implementation may be different than what is listed right now:
 None of the above is implemented
 
 
-### Example of proxySql setup 
+### Example of proxySql setup
 
 __Very Important Note:__
-PXC_scheduler_Handler, is a replacement of the native Proxysql galera support. 
+PXC_scheduler_Handler, is a replacement of the native Proxysql galera support.
 As such __ANY__ reference to the hostgroup that you are going to manage with it, __MUST__ be removed from the table :`mysql_galera_hostgroup.`
-Following the example below, the `mysql_galera_hostgroups` table must not have entries for hostgroups 100,101,8100,8101,9100,9101. If you keep that then the two products will collide with unexpected results. 
+Following the example below, the `mysql_galera_hostgroups` table must not have entries for hostgroups 100,101,8100,8101,9100,9101. If you keep that then the two products will collide with unexpected results.
 
 Assuming we have 3 nodes:
 - node4 : `192.168.4.22`
@@ -151,29 +151,29 @@ As Hostgroup:
 - HG 100 for Writes
 - HG 101 for Reads
 We have to configure also nodes in 8XXX:
-- HG 8100 for Writes 
+- HG 8100 for Writes
 - HG 8101 for Reads
 
 We will need to :
 ```MySQL
-delete from mysql_servers where hostgroup_id in (100,101,8100,8101);
+DELETE FROM mysql_servers WHERE hostgroup_id IN (100,101,8100,8101);
 INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('192.168.4.22',100,3306,1000,2000,'Preferred writer');
 INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('192.168.4.23',100,3306,999,2000,'Second preferred ');
-INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('192.168.4.233',100,3306,998,2000,'Las chance');
-INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('192.168.4.22',101,3306,998,2000,'last reader');
-INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('192.168.4.23',101,3306,1000,2000,'reader1');    
-INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('192.168.4.233',101,3306,1000,2000,'reader2');        
+INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('192.168.4.233',100,3306,998,2000,'Last chance');
+INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('192.168.4.22',101,3306,998,2000,'Last reader');
+INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('192.168.4.23',101,3306,1000,2000,'Reader1');
+INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('192.168.4.233',101,3306,1000,2000,'Reader2');
 
 INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('192.168.4.22',8100,3306,1000,2000,'Failover server preferred');
-INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('192.168.4.23',8100,3306,999,2000,'Second preferred');    
-INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('192.168.4.233',8100,3306,998,2000,'Thirdh and last in the list');      
+INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('192.168.4.23',8100,3306,999,2000,'Second preferred');
+INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('192.168.4.233',8100,3306,998,2000,'Third and last in the list');
 
 INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('192.168.4.22',8101,3306,998,2000,'Failover server preferred');
-INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('192.168.4.23',8101,3306,999,2000,'Second preferred');    
-INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('192.168.4.233',8101,3306,1000,2000,'Thirdh and last in the list');      
+INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('192.168.4.23',8101,3306,999,2000,'Second preferred');
+INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('192.168.4.233',8101,3306,1000,2000,'Third and last in the list');
 
 
-LOAD MYSQL SERVERS TO RUNTIME; SAVE MYSQL SERVERS TO DISK;    
+LOAD MYSQL SERVERS TO RUNTIME; SAVE MYSQL SERVERS TO DISK;
 
 ```
 Will create entries in ProxySQL for 2 main HG (100 for write and 101 for read) It will also create 3 entries for the SPECIAL group 8100 and other 3 for HG 8101. As already mention above these groups will be used by the application to manage all the mysql_servers table maintenance operation.
@@ -188,14 +188,14 @@ Please note that active_failover=1, is the only deterministic method to failover
 There are many options that can be set, and I foresee we will have to add even more. Given that I have abandoned the previous style of using command line and move to config-file definition. Yes this is a bit more expensive, given the file access but it is minimal.
 Keep in mind I am following the CamelCase go standard, for variables and configuration variables as well.
 Said that, the variables in the configuration file are not case sensitive.
-Given that `singlePrimary` or `Singleprimary` or `singleprimary` will be the same. But I suggest you to keep the CamelCase. 
+Given that `singlePrimary` or `Singleprimary` or `singleprimary` will be the same. But I suggest you to keep the CamelCase.
 
 First let us see what we have:
 - 3 sections
-    - Global 
+    - Global
     - pxccluster
     - proxysql
-    
+
 ### Global
 ```[global]
 logLevel = "debug"
@@ -207,28 +207,28 @@ performance = true
 OS = "na"
 ```
 
-- daemonize : [false] Will allow the script to run in a loop without the need to be call by ProxySQL scheduler 
+- daemonize : [false] Will allow the script to run in a loop without the need to be called by ProxySQL scheduler
 - daemonInterval : Define in ms the time for looping when in daemon mode
-- loglevel : [info] options are: `[error,warning,info,debug]` Define the log level to be used. When using `debug` it will print additional information on the execution, and it can be very verbose.  
-- logTarget : [stdout] Can be either a file or stdout 
-- logFile : In case file for logging define the target 
+- loglevel : [info] options are: `[error,warning,info,debug]` Define the log level to be used. When using `debug` it will print additional information on the execution, and it can be very verbose.
+- logTarget : [stdout] Can be either a file or stdout
+- logFile : In case file for logging define the target
 - OS : for future use
-- lockfiletimeout : Time ins seconds after which the file lock is considered expired [local instance lock]
+- lockfiletimeout : Time in seconds after which the file lock is considered expired [local instance lock]
 - lockclustertimeout : Time in seconds after which the cluster lock is considered expired
 - performance : boolean which enable the statistic reporting. If you do not want any reporting just set to `false`. By default, is true which means when log is set as `error` or `warning` you still have: `[INFO]:2022-01-12 16:57:15 - Phase: main = 83,051,000 us 83 ms`
 
 ### ProxySQL
-- port : [6032] Port used to connect 
+- port : [6032] Port used to connect
 - host : [127.0.0.1] IP address used to connect to ProxySQL __IF using cluster you must match this with the IP in the proxysql_servers table__
 - user : [] User able to connect to ProxySQL
-- password : [] Password 
+- password : [] Password
 - clustered : [false] If this is __NOT__ a single instance then we need to put a lock on the running scheduler (see [Working with ProxySQL cluster](#Working-with-ProxySQL-cluster) section)
-- initialized : not used (for the moment) 
-- respectManualOfflineSoft : [false] When true the checker will NOT modify an `OFFLINE_SOFT` state manually set. It will also DO NOT put back any OFFLINE_SOFT given it will be impossible to discriminate the ones set by hand from the ones set by the application. Given that this feature is to be consider, __UNSAFE__ and should never be used unless you know very well what you are doing.
+- initialized : not used (for the moment)
+- respectManualOfflineSoft : [false] When true the checker will NOT modify an `OFFLINE_SOFT` state manually set. It will also DO NOT put back any OFFLINE_SOFT given it will be impossible to discriminate the ones set by hand from the ones set by the application. Given that this feature is to be considered, __UNSAFE__ and should never be used unless you know very well what you are doing.
 
 ### Pxccluster
 - activeFailover : [1] Failover method
-- failBack : [false] If we should fail-back automatically or wait for manual intervention 
+- failBack : [false] If we should fail-back automatically or wait for manual intervention
 - checkTimeOut : [4000] This is one of the most important settings. When checking the Backend node (MySQL), it is possible that the node will not be able to answer in a consistent amount of time, due the different level of load. If this exceeds the Timeout, a warning will be print in the log, and the node will not be processed. Parsing the log it is possible to identify which is the best value for checkTimeOut to satisfy the need of speed and at the same time to give the nodes the time they need to answer.
 - mainSegment : [1] This is another very important value to set, it defines which is the MAIN segment for failover
 - sslClient : "client-cert.pem" In case of use of SSL for backend we need to be able to use the right credential
@@ -243,13 +243,13 @@ OS = "na"
 - ~~bckHgR :  Backup HG in the 8XXX range (hgR + 8000)~~ DEPRECATED A warning is raised in the log
 - singlePrimary : [true] This is the recommended way, always use Galera in Single Primary to avoid write conflicts
 - maxNumWriters : [1] If SinglePrimary is false you can define how many nodes to have as Writers at the same time
-- writerIsAlsoReader : [1] Possible values 0 - 1. The default is 1, if you really want to exclude the writer from read set it to 0. When the cluster will lose its last reader, the writer will be elected as Reader, no matter what. 
+- writerIsAlsoReader : [1] Possible values 0 - 1. The default is 1, if you really want to exclude the writer from read set it to 0. When the cluster will lose its last reader, the writer will be elected as Reader, no matter what.
 - retryUp : [0] Number of retries the application should do before restoring a failed node
 - retryDown : [0] Number of retries the application should do to put DOWN a failing node
-- clusterId : 10 the ID for the cluster 
+- clusterId : 10 the ID for the cluster
 - persistPrimarySettings : [0]{0|1|2} This option allow the new elected Primary (in case of fail-over) to maintain the Primary node values for weight/connections/Max values and so on.
   (see Persist Primary section for explanation) - valid value 0|1 only Writer|2 Writer and Reader
- 
+
 #### Persist Primary Values
 In pxc_scheduler_handler is possible to ask the application to keep the values assigned to the Primary Writer also when another node is elected, as in case of fail-over.<br>
 There are few conditions for this to work consistently:
@@ -269,10 +269,10 @@ Given:
 | 101          | 192.168.4.233 | 3306 | 0         | ONLINE | 1000   | 0           | 2000            | 0                   | 0       | 0              | reader2                     |
 | 8100         | 192.168.4.22  | 3306 | 0         | ONLINE | 1000   | 0           | 2000            | 0                   | 0       | 0              | Failover server preferred   |
 | 8100         | 192.168.4.23  | 3306 | 0         | ONLINE | 999    | 0           | 2000            | 0                   | 0       | 0              | Second preferred            |
-| 8100         | 192.168.4.233 | 3306 | 0         | ONLINE | 998    | 0           | 2000            | 0                   | 0       | 0              | Thirdh and last in the list |
+| 8100         | 192.168.4.233 | 3306 | 0         | ONLINE | 998    | 0           | 2000            | 0                   | 0       | 0              | Third and last in the list  |
 | 8101         | 192.168.4.22  | 3306 | 0         | ONLINE | 998    | 0           | 2000            | 0                   | 0       | 0              | Failover server preferred   |
 | 8101         | 192.168.4.23  | 3306 | 0         | ONLINE | 1000   | 0           | 2000            | 0                   | 0       | 0              | Second preferred            |
-| 8101         | 192.168.4.233 | 3306 | 0         | ONLINE | 1000   | 0           | 2000            | 0                   | 0       | 0              | Thirdh and last in the list |
+| 8101         | 192.168.4.233 | 3306 | 0         | ONLINE | 1000   | 0           | 2000            | 0                   | 0       | 0              | Third and last in the list  |
 +--------------+---------------+------+-----------+--------+--------+-------------+-----------------+---------------------+---------+----------------+-----------------------------+
 
 ```
@@ -304,7 +304,7 @@ If instead the value of `persistPrimarySettings = 2`:
 ```
 Both Read and Write values are changed.
 
-This will help in keeping consistent the behaviour of the node acting as Primary. 
+This will help in keeping consistent the behaviour of the node acting as Primary.
 
 #### Specify custom Configuration and Maintenance Hostgroups
 ***(from version [1.2.0]())*** </br>
@@ -334,15 +334,15 @@ The same will happen with the Maintenance Hostgroups 99000 + Hg(W|R) = 99100 | 9
 Of course the configuration hostgroups must be present when creating/adding the servers in Proxysql mysql_server tables:
 ```bigquery
 INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('192.168.4.22',88100,3306,1000,2000,'Failover server preferred');
-INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('192.168.4.23',88100,3306,999,2000,'Second preferred');    
-INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('192.168.4.233',88100,3306,998,2000,'Thirdh and last in the list');      
+INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('192.168.4.23',88100,3306,999,2000,'Second preferred');
+INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('192.168.4.233',88100,3306,998,2000,'Third and last in the list');
 
 INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('192.168.4.22',88101,3306,998,2000,'Failover server preferred');
-INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('192.168.4.23',88101,3306,999,2000,'Second preferred');    
-INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('192.168.4.233',88101,3306,1000,2000,'Thirdh and last in the list');      
+INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('192.168.4.23',88101,3306,999,2000,'Second preferred');
+INSERT INTO mysql_servers (hostname,hostgroup_id,port,weight,max_connections,comment) VALUES ('192.168.4.233',88101,3306,1000,2000,'Third and last in the list');
 
 
-LOAD MYSQL SERVERS TO RUNTIME; SAVE MYSQL SERVERS TO DISK;    
+LOAD MYSQL SERVERS TO RUNTIME; SAVE MYSQL SERVERS TO DISK;
 ```
 
 #### Use of max_replication_lag to handle Desync state
@@ -376,16 +376,16 @@ wsrep_local_recv_queue = 230 --> retryUp = 1 --> ONLINE
 
 
 ## Examples of configurations in ProxySQL
-Simply pass max 2 arguments 
+Simply pass max 2 arguments
 
-```MySQL 
+```MySQL
 INSERT  INTO scheduler (id,active,interval_ms,filename,arg1,arg2) values (10,0,2000,"/var/lib/proxysql/pxc_scheduler_handler","--configfile=config.toml","--configpath=<path to config>");
 LOAD SCHEDULER TO RUNTIME;SAVE SCHEDULER TO DISK;
 ```
 
 
 To Activate it:
-```MySQL 
+```MySQL
 update scheduler set active=1 where id=10;
 LOAD SCHEDULER TO RUNTIME;
 ```
@@ -418,8 +418,8 @@ You can define IF you want to have multiple writers. Default is 1 writer only (I
 ## Security settings
 PXC_Scheduler_Handler use the same `monitor` user ProxySQL use, BUT it needs access also performance_schema. As such it requires:
 ```bigquery
-GRANT USAGE ON *.* TO `monitor`@`%`                    
-GRANT SELECT ON `performance_schema`.* TO `monitor`@`%
+GRANT USAGE ON *.* TO `monitor`@`%`;
+GRANT SELECT ON `performance_schema`.* TO `monitor`@`%`;
 ```
 To access and evaluate correctly the nodes.
 
@@ -438,17 +438,17 @@ go get github.com/sirupsen/logrus
 go get golang.org/x/text/language
 go get golang.org/x/text/message
 
-go build -o pxc_scheduler_handler.  
+go build -o pxc_scheduler_handler.
 
 ```
 First thing to do then is to run `./pxc_scheduler_handler --help`
 to navigate the parameters.
 
 Then adjust the config file in `./config/config.toml` better to do a copy and modify for what u need
-Then to test it OUTSIDE the ProxySQL scheduler script, in the config file `[Global]` section change `daemonize=false` to `true`. 
-The script will auto-loop as if call by the scheduler. 
+Then to test it OUTSIDE the ProxySQL scheduler script, in the config file `[Global]` section change `daemonize=false` to `true`.
+The script will auto-loop as if call by the scheduler.
 
- 
+
 ## Release Notes
 see [release notes](releases.md)
 

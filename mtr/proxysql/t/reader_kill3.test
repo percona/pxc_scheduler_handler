@@ -1,6 +1,6 @@
 # 1. Setup 3 node PXC cluster
 # 2. Setup ProxySQL 
-#  node_1: reader writer / backup reader / backup wrtier
+#  node_1: reader writer / backup reader / backup writer
 #  node_2: reader        / backup reader / backup writer
 #  node_3:        writer / backup reader / backup writer
 # 3. Setup ProxySQL scheduler with config passed in $pxc_scheduler_handler_config

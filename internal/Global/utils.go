@@ -360,7 +360,7 @@ func ReportPerformance() {
 			if perfObj.LogLevel <= log.GetLevel() {
 				originalLogLevel := log.GetLevel()
 				log.SetLevel(log.InfoLevel)
-				log.Info("Phase: ", perfObj.Name, " = ", value, " us ", strconv.FormatInt((time[1]-time[0])/1000000, 10), " ms")
+				log.Info("Phase: ", perfObj.Name, " = ", value, " ns ", strconv.FormatInt((time[1]-time[0])/1000000, 10), " ms")
 				log.SetLevel(originalLogLevel)
 			}
 		}

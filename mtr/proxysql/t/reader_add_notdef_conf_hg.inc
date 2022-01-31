@@ -1,7 +1,7 @@
 # This is common scenario for 1 writer, 2 reades, 2 backup writers, 1 backup reader
 # 1. Setup 3 node PXC cluster
 # 2. Setup ProxySQL 
-#  node_1: reader/backup wrtier weight 1000
+#  node_1: reader/backup writer weight 1000
 #  node_2: writer
 #  node_3: reader/backup writer weight 999/backup reader
 # 3. Setup ProxySQL scheduler with config passed in $pxc_scheduler_handler_config

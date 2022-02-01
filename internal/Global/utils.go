@@ -32,6 +32,7 @@ import (
 )
 
 type MyWaitGroup struct {
+	sync.Mutex
 	sync.WaitGroup
 	count int
 }
@@ -54,15 +55,21 @@ func (wg *MyWaitGroup) WaitTimeout(timeout time.Duration) bool {
 }
 
 func (wg *MyWaitGroup) IncreaseCounter() {
+	wg.Lock()
+	defer wg.Unlock()
 	wg.count++
 }
 func (wg *MyWaitGroup) DecreaseCounter() {
 	if wg.count > 0 {
+		wg.Lock()
+		defer wg.Unlock()
 		wg.count--
 	}
 }
 
 func (wg *MyWaitGroup) ReportCounter() int {
+	wg.Lock()
+	defer wg.Unlock()
 	return wg.count
 }
 

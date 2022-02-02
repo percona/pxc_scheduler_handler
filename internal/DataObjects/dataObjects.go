@@ -371,7 +371,7 @@ func (cluster *DataClusterImpl) getNodesInfo() bool {
 	}
 	end := time.Now().UnixNano()
 	timems := (end - start) / 1000000
-	log.Debug("time taken :", timems, " checkTimeOut : ", cluster.CheckTimeout)
+	log.Debug("time taken : ", timems, " ms; checkTimeOut : ", cluster.CheckTimeout, " ms")
 	if int(timems) > cluster.CheckTimeout {
 		log.Warning("CheckTimeout exceeded try to increase it above the execution time : ", timems)
 		if waitingGroup.ReportCounter() > 0 {

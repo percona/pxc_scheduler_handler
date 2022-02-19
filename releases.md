@@ -10,12 +10,12 @@ Additional labels for pre-release and build metadata are available as extensions
 Fixing a problem as describe in #50
 The issue was that under high contention the object keeping track the running threads was having issue in decrementing correctly the number of active threads.
 The adoption of a mutex on the methods:
-
-increment
-decrement
-report
+- increment
+- decrement
+- report
 Fixed the issue.
 The effects of the issue was that also if all nodes were correctly reported back, the scheduler was exiting the checking loop only on timeout. That was not compromising the checks but was causing a delay in action.
+
 Other fix are spelling corrections as for PR-51 from @venkatesh-prasad-v
 
 ## Release 1.3.1

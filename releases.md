@@ -13,7 +13,9 @@ The adoption of a mutex on the methods:
 - increment
 - decrement
 - report
+
 Fixed the issue.
+
 The effects of the issue was that also if all nodes were correctly reported back, the scheduler was exiting the checking loop only on timeout. That was not compromising the checks but was causing a delay in action.
 
 Other fix are spelling corrections as for PR-51 from @venkatesh-prasad-v

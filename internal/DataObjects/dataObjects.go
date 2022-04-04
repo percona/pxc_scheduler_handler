@@ -1205,7 +1205,9 @@ func (cluster *DataClusterImpl) cleanWriters() bool {
 
 	}
 	if len(cluster.WriterNodes) < 1 {
-		cluster.RequireFailover = true
+		if cluster.checkActiveFailover() {
+			cluster.RequireFailover = true
+		}
 		cluster.HasPrimary = false
 	}
 	return cleanWriter
@@ -1507,7 +1509,9 @@ func (cluster *DataClusterImpl) processDownActionMap() {
 					if _, ok := cluster.WriterNodes[node.Dns]; ok {
 						if len(cluster.WriterNodes) == 1 {
 							//if we are here this means our Writer is going down and we need to failover
-							cluster.RequireFailover = true
+							if cluster.checkActiveFailover() {
+								cluster.RequireFailover = true
+							}
 							cluster.HasFailoverNode = false
 							cluster.HasPrimary = false
 							cluster.Haswriter = false
@@ -1527,6 +1531,18 @@ func (cluster *DataClusterImpl) processDownActionMap() {
 			}
 		}
 	}
+}
+
+/*
+This function checks if the cluster has activeFailover active and return true in this case.
+If not it also raise a Warning given that not activitate failover is a bad bad idea
+ */
+func (cluster *DataClusterImpl) checkActiveFailover() bool {
+	if cluster.ActiveFailover < 1 {
+		log.Warning(fmt.Sprintf("Cluster require to perform fail-over but the settings of ActiveFailover is preventing it with a value of %d. Best practice, and default is to have ActiveFailover = 1 ",cluster.ActiveFailover))
+		return false
+	}
+	return true
 }
 
 /*

@@ -1788,7 +1788,8 @@ func (node *DataNodeImpl) GetConnection() bool {
 			rootCertPool := x509.NewCertPool()
 			pem, err := ioutil.ReadFile(ca)
 			if err != nil {
-				log.Fatal(err)
+				log.Error(err, " While trying to connect to node ", node.Dns)
+				return false
 			}
 			if ok := rootCertPool.AppendCertsFromPEM(pem); !ok {
 				log.Fatal("Failed to append PEM.")
@@ -2058,7 +2059,9 @@ func (node DataNodeImpl) getInfo(wg *global.MyWaitGroup, cluster *DataClusterImp
 		global.SetPerformanceObj(fmt.Sprintf("Get info for node %s", node.Dns), true, log.DebugLevel)
 	}
 	// Get the connection
-	node.GetConnection()
+	if !node.GetConnection(){
+		node.NodeTCPDown = true
+	}
 	/*
 		if connection is functioning we try to get the info
 		Otherwise we go on and set node as NOT processed

@@ -1788,16 +1788,18 @@ func (node *DataNodeImpl) GetConnection() bool {
 			rootCertPool := x509.NewCertPool()
 			pem, err := ioutil.ReadFile(ca)
 			if err != nil {
-				log.Error(err, " While trying to connect to node ", node.Dns)
+				log.Error(err, " While trying to connect to node (CA certificate) ", node.Dns)
 				return false
 			}
 			if ok := rootCertPool.AppendCertsFromPEM(pem); !ok {
-				log.Fatal("Failed to append PEM.")
+				log.Error(err, " While trying to connect to node (PEM certificate) ", node.Dns)
+				return false;
 			}
 			clientCert := make([]tls.Certificate, 0, 1)
 			certs, err := tls.LoadX509KeyPair(client, key)
 			if err != nil {
-				log.Fatal(err)
+				log.Error(err, " While trying to connect to node (Key certificate) ", node.Dns)
+				return false
 			}
 			clientCert = append(clientCert, certs)
 			mysql.RegisterTLSConfig("custom", &tls.Config{

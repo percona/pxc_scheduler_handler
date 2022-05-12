@@ -177,6 +177,35 @@ func (conf *Configuration) SanityCheck() bool {
 
 	}
 
+	//check SSL path and certificates
+	if conf.Pxcluster.SslcertificatePath !="" {
+		Separator := string(os.PathSeparator)
+		//var failing = false
+		log.SetReportCaller(false)
+		if !CheckIfPathExists(conf.Pxcluster.SslcertificatePath) {
+			log.Warning(fmt.Sprintf("SSL Path is not accessible currently set to: |%s|", conf.Pxcluster.SslcertificatePath))
+			//failing = true
+		}else {
+			if !CheckIfPathExists(conf.Pxcluster.SslcertificatePath + Separator + conf.Pxcluster.SslCa) {
+				log.Warning(fmt.Sprintf("SSLCA Path is not accessible currently set to: |%s|", conf.Pxcluster.SslcertificatePath+Separator+conf.Pxcluster.SslCa))
+				//failing = true
+			}
+			if !CheckIfPathExists(conf.Pxcluster.SslcertificatePath + Separator + conf.Pxcluster.SslKey) {
+				log.Warning(fmt.Sprintf("SSL Key Path is not accessible currently set to: |%s|", conf.Pxcluster.SslcertificatePath+Separator+conf.Pxcluster.SslKey))
+				//failing = true
+			}
+
+			if !CheckIfPathExists(conf.Pxcluster.SslcertificatePath + Separator + conf.Pxcluster.SslClient) {
+				log.Warning(fmt.Sprintf("SSL Client Path is not accessible currently set to: |%s|", conf.Pxcluster.SslcertificatePath+Separator+conf.Pxcluster.SslClient))
+				//failing = true
+			}
+		}
+		//if failing{
+		//	return false
+		//}
+		return true
+	}
+
 	return true
 
 }

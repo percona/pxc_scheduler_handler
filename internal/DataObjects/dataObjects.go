@@ -1788,15 +1788,18 @@ func (node *DataNodeImpl) GetConnection() bool {
 			rootCertPool := x509.NewCertPool()
 			pem, err := ioutil.ReadFile(ca)
 			if err != nil {
-				log.Fatal(err)
+				log.Error(err, " While trying to connect to node (CA certificate) ", node.Dns)
+				return false
 			}
 			if ok := rootCertPool.AppendCertsFromPEM(pem); !ok {
-				log.Fatal("Failed to append PEM.")
+				log.Error(err, " While trying to connect to node (PEM certificate) ", node.Dns)
+				return false;
 			}
 			clientCert := make([]tls.Certificate, 0, 1)
 			certs, err := tls.LoadX509KeyPair(client, key)
 			if err != nil {
-				log.Fatal(err)
+				log.Error(err, " While trying to connect to node (Key certificate) ", node.Dns)
+				return false
 			}
 			clientCert = append(clientCert, certs)
 			mysql.RegisterTLSConfig("custom", &tls.Config{
@@ -2058,7 +2061,9 @@ func (node DataNodeImpl) getInfo(wg *global.MyWaitGroup, cluster *DataClusterImp
 		global.SetPerformanceObj(fmt.Sprintf("Get info for node %s", node.Dns), true, log.DebugLevel)
 	}
 	// Get the connection
-	node.GetConnection()
+	if !node.GetConnection(){
+		node.NodeTCPDown = true
+	}
 	/*
 		if connection is functioning we try to get the info
 		Otherwise we go on and set node as NOT processed

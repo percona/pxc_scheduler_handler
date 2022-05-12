@@ -65,7 +65,7 @@ func main() {
 	if len(os.Args) > 1 &&
 		os.Args[1] == "--version"{
 		fmt.Println("PXC Scheduler Handler Version: ",pxcSchedulerHandlerVersion )
-		os.Exit(0)
+		exitWithCode(0)
 	}
 
 
@@ -82,7 +82,7 @@ func main() {
 	//check for current params
 	if len(os.Args) < 2 || configFile == "" {
 		fmt.Println("You must at least pass the --configfile=xxx parameter ")
-		os.Exit(1)
+		exitWithCode(1)
 	}
 	var currPath, err = os.Getwd()
 
@@ -98,7 +98,7 @@ func main() {
 
 	if err != nil {
 		fmt.Print("Problem loading the config")
-		os.Exit(1)
+		exitWithCode(1)
 	}
 
 	for i := 0; i <= daemonLoop; {
@@ -107,18 +107,18 @@ func main() {
 
 		//Let us do a sanity check on the configuration to prevent most obvious issues and normalize some params
 		if !config.SanityCheck() {
-			os.Exit(1)
+			exitWithCode(1)
 		}
 
 		//initialize the log system
 		if !global.InitLog(config) {
 			fmt.Println("Not able to initialize log system exiting")
-			os.Exit(1)
+			exitWithCode(1)
 		}
 		//Initialize the locker
 		if !locker.Init(&config) {
 			log.Error("Cannot initialize LockerImpl")
-			os.Exit(1)
+			exitWithCode(1)
 		}
 
 		//In case we have development mode active then loop here
@@ -129,7 +129,7 @@ func main() {
 		//set the locker on file
 		if !locker.SetLockFile() {
 			fmt.Println("Cannot create a lock, exit")
-			os.Exit(1)
+			exitWithCode(1)
 		}
 
 		//should we track performance or not
@@ -162,17 +162,17 @@ func main() {
 
 				if !initProxySQLNode(proxysqlNode, config) {
 					locker.RemoveLockFile()
-					os.Exit(1)
+					exitWithCode(1)
 				}
 			} else {
 				//	Another node has the lock we must exit
 				locker.RemoveLockFile()
-				os.Exit(1)
+				exitWithCode(1)
 			}
 		} else {
 			if !initProxySQLNode(proxysqlNode, config) {
 				locker.RemoveLockFile()
-				os.Exit(1)
+				exitWithCode(1)
 			}
 		}
 
@@ -181,7 +181,7 @@ func main() {
 		} else {
 			log.Error("Initialization failed")
 			locker.RemoveLockFile()
-			os.Exit(1)
+			exitWithCode(1)
 		}
 
 		/*
@@ -204,7 +204,7 @@ func main() {
 		// Once we have the Map we translate it into SQL commands to process
 		if !proxysqlNode.ProcessChanges() {
 			locker.RemoveLockFile()
-			os.Exit(1)
+			exitWithCode(1)
 		}
 
 		/*
@@ -228,10 +228,11 @@ func main() {
 
 		if config.Global.Daemonize {
 			time.Sleep(time.Duration(daemonLoopWait) * time.Millisecond)
+			log.Info("")
 		} else {
 			i++
 		}
-		log.Info("")
+		exitWithCode(0)
 
 	}
 	//if !config.global.Development {
@@ -251,4 +252,10 @@ func initProxySQLNode(proxysqlNode *DO.ProxySQLNodeImpl, config global.Configura
 		log.Error("Initialization failed")
 		return false
 	}
+}
+
+func exitWithCode(errorCode int) {
+	log.Debug("Exiting execution with code ",errorCode)
+	log.Info("")
+	os.Exit(errorCode)
 }

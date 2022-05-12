@@ -232,9 +232,10 @@ func main() {
 		} else {
 			i++
 		}
-		exitWithCode(0)
 
 	}
+
+	exitWithCode(0)
 	//if !config.global.Development {
 	//	locker.RemoveLockFile()
 	//}

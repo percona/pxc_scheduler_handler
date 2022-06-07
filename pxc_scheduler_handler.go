@@ -257,6 +257,5 @@ func initProxySQLNode(proxysqlNode *DO.ProxySQLNodeImpl, config global.Configura
 
 func exitWithCode(errorCode int) {
 	log.Debug("Exiting execution with code ",errorCode)
-	log.Info("")
 	os.Exit(errorCode)
 }

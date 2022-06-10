@@ -1,4 +1,3 @@
-
 /*
  * Copyright (c) Marco Tusa 2021 - present
  *                     GNU GENERAL PUBLIC LICENSE
@@ -24,10 +23,11 @@ import (
 	"os"
 	"time"
 
-	_ "github.com/go-sql-driver/mysql"
-	log "github.com/sirupsen/logrus"
 	DO "pxc_scheduler_handler/internal/DataObjects"
 	global "pxc_scheduler_handler/internal/Global"
+
+	_ "github.com/go-sql-driver/mysql"
+	log "github.com/sirupsen/logrus"
 )
 
 var pxcSchedulerHandlerVersion = "1.3.5"
@@ -63,11 +63,10 @@ func main() {
 
 	//return version adn exit
 	if len(os.Args) > 1 &&
-		os.Args[1] == "--version"{
-		fmt.Println("PXC Scheduler Handler Version: ",pxcSchedulerHandlerVersion )
+		os.Args[1] == "--version" {
+		fmt.Println("PXC Scheduler Handler Version: ", pxcSchedulerHandlerVersion)
 		exitWithCode(0)
 	}
-
 
 	//Manage config and parameters from conf file [start]
 	flag.StringVar(&configFile, "configfile", "", "Config file name for the script")
@@ -256,7 +255,6 @@ func initProxySQLNode(proxysqlNode *DO.ProxySQLNodeImpl, config global.Configura
 }
 
 func exitWithCode(errorCode int) {
-	log.Debug("Exiting execution with code ",errorCode)
-	log.Info("")
+	log.Debug("Exiting execution with code ", errorCode)
 	os.Exit(errorCode)
 }

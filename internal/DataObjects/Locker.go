@@ -129,7 +129,7 @@ func (flLocker *FileLockImp) EvaluateFileLockForRemoval(evaluate bool,localPID i
     //get the process and check the status
 	process, err := os.FindProcess(localPID)
 	if err != nil{
-		log.Warningf(" Not able to retrieve informations for process %s. We assume locj is expired and process is long gone.", process.Pid)
+		log.Warningf(" Not able to retrieve informations for process %d. We assume locj is expired and process is long gone.", process.Pid)
 		//we assume PID is invalid as such we can remove the lock
 		return true
 	}

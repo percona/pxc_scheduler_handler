@@ -30,7 +30,7 @@ import (
 	global "pxc_scheduler_handler/internal/Global"
 )
 
-var pxcSchedulerHandlerVersion = "1.3.5"
+var pxcSchedulerHandlerVersion = "1.4.1"
 
 /*
 Main function must contain only initial parameter, log system init and main object init

@@ -105,6 +105,17 @@ func main() {
 		//Return our full configuration from file
 		var config = global.GetConfig(currPath + configFile)
 
+		//should we track performance or not
+		global.Performance = config.Global.Performance
+		/*
+			main game start here defining the Proxy Objects
+		*/
+		//initialize performance collection if requested
+		if global.Performance {
+			global.PerformanceMapOrdered = global.NewOrderedMap()
+			global.PerformanceMap = global.NewRegularIntMap()
+			global.SetPerformanceObj("main", true, log.ErrorLevel)
+		}
 		//Let us do a sanity check on the configuration to prevent most obvious issues and normalize some params
 		if !config.SanityCheck() {
 			exitWithCode(1)
@@ -127,23 +138,28 @@ func main() {
 			daemonLoopWait = config.Global.DaemonInterval
 		}
 		//set the locker on file
-		if !locker.SetLockFile() {
+
+		if global.Performance {
+			global.SetPerformanceObj("File Lock", true, log.InfoLevel)
+		}
+//new way
+		lock := locker.GetFileLock()
+		if  !lock.SetLock() {
 			fmt.Println("Cannot create a lock, exit")
 			exitWithCode(1)
 		}
-
-		//should we track performance or not
-		global.Performance = config.Global.Performance
-
-		/*
-			main game start here defining the Proxy Objects
-		*/
-		//initialize performance collection if requested
+//old way
+//		if  !locker.SetLockFile() {
+//			fmt.Println("Cannot create a lock, exit")
+//			exitWithCode(1)
+//		}
 		if global.Performance {
-			global.PerformanceMapOrdered = global.NewOrderedMap()
-			global.PerformanceMap = global.NewRegularIntMap()
-			global.SetPerformanceObj("main", true, log.ErrorLevel)
+			global.SetPerformanceObj("File Lock", false, log.InfoLevel)
 		}
+
+
+
+
 		// create the two main containers the ProxySQL cluster and at least ONE ProxySQL node
 		proxysqlNode := locker.MyServer
 

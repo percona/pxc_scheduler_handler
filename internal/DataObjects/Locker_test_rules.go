@@ -18,6 +18,7 @@
 package DataObjects
 
 import (
+	//"golang.org/x/text/message/pipeline"
 	"net"
 	global "pxc_scheduler_handler/internal/Global"
 	"strconv"
@@ -29,6 +30,15 @@ type lockerRule struct {
 	proxysqlNode1 ProxySQLNodeImpl
 	proxysqlNode2 ProxySQLNodeImpl
 	want          bool
+
+}
+
+type fileLockRule struct{
+	name string
+	pidTest int
+	timeTest int64
+	evaluate bool
+	want bool
 }
 
 //Objects declaration
@@ -86,6 +96,35 @@ func testLockerFactory() LockerImpl {
 	return locker
 }
 
+type TestFileLockImp struct{
+		flPid int
+		flFullPath string
+		flTimeCreation int64
+		flTimeout int64
+		flIsActive bool
+		flIsLooped bool
+}
+
+func testFileLockFactory(active bool,looped bool) FileLockImp{
+	/*
+		1619616700432099000
+		1619616760432224000
+		60000125000
+		to expire 70000125000
+	*/
+
+	flLock := FileLockImp{
+		flPid: 10,
+		flFullPath: "/tmp/test",
+		flTimeCreation: 1619616700432099000,
+		flIsActive: active,
+		flTimeout: 60,
+		flIsLooped: looped,
+
+	}
+	return flLock
+}
+
 func testProxySQLNodeFactory(ip string, port int, comment string) ProxySQLNodeImpl {
 	node := ProxySQLNodeImpl{
 		ActionNodeList:  make(map[string]DataNodeImpl),
@@ -132,6 +171,27 @@ func rulesTestFindLock(locker LockerImpl) []lockerRule {
 		{"Locker expire lock on other node no previous lock on node", testProxySQLNodeFactory("127.0.0.1", 6032, ""), testProxySQLNodeFactory("127.0.0.1", 6042, expiredLock), true},
 		{"Locker lock is still good on other node", testProxySQLNodeFactory("127.0.0.1", 6032, comment), testProxySQLNodeFactory("127.0.0.1", 6042, validLock), false},
 		{"Locker expire lock on my node", testProxySQLNodeFactory("127.0.0.1", 6032, expiredLock), testProxySQLNodeFactory("127.0.0.1", 6042, validLock), false},
+	}
+	return myRules
+}
+
+
+func rulesTestFileLock() []fileLockRule {
+	/*
+		1619616700432099000
+		1619616740432099000 <-- no timeout
+		1619616760434224000 <-- timeout
+		60000125000
+		to expire 70000125000
+	*/
+
+	myRules := []fileLockRule{
+		{"File Locker not to process", 10,1619616760432224000, false, false  },
+		{"File Locker same pid", 10,1619616760432224000, true, false  },
+		{"File Locker pid exist and is running", 1,1619616740432099000, true, false  },
+		{"File Locker pid does not exists", 0,1619616761434224000, true, true  },
+		{"File Locker pid exists is defunct NO Timeout ", 1,1619616740432099000, true, false  },
+		{"File Locker pid exists is defunct WITH Timeout ", 1,1619616761434224000, true, true  },
 	}
 	return myRules
 }

@@ -717,7 +717,7 @@ func (cluster *DataClusterImpl) GetActionList() map[string]DataNodeImpl {
 
 /*
 We need to check if for any reasons we left some node suspended in the maintenance groups
-this can happen if script is interrupted or maual action
+this can happen if script is interrupted or manual action
 */
 func (cluster *DataClusterImpl) cleanUpForLeftOver() bool {
 	//arrayOfMaps := [2]map[string]DataNodeImpl{cluster.WriterNodes, cluster.ReaderNodes}
@@ -766,8 +766,12 @@ func (cluster *DataClusterImpl) checkFailoverIfFound() bool {
 	if cluster.RequireFailover &&
 		len(cluster.WriterNodes) < 1 &&
 		cluster.FailOverNode.HostgroupId == 0 {
+		//TODO try to help the user identify the most common issues like:
+		// 1) no node in the main segment
+		// 2) node is not processed correctly (security/network)
+
 		//Huge alert
-		log.Error(fmt.Sprintf("!!!!!!!!!!!!!!! NO node Found For fail-over in the main segment %d - check also for possible connection security errors, or if you have READ-ONLY flag=ON!!!!!!!!!!!!!",
+		log.Error(fmt.Sprintf("!!!!!!!!!!!!!!! NO node Found For fail-over in the main segment %d check if ;gmcast.segment; value in wsrep_provider_option matches the mainSegment in the configuration. Also check for possible connection security errors, or if you have READ-ONLY flag=ON!!!!!!!!!!!!!",
 			cluster.MainSegment))
 		return false
 	}
@@ -948,7 +952,7 @@ func (cluster *DataClusterImpl) evaluateNode(node DataNodeImpl) DataNodeImpl {
 			//# in the case node is not in one of the declared state
 			//# BUT it has the counter retry set THEN I reset it to 0 whatever it was because
 			//# I assume it is ok now
-			//TODO this MUST be checked I suspect it will not be act right
+			//TODO this MUST be checked I suspect it will not act right
 			cluster.checkUpSaveRetry(node, currentHg)
 
 		}
@@ -1261,7 +1265,7 @@ func (cluster *DataClusterImpl) evaluateWriters() bool {
 }
 
 func (cluster *DataClusterImpl) processFailoverFailBack(backupWriters map[string]DataNodeImpl) {
-	// TODO can e include in the unit test? I think this is too complex and not deterministic to do so
+	// TODO can we include in the unit test? I think this is too complex and not deterministic to do so
 	for key, node := range backupWriters {
 		// First of all we need to be sure node was tested
 		if _, ok := cluster.NodesPxc.internal[node.Dns]; ok {
@@ -1371,7 +1375,7 @@ func (cluster *DataClusterImpl) identifyLowerNodeToRemove(node DataNodeImpl) boo
 }
 
 func (cluster *DataClusterImpl) processUpActionMap() {
-	// TODO can e include in the unit test? I think this is too complex and not deterministic to do so
+	// TODO can we include in the unit test? I think this is too complex and not deterministic to do so
 	for key, node := range cluster.ActionNodes {
 		//While evaluating the nodes that are coming up we also check if it is a Failover Node
 		var hgI int
@@ -1485,7 +1489,7 @@ func (cluster *DataClusterImpl) processUpActionMap() {
 }
 
 func (cluster *DataClusterImpl) processDownActionMap() {
-	// TODO can e include in the unit test? I think this is too complex and not deterministic to do so
+	// TODO can we include in the unit test? I think this is too complex and not deterministic to do so
 	for key, node := range cluster.ActionNodes {
 		var hgI int
 		var portI = 0
@@ -1551,7 +1555,7 @@ It will also remove the writer as reader is we have WriterIsAlsoReader <> 1 and 
 
 */
 func (cluster *DataClusterImpl) evaluateReaders() bool {
-	// TODO can e include in the unit test? I think this is too complex and not deterministic to do so
+	// TODO can we include in the unit test? I think this is too complex and not deterministic to do so
 	readerNodes := make(map[string]DataNodeImpl)
 	CopyMap(readerNodes, cluster.ReaderNodes)
 	actionNodes := cluster.ActionNodes

@@ -49,14 +49,13 @@ type Locker interface {
 type FileLock interface {
 	Init(myPid int) *FileLockImp
 	SetLock(lockFullPath string) bool
-	CheckLockFIleExists()bool
 	RemoveLock() bool
-	CheckLock() bool
+	CheckLockFIleExists() (bool,int,int64)
 	IsLooped() bool
+	EvaluateFileLockForRemoval( bool,localPID int,localTime int64) bool
 }
 
-type(
-	FileLockImp struct{
+type FileLockImp struct{
 		flPid int
 		flFullPath string
 		flTimeCreation int64
@@ -65,7 +64,6 @@ type(
 		flIsLooped bool
 	}
 
-)
 
 // This function will check for existing lock file and get data from it
 func (flLocker *FileLockImp) CheckLockFIleExists() (bool,int,int64){
@@ -104,14 +102,7 @@ func (flLocker *FileLockImp) CheckLockFIleExists() (bool,int,int64){
 			log.Fatal(err)
 		}
 
-		// IF the PID we retrieve is the same of the current application then
-		// we should not check further and return false and overwrite
-		if flLocker.flPid == localPID{
-            return false,0, 0
-		}else{
-			return true, localPID,localTime
-		}
-
+		return true, localPID, localTime
 	}
 	return false,0,0
 }
@@ -126,10 +117,17 @@ func (flLocker *FileLockImp) EvaluateFileLockForRemoval(evaluate bool,localPID i
 	if !evaluate {
 		return false
 	}
+
+	// IF the PID we retrieve is the same of the current application then
+	// we should not check further and return false and overwrite
+	if flLocker.flPid == localPID{
+		return false
+	}
+
     //get the process and check the status
 	process, err := os.FindProcess(localPID)
 	if err != nil{
-		log.Warningf(" Not able to retrieve informations for process %d. We assume locj is expired and process is long gone.", process.Pid)
+		log.Warningf(" Not able to retrieve informations for process %d. We assume lock is expired and process is long gone.", process.Pid)
 		//we assume PID is invalid as such we can remove the lock
 		return true
 	}
@@ -137,14 +135,15 @@ func (flLocker *FileLockImp) EvaluateFileLockForRemoval(evaluate bool,localPID i
 	//no error means no process is running or defunct
 	err2 := process.Signal(syscall.Signal(0))
 	if err2 == nil {
+		log.Warningf(" Process %d seems defunct. We assume lock is expired and process is long gone.", process.Pid)
 		return true
 	}
-	// if an error exists thna we need to cleanup the file
-	log.Warningf("Lock file has a valid PID (%d) but with state %v . We will evaluate the timeout. ",process.Pid, err2)
+	// if an error exists then we need to clean up the file
+	log.Warningf("Lock file has a valid PID (%d) but with state %v . We will evaluate the timeout. ",process.Pid, err2,)
 
-	//check if we had exceed the lock time
+	//check if we had exceeded the lock time
 	//convert nanoseconds to seconds
-	lockTime := (flLocker.flTimeCreation - localTime) / 1000000000
+	lockTime := (localTime -flLocker.flTimeCreation) / 1000000000
 
 	//if timeout expired then is time to remove the file
 	if lockTime > flLocker.flTimeout {

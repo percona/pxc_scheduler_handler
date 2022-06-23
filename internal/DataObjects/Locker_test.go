@@ -42,3 +42,21 @@ func TestLockerImpl_findLock(t *testing.T) {
 		})
 	}
 }
+
+func TestFileLockImp_findLock(t *testing.T) {
+	//log.SetLevel(log.DebugLevel)
+
+	var tests = []fileLockRule{}
+	flLock := testFileLockFactory(true,false)
+
+	tests = rulesTestFileLock()
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			if  got := flLock.EvaluateFileLockForRemoval(tt.evaluate,tt.pidTest,tt.timeTest); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf(" %s findLock() = %v, want %v", tt.name, got, tt.want)
+			}
+		})
+	}
+}

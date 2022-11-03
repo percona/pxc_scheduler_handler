@@ -73,7 +73,8 @@ func (flLocker *FileLockImp) CheckLockFIleExists() (bool,int,int64){
 	if _, err := os.Stat(flLocker.flFullPath); err == nil {
 		f, err := os.Open(flLocker.flFullPath)
 		if err != nil {
-			log.Fatal(err)
+			log.Error("Open file error: ", err)
+			return false, 0, 0
 		}
 		//close the file at the end of the program
 		defer f.Close()
@@ -99,7 +100,8 @@ func (flLocker *FileLockImp) CheckLockFIleExists() (bool,int,int64){
 			}
 		}
 		if err := scanner.Err(); err != nil {
-			log.Fatal(err)
+			log.Error(err)
+			return false, 0, 0
 		}
 
 		return true, localPID, localTime
@@ -435,7 +437,8 @@ func (locker *LockerImpl) PushSchedulerLock(nodes map[string]ProxySQLNodeImpl) b
 	ctx := context.Background()
 	tx, err := locker.MyServer.Connection.BeginTx(ctx, nil)
 	if err != nil {
-		log.Fatal("Error in creating transaction to push changes ", err)
+		log.Error("Error in creating transaction to push changes: ", err)
+		return false
 	}
 	for key, node := range nodes {
 		if node.Dns != "" {
@@ -443,26 +446,25 @@ func (locker *LockerImpl) PushSchedulerLock(nodes map[string]ProxySQLNodeImpl) b
 			_, err = tx.ExecContext(ctx, sqlAction)
 			if err != nil {
 				tx.Rollback()
-				log.Fatal("Error executing SQL: ", sqlAction, " for node: ", key, " Rollback and exit")
-				log.Error(err)
+				log.Error("Error executing SQL: ", sqlAction, " for node: ", key, " : ", err, " Rollback and exit")
 				return false
 			}
 		}
 	}
 	err = tx.Commit()
 	if err != nil {
-		log.Fatal("Error IN COMMIT exit")
+		log.Error("Error IN COMMIT: ", err)
 		return false
 
 	} else {
 		_, err = locker.MyServer.Connection.Exec("LOAD proxysql servers to RUN ")
 		if err != nil {
-			log.Fatal("Cannot load new proxysql configuration to RUN ")
+			log.Error("Cannot load new proxysql configuration to RUN: ", err)
 			return false
 		} else {
 			_, err = locker.MyServer.Connection.Exec("save proxysql servers to disk ")
 			if err != nil {
-				log.Fatal("Cannot save new proxysql configuration to DISK ")
+				log.Error("Cannot save new proxysql configuration to DISK: ", err)
 				return false
 			}
 		}
@@ -520,7 +522,8 @@ func (locker *LockerImpl) SetLockFile() bool {
 func (locker *LockerImpl) RemoveLockFile() bool {
 	e := os.Remove(locker.FileLockPath + string(os.PathSeparator) + locker.FileLock)
 	if e != nil {
-		log.Fatalf("Cannot remove lock file %s", e)
+		log.Errorf("Cannot remove lock file: %s", e)
+		return false
 	}
 	return true
 }

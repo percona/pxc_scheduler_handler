@@ -265,7 +265,7 @@ func (node *ProxySQLNodeImpl) CloseConnection() bool {
 	if node.Connection != nil {
 		err := node.Connection.Close()
 		if err != nil {
-			panic(err.Error())
+			log.Error(err.Error())
 			return false
 		}
 		return true

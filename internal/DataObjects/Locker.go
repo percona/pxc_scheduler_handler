@@ -420,7 +420,11 @@ func (locker *LockerImpl) findLock(nodes map[string]ProxySQLNodeImpl) (map[strin
 			node.Comment = strings.TrimSpace(node.Comment) + " " + lockHeader + strconv.FormatInt(locker.ClusterCurrentLockTime, 10) + lockTail
 			nodes[locker.MyServer.Dns] = node
 			log.Debug(fmt.Sprintf("Lock acquired by node %s Current time %d", locker.MyServer.Dns, locker.ClusterCurrentLockTime))
+		} else {
+			log.Error(fmt.Sprintf("Cannot acquire Cluster lock given invalid DNS. \n Be sure to use the same IP:PORT combination in proxysql_server table and as Host parameter in config file  %s", locker.MyServer.Dns))
+			return nil, false
 		}
+
 		log.Debug(fmt.Sprintf("Returning node %s my server DNS %s", node.Dns, locker.MyServer.Dns))
 		return nodes, true
 	}

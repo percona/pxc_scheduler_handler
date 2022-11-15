@@ -42,7 +42,7 @@ type Locker interface {
 	PushSchedulerLock(nodes map[string]ProxySQLNodeImpl) bool
 	SetLockFile() bool
 	RemoveLockFile() bool
-	StoreLock(fileLock FileLockImp )
+	StoreLock(fileLock FileLockImp)
 	GetLock() FileLockImp
 }
 
@@ -50,23 +50,22 @@ type FileLock interface {
 	Init(myPid int) *FileLockImp
 	SetLock(lockFullPath string) bool
 	RemoveLock() bool
-	CheckLockFIleExists() (bool,int,int64)
+	CheckLockFIleExists() (bool, int, int64)
 	IsLooped() bool
-	EvaluateFileLockForRemoval( bool,localPID int,localTime int64) bool
+	EvaluateFileLockForRemoval(bool, localPID int, localTime int64) bool
 }
 
-type FileLockImp struct{
-		flPid int
-		flFullPath string
-		flTimeCreation int64
-		flTimeout int64
-		flIsActive bool
-		flIsLooped bool
-	}
-
+type FileLockImp struct {
+	flPid          int
+	flFullPath     string
+	flTimeCreation int64
+	flTimeout      int64
+	flIsActive     bool
+	flIsLooped     bool
+}
 
 // This function will check for existing lock file and get data from it
-func (flLocker *FileLockImp) CheckLockFIleExists() (bool,int,int64){
+func (flLocker *FileLockImp) CheckLockFIleExists() (bool, int, int64) {
 	var localPID int
 	var localTime int64
 
@@ -81,18 +80,18 @@ func (flLocker *FileLockImp) CheckLockFIleExists() (bool,int,int64){
 		// read the file line by line using scanner
 		scanner := bufio.NewScanner(f)
 
-		loop:= 1
+		loop := 1
 		for scanner.Scan() {
-			if loop ==1 {
+			if loop == 1 {
 				s := scanner.Text()[4:len(scanner.Text())]
 				localPID, err = strconv.Atoi(s)
 				if err != nil {
 					log.Warningf("Conversion error in PID %s", err.Error())
 				}
 				loop++
-			}else {
+			} else {
 				s := scanner.Text()[5:len(scanner.Text())]
-				localTime, err = strconv.ParseInt(s,10,64)
+				localTime, err = strconv.ParseInt(s, 10, 64)
 				if err != nil {
 					log.Warningf("Conversion error in Time %s", err.Error())
 				}
@@ -104,14 +103,14 @@ func (flLocker *FileLockImp) CheckLockFIleExists() (bool,int,int64){
 
 		return true, localPID, localTime
 	}
-	return false,0,0
+	return false, 0, 0
 }
 
 // will check if PID is still valid (running process)
 // and if not, if the time pass exceeded the lockremoval rule.
 // if the lock file is to be removed/overrride then is true otherwiese is false.
 
-func (flLocker *FileLockImp) EvaluateFileLockForRemoval(evaluate bool,localPID int,localTime int64) bool{
+func (flLocker *FileLockImp) EvaluateFileLockForRemoval(evaluate bool, localPID int, FileLockTime int64) bool {
 
 	//if no file to evaluate we just go on
 	if !evaluate {
@@ -120,13 +119,13 @@ func (flLocker *FileLockImp) EvaluateFileLockForRemoval(evaluate bool,localPID i
 
 	// IF the PID we retrieve is the same of the current application then
 	// we should not check further and return false and overwrite
-	if flLocker.flPid == localPID{
+	if flLocker.flPid == localPID {
 		return false
 	}
 
-    //get the process and check the status
+	//get the process and check the status
 	process, err := os.FindProcess(localPID)
-	if err != nil{
+	if err != nil {
 		log.Warningf(" Not able to retrieve informations for process %d. We assume lock is expired and process is long gone.", process.Pid)
 		//we assume PID is invalid as such we can remove the lock
 		return true
@@ -139,24 +138,24 @@ func (flLocker *FileLockImp) EvaluateFileLockForRemoval(evaluate bool,localPID i
 		return true
 	}
 	// if an error exists then we need to clean up the file
-	log.Warningf("Lock file has a valid PID (%d) but with state %v . We will evaluate the timeout. ",process.Pid, err2,)
+	log.Warningf("Lock file has a valid PID (%d) but with state %v . We will evaluate the timeout. ", process.Pid, err2)
 
 	//check if we had exceeded the lock time
 	//convert nanoseconds to seconds
-	lockTime := (localTime -flLocker.flTimeCreation) / 1000000000
+	lockTime := (flLocker.flTimeCreation - FileLockTime) / 1000000000
 
 	//if timeout expired then is time to remove the file
 	if lockTime > flLocker.flTimeout {
 		log.Warningf("Lock timeout is set to %d seconds, current time spent is %d seconds, so we can remove the lock safely", flLocker.flTimeout, lockTime)
 		return true
-	}else{
+	} else {
 		log.Warningf("Lock timeout is set to %d seconds, current time spent is %d seconds, we cannot remove the lock safely", flLocker.flTimeout, lockTime)
 	}
 
 	return false
 }
 
-func (flLocker *FileLockImp) SetLock() bool{
+func (flLocker *FileLockImp) SetLock() bool {
 	var toRemove bool
 
 	if _, err := os.Stat(flLocker.flFullPath); err == nil {
@@ -192,12 +191,11 @@ func (flLocker *FileLockImp) SetLock() bool{
 	return true
 }
 
-
-func (flLocker *FileLockImp) init(pid int) bool{
+func (flLocker *FileLockImp) init(pid int) bool {
 	if pid > 0 {
 		flLocker.flPid = pid
 		return true
-	}else{
+	} else {
 		return false
 	}
 
@@ -253,25 +251,24 @@ func (locker *LockerImpl) Init(config *global.Configuration) bool {
 		"_R"
 	locker.FileLock = locker.ClusterLockId
 	flLocker := new(FileLockImp)
-    flLocker.init(os.Getpid())
-	flLocker.flFullPath =locker.FileLockPath + string(os.PathSeparator) + locker.ClusterLockId
-    flLocker.flTimeCreation =  time.Now().UnixNano()
+	flLocker.init(os.Getpid())
+	flLocker.flFullPath = locker.FileLockPath + string(os.PathSeparator) + locker.ClusterLockId
+	flLocker.flTimeCreation = time.Now().UnixNano()
 	flLocker.flIsLooped = locker.isLooped
-    flLocker.flTimeout = locker.myConfig.Global.LockFileTimeout
+	flLocker.flTimeout = locker.myConfig.Global.LockFileTimeout
 	locker.StoreFileLock(flLocker)
-
 
 	log.Info("LockerImpl initialized")
 	return true
 }
 
-func (locker *LockerImpl)StoreFileLock(flLockIn *FileLockImp){
-    if flLockIn != nil {
+func (locker *LockerImpl) StoreFileLock(flLockIn *FileLockImp) {
+	if flLockIn != nil {
 		locker.flLock = *flLockIn
 	}
 }
 
-func (locker *LockerImpl)GetFileLock() FileLockImp{
+func (locker *LockerImpl) GetFileLock() FileLockImp {
 	return locker.flLock
 }
 
@@ -410,7 +407,7 @@ func (locker *LockerImpl) findLock(nodes map[string]ProxySQLNodeImpl) (map[strin
 	if winningNode == "" || winningNode == locker.MyServer.Dns {
 		node := nodes[locker.MyServer.Dns]
 		if node.Dns != "" {
-			node.Comment = node.Comment + " " + lockHeader + strconv.FormatInt(locker.ClusterCurrentLockTime, 10) + lockTail
+			node.Comment = strings.TrimSpace(node.Comment) + " " + lockHeader + strconv.FormatInt(locker.ClusterCurrentLockTime, 10) + lockTail
 			nodes[locker.MyServer.Dns] = node
 			log.Debug(fmt.Sprintf("Lock acquired by node %s Current time %d", locker.MyServer.Dns, locker.ClusterCurrentLockTime))
 		}
@@ -487,7 +484,6 @@ func (locker *LockerImpl) SetLockFile() bool {
 		//- add function to identify if lock information in side lock file exceeds tiemout [return true|false]
 		//	if true we remove the lockfile and continue
 		//	if false we raise the error and exit
-
 
 		log.Errorf("A lock file named: %s  already exists.\n If this is a refuse of a dirty execution remove it manually to have the check able to run\n", fullFile)
 		fmt.Printf("A lock file named: %s  already exists.\n If this is a refuse of a dirty execution remove it manually to have the check able to run\n", fullFile)

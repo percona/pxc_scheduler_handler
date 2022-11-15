@@ -56,12 +56,12 @@ type FileLock interface {
 }
 
 type FileLockImp struct {
-	flPid          int
-	flFullPath     string
-	flTimeCreation int64
-	flTimeout      int64
-	flIsActive     bool
-	flIsLooped     bool
+	flPid             int
+	flFullPath        string
+	flAppCreationTime int64
+	flTimeout         int64
+	flIsActive        bool
+	flIsLooped        bool
 }
 
 // This function will check for existing lock file and get data from it
@@ -142,7 +142,7 @@ func (flLocker *FileLockImp) EvaluateFileLockForRemoval(evaluate bool, localPID 
 
 	//check if we had exceeded the lock time
 	//convert nanoseconds to seconds
-	lockTime := (flLocker.flTimeCreation - FileLockTime) / 1000000000
+	lockTime := (flLocker.flAppCreationTime - FileLockTime) / 1000000000
 
 	//if timeout expired then is time to remove the file
 	if lockTime > flLocker.flTimeout {
@@ -168,7 +168,7 @@ func (flLocker *FileLockImp) SetLock() bool {
 		return false
 	} else {
 		sampledata := []string{"PID:" + strconv.Itoa(flLocker.flPid),
-			"Time:" + strconv.FormatInt(flLocker.flTimeCreation, 10),
+			"Time:" + strconv.FormatInt(flLocker.flAppCreationTime, 10),
 		}
 
 		file, err := os.OpenFile(flLocker.flFullPath, os.O_CREATE|os.O_WRONLY, 0644)
@@ -253,7 +253,7 @@ func (locker *LockerImpl) Init(config *global.Configuration) bool {
 	flLocker := new(FileLockImp)
 	flLocker.init(os.Getpid())
 	flLocker.flFullPath = locker.FileLockPath + string(os.PathSeparator) + locker.ClusterLockId
-	flLocker.flTimeCreation = time.Now().UnixNano()
+	flLocker.flAppCreationTime = time.Now().UnixNano()
 	flLocker.flIsLooped = locker.isLooped
 	flLocker.flTimeout = locker.myConfig.Global.LockFileTimeout
 	locker.StoreFileLock(flLocker)

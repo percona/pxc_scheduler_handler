@@ -313,6 +313,7 @@ func (locker *LockerImpl) CheckClusterLock() *ProxySQLNodeImpl {
 		proxySQLCluster.Nodes = make(map[string]ProxySQLNodeImpl)
 		if proxySQLCluster.GetProxySQLnodes(locker.MyServer) && len(proxySQLCluster.Nodes) > 0 {
 			if nodes, ok := locker.findLock(proxySQLCluster.Nodes); ok && nodes != nil {
+				log.Debug(fmt.Sprintf("Going to write lock for DNS %s", locker.MyServer.Dns))
 				if locker.PushSchedulerLock(nodes) {
 					if global.Performance {
 						global.SetPerformanceObj("Cluster lock", false, log.InfoLevel)
@@ -399,12 +400,15 @@ func (locker *LockerImpl) findLock(nodes map[string]ProxySQLNodeImpl) (map[strin
 			if node.LastLockTime <= locker.ClusterLastLockTime && !node.IsLockExpired {
 				locker.ClusterLastLockTime = node.LastLockTime
 				winningNode = node.Dns
+				log.Debug(fmt.Sprintf("Cluster Lock Winning node %s", winningNode))
 			} else if locker.ClusterLastLockTime == 0 && !node.IsLockExpired {
 				locker.ClusterLastLockTime = node.LastLockTime
 				winningNode = node.Dns
+				log.Debug(fmt.Sprintf("Cluster Lock Winning node %s", winningNode))
 			}
+		} else {
+			log.Debug(fmt.Sprintf("Cluster Lock node %s do not have a lock", node.Dns))
 		}
-		log.Debug(fmt.Sprintf("Cluster Lock Winning node %s", winningNode))
 		nodes[node.Dns] = node
 	}
 
@@ -443,6 +447,7 @@ func (locker *LockerImpl) PushSchedulerLock(nodes map[string]ProxySQLNodeImpl) b
 	for key, node := range nodes {
 		if node.Dns != "" {
 			sqlAction := strings.ReplaceAll(SQL.Dml_update_comment_proxy_servers, "?", node.Comment) + " where hostname='" + node.Ip + "' and port= " + strconv.Itoa(node.Port)
+			log.Debug(fmt.Sprintf("Cluster lock SQL action: %s", sqlAction))
 			_, err = tx.ExecContext(ctx, sqlAction)
 			if err != nil {
 				tx.Rollback()

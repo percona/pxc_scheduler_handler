@@ -416,6 +416,7 @@ func (locker *LockerImpl) findLock(nodes map[string]ProxySQLNodeImpl) (map[strin
 	// Else I exit without doing a bit
 	if winningNode == "" || winningNode == locker.MyServer.Dns {
 		node := nodes[locker.MyServer.Dns]
+		node.Dns = locker.MyServer.Dns
 		if node.Dns != "" {
 			node.Comment = strings.TrimSpace(node.Comment) + " " + lockHeader + strconv.FormatInt(locker.ClusterCurrentLockTime, 10) + lockTail
 			nodes[locker.MyServer.Dns] = node

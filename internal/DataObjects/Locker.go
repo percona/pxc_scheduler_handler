@@ -297,6 +297,9 @@ func (locker *LockerImpl) CheckClusterLock() *ProxySQLNodeImpl {
 	}
 	proxySQLCluster := new(ProxySQLClusterImpl)
 	if !locker.MyServer.IsInitialized {
+		if log.GetLevel() == log.DebugLevel {
+			log.Info("Initializing Cluster lock")
+		}
 		if !locker.MyServer.Init(locker.myConfig) {
 			global.SetPerformanceObj("Cluster lock", false, log.InfoLevel)
 			return nil
@@ -360,6 +363,9 @@ func (locker *LockerImpl) findLock(nodes map[string]ProxySQLNodeImpl) (map[strin
 		lockText = node.Comment
 
 		// the node we are parsing hold a LOCK
+		if log.GetLevel() == log.DebugLevel {
+			log.Info("Cluster Lock in findLock")
+		}
 		if strings.Contains(lockText, lockHeader) {
 			node.HoldLock = true
 
@@ -398,7 +404,7 @@ func (locker *LockerImpl) findLock(nodes map[string]ProxySQLNodeImpl) (map[strin
 				winningNode = node.Dns
 			}
 		}
-		log.Debug(fmt.Sprintf("Winning node %s", winningNode))
+		log.Debug(fmt.Sprintf("Cluster Lock Winning node %s", winningNode))
 		nodes[node.Dns] = node
 	}
 

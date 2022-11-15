@@ -141,23 +141,20 @@ func main() {
 		if global.Performance {
 			global.SetPerformanceObj("File Lock", true, log.InfoLevel)
 		}
-//new way
+		//new way
 		lock := locker.GetFileLock()
-		if  !lock.SetLock() {
+		if !lock.SetLock() {
 			fmt.Println("Cannot create a lock, exit")
 			exitWithCode(1)
 		}
-//old way
-//		if  !locker.SetLockFile() {
-//			fmt.Println("Cannot create a lock, exit")
-//			exitWithCode(1)
-//		}
+		//old way
+		//		if  !locker.SetLockFile() {
+		//			fmt.Println("Cannot create a lock, exit")
+		//			exitWithCode(1)
+		//		}
 		if global.Performance {
 			global.SetPerformanceObj("File Lock", false, log.InfoLevel)
 		}
-
-
-
 
 		// create the two main containers the ProxySQL cluster and at least ONE ProxySQL node
 		proxysqlNode := locker.MyServer
@@ -167,7 +164,9 @@ func main() {
 			Not yet implemented
 		*/
 		if config.Proxysql.Clustered {
-
+			if log.GetLevel() == log.DebugLevel {
+				log.Info("ProxySQL Cluster function enabled")
+			}
 			if locker.CheckClusterLock() != nil {
 				//our node has the lock
 				locker.MyServer.CloseConnection()

@@ -30,15 +30,14 @@ type lockerRule struct {
 	proxysqlNode1 ProxySQLNodeImpl
 	proxysqlNode2 ProxySQLNodeImpl
 	want          bool
-
 }
 
-type fileLockRule struct{
-	name string
-	pidTest int
+type fileLockRule struct {
+	name     string
+	pidTest  int
 	timeTest int64
 	evaluate bool
-	want bool
+	want     bool
 }
 
 //Objects declaration
@@ -96,16 +95,16 @@ func testLockerFactory() LockerImpl {
 	return locker
 }
 
-type TestFileLockImp struct{
-		flPid int
-		flFullPath string
-		flTimeCreation int64
-		flTimeout int64
-		flIsActive bool
-		flIsLooped bool
+type TestFileLockImp struct {
+	flPid          int
+	flFullPath     string
+	flTimeCreation int64
+	flTimeout      int64
+	flIsActive     bool
+	flIsLooped     bool
 }
 
-func testFileLockFactory(active bool,looped bool) FileLockImp{
+func testFileLockFactory(active bool, looped bool) FileLockImp {
 	/*
 		1619616700432099000
 		1619616760432224000
@@ -114,13 +113,12 @@ func testFileLockFactory(active bool,looped bool) FileLockImp{
 	*/
 
 	flLock := FileLockImp{
-		flPid: 10,
-		flFullPath: "/tmp/test",
-		flTimeCreation: 1619616700432099000,
-		flIsActive: active,
-		flTimeout: 60,
-		flIsLooped: looped,
-
+		flPid:             10,
+		flFullPath:        "/tmp/test",
+		flAppCreationTime: 1619616760432224000,
+		flIsActive:        active,
+		flTimeout:         60,
+		flIsLooped:        looped,
 	}
 	return flLock
 }
@@ -146,7 +144,7 @@ func testProxySQLNodeFactory(ip string, port int, comment string) ProxySQLNodeIm
 		LastLockTime:    0,
 		Comment:         comment,
 	}
-	node.Dns = net.JoinHostPort(ip ,strconv.Itoa(port))
+	node.Dns = net.JoinHostPort(ip, strconv.Itoa(port))
 	return node
 
 }
@@ -175,7 +173,6 @@ func rulesTestFindLock(locker LockerImpl) []lockerRule {
 	return myRules
 }
 
-
 func rulesTestFileLock() []fileLockRule {
 	/*
 		1619616700432099000
@@ -186,12 +183,12 @@ func rulesTestFileLock() []fileLockRule {
 	*/
 
 	myRules := []fileLockRule{
-		{"File Locker not to process", 10,1619616760432224000, false, false  },
-		{"File Locker same pid", 10,1619616760432224000, true, false  },
-		{"File Locker pid exist and is running", 1,1619616740432099000, true, false  },
-		{"File Locker pid does not exists", 0,1619616761434224000, true, true  },
-		{"File Locker pid exists is defunct NO Timeout ", 1,1619616740432099000, true, false  },
-		{"File Locker pid exists is defunct WITH Timeout ", 1,1619616761434224000, true, true  },
+		{"File Locker not to process", 10, 1619616760432224000, false, false},
+		{"File Locker same pid", 10, 1619616760432224000, true, false},
+		{"File Locker pid exist and is running", 1, 1619616740432099000, true, false},
+		{"File Locker pid exists is defunct NO Timeout ", 1, 1619616740432099000, true, false},
+		{"File Locker pid exists is defunct WITH Timeout ", 1, 1619616600032099000, true, true},
+		//{"File Locker pid does not exists", 0, 1619616761434224000, true, true},
 	}
 	return myRules
 }

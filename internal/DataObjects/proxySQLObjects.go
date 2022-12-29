@@ -26,6 +26,7 @@ import (
 	global "pxc_scheduler_handler/internal/Global"
 	SQL "pxc_scheduler_handler/internal/Sql/Proxy"
 	"strconv"
+	"time"
 )
 
 /*
@@ -244,7 +245,10 @@ func (node *ProxySQLNodeImpl) GetConnection() bool {
 	}
 
 	// Open doesn't open a connection. Validate DSN data:
-	err = db.Ping()
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	err = db.PingContext(ctx)
 	if err != nil {
 		err.Error()
 		log.Error(err)

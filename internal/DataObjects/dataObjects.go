@@ -18,6 +18,7 @@
 package DataObjects
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"database/sql"
@@ -1826,7 +1827,10 @@ func (node *DataNodeImpl) GetConnection() bool {
 	}
 
 	// Open doesn't open a connection. Validate DSN data:
-	err = db.Ping()
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	err = db.PingContext(ctx)
 	if err != nil {
 		log.Error(err.Error())
 		node.NodeTCPDown = true

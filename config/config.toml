@@ -3,6 +3,7 @@
 activeFailover = 1
 failBack = false
 checkTimeOut = 2000
+pingTimeout = 1
 
 mainSegment = 0
 sslClient = "client-cert.pem"
@@ -30,6 +31,7 @@ password = "<password>"
 clustered = false
 lockfilepath ="/var/run/pxc_scheduler_handler"
 respectManualOfflineSoft=false
+pingTimeout = 1
 
 [global]
 logLevel = "info"

@@ -78,15 +78,17 @@ type PxcCluster struct {
 	WriterIsAlsoReader     int
 	HgW                    int
 	HgR                    int
-	ConfigHgRange		   int `default:"8000"`
+	ConfigHgRange          int `default:"8000"`
 	MaintenanceHgRange     int `default:"9000"`
 	BckHgW                 int `default:"0"`
 	BckHgR                 int `default:"0"`
 	SingleWriter           int
 	MaxWriters             int
 	PersistPrimarySettings int `default:"0"`
+	PingTimeout            int `default:"1000"`
 }
-func (conf *Configuration) fillDefaults(){
+
+func (conf *Configuration) fillDefaults() {
 	conf.Pxcluster.MaintenanceHgRange = 9000
 	conf.Pxcluster.ConfigHgRange = 8000
 	conf.Pxcluster.PersistPrimarySettings = 0
@@ -101,6 +103,7 @@ type ProxySql struct {
 	Clustered                bool
 	RespectManualOfflineSoft bool `default:false`
 	LockFilePath             string
+	PingTimeout              int `default:"1000"`
 }
 
 //Global scheduler conf
@@ -157,11 +160,26 @@ func (conf *Configuration) SanityCheck() bool {
 		conf.Pxcluster.BckHgW = conf.Pxcluster.ConfigHgRange + conf.Pxcluster.HgW
 		conf.Pxcluster.BckHgR = conf.Pxcluster.ConfigHgRange + conf.Pxcluster.HgR
 
-//		return false
+		//		return false
 		//os.Exit(1)
-	} else{
+	} else {
 		conf.Pxcluster.BckHgW = conf.Pxcluster.ConfigHgRange + conf.Pxcluster.HgW
 		conf.Pxcluster.BckHgR = conf.Pxcluster.ConfigHgRange + conf.Pxcluster.HgR
+	}
+
+	//Checks for Ping Timeout values and set them to less than checkTimeOut if they are larger
+	if conf.Proxysql.PingTimeout == 0 {
+		conf.Proxysql.PingTimeout = 1000
+	}
+	if conf.Pxcluster.PingTimeout == 0 {
+		conf.Pxcluster.PingTimeout = 1000
+	}
+
+	if conf.Proxysql.PingTimeout >= conf.Pxcluster.CheckTimeOut {
+		conf.Proxysql.PingTimeout = conf.Pxcluster.CheckTimeOut / 2
+	}
+	if conf.Pxcluster.PingTimeout >= conf.Pxcluster.CheckTimeOut {
+		conf.Pxcluster.PingTimeout = conf.Pxcluster.CheckTimeOut / 2
 	}
 
 	//Check for correct LockFilePath
@@ -178,14 +196,14 @@ func (conf *Configuration) SanityCheck() bool {
 	}
 
 	//check SSL path and certificates
-	if conf.Pxcluster.SslcertificatePath !="" {
+	if conf.Pxcluster.SslcertificatePath != "" {
 		Separator := string(os.PathSeparator)
 		//var failing = false
 		log.SetReportCaller(false)
 		if !CheckIfPathExists(conf.Pxcluster.SslcertificatePath) {
 			log.Warning(fmt.Sprintf("SSL Path is not accessible currently set to: |%s|", conf.Pxcluster.SslcertificatePath))
 			//failing = true
-		}else {
+		} else {
 			if !CheckIfPathExists(conf.Pxcluster.SslcertificatePath + Separator + conf.Pxcluster.SslCa) {
 				log.Warning(fmt.Sprintf("SSLCA Path is not accessible currently set to: |%s|", conf.Pxcluster.SslcertificatePath+Separator+conf.Pxcluster.SslCa))
 				//failing = true

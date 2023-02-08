@@ -18,6 +18,7 @@
 package DataObjects
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"database/sql"
@@ -144,6 +145,7 @@ type DataNodeImpl struct {
 	User              string
 	Variables         map[string]string
 	Weight            int
+	PingTimeout       int
 
 	//pxc
 	PxcMaintMode            string
@@ -156,7 +158,7 @@ type DataNodeImpl struct {
 	WsrepProvider           map[string]string
 	WsrepReady              bool
 	WsrepRejectqueries      bool
-	WsrepLocalRecvQueue		int
+	WsrepLocalRecvQueue     int
 	WsrepSegment            int
 	WsrepStatus             int
 	WsrepClusterSize        int
@@ -446,7 +448,8 @@ func (cluster *DataClusterImpl) loadNodes(connectionProxy *sql.DB) bool {
 			&myNode.ConnUsed)
 		myNode.User = cluster.MonitorUser
 		myNode.Password = cluster.MonitorPassword
-		myNode.Dns =  net.JoinHostPort(myNode.Ip ,strconv.Itoa(myNode.Port))
+		myNode.Dns = net.JoinHostPort(myNode.Ip, strconv.Itoa(myNode.Port))
+		myNode.PingTimeout = cluster.config.Pxcluster.PingTimeout
 		if len(myNode.Comment) > 0 {
 			myNode.getRetry(cluster.HgWriterId, cluster.HgReaderId)
 		}
@@ -946,8 +949,8 @@ func (cluster *DataClusterImpl) evaluateNode(node DataNodeImpl) DataNodeImpl {
 				return node
 			}
 
-			if cluster.checkBackDesyncButUnderReplicaLag(node, currentHg){
-				return node;
+			if cluster.checkBackDesyncButUnderReplicaLag(node, currentHg) {
+				return node
 			}
 			//# in the case node is not in one of the declared state
 			//# BUT it has the counter retry set THEN I reset it to 0 whatever it was because
@@ -1034,7 +1037,7 @@ func (cluster *DataClusterImpl) checkBackDesyncButUnderReplicaLag(node DataNodeI
 		node.ProxyStatus == "OFFLINE_SOFT" &&
 		node.WsrepClusterStatus == "Primary" {
 		if node.MaxReplicationLag > 0 &&
-			node.WsrepLocalRecvQueue < (node.MaxReplicationLag/2){
+			node.WsrepLocalRecvQueue < (node.MaxReplicationLag/2) {
 			if cluster.RetryUp > 0 {
 				node.RetryUp++
 			}
@@ -1165,15 +1168,15 @@ func (cluster *DataClusterImpl) checkWsrepDesync(node DataNodeImpl, currentHg Ho
 				node.WsrepLocalRecvQueue > node.MaxReplicationLag {
 				//if cluster retry > 0 then we manage the node as well
 				act = true
-			}else if node.MaxReplicationLag != 0 &&
+			} else if node.MaxReplicationLag != 0 &&
 				node.WsrepLocalRecvQueue < node.MaxReplicationLag {
 				//if cluster retry > 0 then we manage the node as well
 				act = false
-			}else  {
+			} else {
 				act = true
 			}
 
-			if act{
+			if act {
 				if cluster.RetryDown > 0 {
 					node.RetryDown++
 				}
@@ -1297,14 +1300,14 @@ func (cluster *DataClusterImpl) processFailoverFailBack(backupWriters map[string
 						log.Warning(fmt.Sprintf("Failover require node identified as candidate: %s .", key))
 					}
 
-				// If we have exceeded the number of writers, the one with lower Weight will be removed
+					// If we have exceeded the number of writers, the one with lower Weight will be removed
 				} else if _, ok := cluster.WriterNodes[node.Dns]; ok &&
 					len(cluster.WriterNodes) > cluster.MaxNumWriters &&
 					node.ProxyStatus == "ONLINE" {
 					//for each node in the cluster writers we check if need to remove any
 					cluster.identifyLowerNodeToRemove(node)
 
-				// Now if we have failback and we have a writer with HIGHER weight coming back we need to identify the one with lower again and remove it
+					// Now if we have failback and we have a writer with HIGHER weight coming back we need to identify the one with lower again and remove it
 				} else if len(cluster.WriterNodes) == cluster.MaxNumWriters &&
 					!cluster.RequireFailover &&
 					cluster.FailBack {
@@ -1348,12 +1351,12 @@ func (cluster *DataClusterImpl) identifyLowerNodeToRemoveBecauseFailback(node Da
 }
 
 //We identify which Node is the one with the lowest weight that needs to be removed from active writers list
-func (cluster *DataClusterImpl) identifyLowerNodeToRemove(node DataNodeImpl) bool{
+func (cluster *DataClusterImpl) identifyLowerNodeToRemove(node DataNodeImpl) bool {
 	lowerNode := node
 	for _, wNode := range cluster.WriterNodes {
 		if wNode.Weight < lowerNode.Weight &&
 			wNode.Weight < node.Weight {
-			log.Debug("Lower node found ", wNode.Dns ," weight new ", wNode.Weight, " current lower ", lowerNode.Dns, " Lower node weight ", lowerNode.Weight)
+			log.Debug("Lower node found ", wNode.Dns, " weight new ", wNode.Weight, " current lower ", lowerNode.Dns, " Lower node weight ", lowerNode.Weight)
 			lowerNode = wNode
 		}
 
@@ -1361,12 +1364,12 @@ func (cluster *DataClusterImpl) identifyLowerNodeToRemove(node DataNodeImpl) boo
 	lowerNode.HostgroupId = cluster.HgWriterId
 	lowerNode.ActionType = node.DELETE_NODE()
 	if _, ok := cluster.ActionNodes[strconv.Itoa(cluster.HgWriterId)+"_"+lowerNode.Dns]; !ok {
-		log.Debug("We are removing node with lower weight ", lowerNode.Dns, " Weight " , lowerNode.Weight )
+		log.Debug("We are removing node with lower weight ", lowerNode.Dns, " Weight ", lowerNode.Weight)
 		cluster.ActionNodes[strconv.Itoa(cluster.HgWriterId)+"_"+node.Dns] = lowerNode
 		// Given we are going to remove this node from writer we also remove it from the collection (see also FR-34)
 		delete(cluster.WriterNodes, node.Dns)
 
-		if lowerNode.Dns== node.Dns {
+		if lowerNode.Dns == node.Dns {
 			return false
 		}
 		return true
@@ -1383,7 +1386,7 @@ func (cluster *DataClusterImpl) processUpActionMap() {
 		var ipaddress = ""
 		currentHg := cluster.Hostgroups[node.HostgroupId]
 		hg := key[0:strings.Index(key, "_")]
-		ipaddress = string(key[len(hg)+1:len(key)])
+		ipaddress = string(key[len(hg)+1 : len(key)])
 		ip, port, _ := net.SplitHostPort(ipaddress)
 		hgI = global.ToInt(hg)
 		portI = global.ToInt(port)
@@ -1496,7 +1499,7 @@ func (cluster *DataClusterImpl) processDownActionMap() {
 		var ipaddress = ""
 		currentHg := cluster.Hostgroups[node.HostgroupId]
 		hg := key[0:strings.Index(key, "_")]
-		ipaddress = string(key[len(hg)+1:len(key)])
+		ipaddress = string(key[len(hg)+1 : len(key)])
 		ip, port, _ := net.SplitHostPort(ipaddress)
 		hgI = global.ToInt(hg)
 		portI = global.ToInt(port)
@@ -1540,10 +1543,10 @@ func (cluster *DataClusterImpl) processDownActionMap() {
 /*
 This function checks if the cluster has activeFailover active and return true in this case.
 If not it also raise a Warning given that not activitate failover is a bad bad idea
- */
+*/
 func (cluster *DataClusterImpl) checkActiveFailover() bool {
 	if cluster.ActiveFailover < 1 {
-		log.Warning(fmt.Sprintf("Cluster require to perform fail-over but the settings of ActiveFailover is preventing it with a value of %d. Best practice, and default is to have ActiveFailover = 1 ",cluster.ActiveFailover))
+		log.Warning(fmt.Sprintf("Cluster require to perform fail-over but the settings of ActiveFailover is preventing it with a value of %d. Best practice, and default is to have ActiveFailover = 1 ", cluster.ActiveFailover))
 		return false
 	}
 	return true
@@ -1797,7 +1800,7 @@ func (node *DataNodeImpl) GetConnection() bool {
 			}
 			if ok := rootCertPool.AppendCertsFromPEM(pem); !ok {
 				log.Error(err, " While trying to connect to node (PEM certificate) ", node.Dns)
-				return false;
+				return false
 			}
 			clientCert := make([]tls.Certificate, 0, 1)
 			certs, err := tls.LoadX509KeyPair(client, key)
@@ -1826,7 +1829,12 @@ func (node *DataNodeImpl) GetConnection() bool {
 	}
 
 	// Open doesn't open a connection. Validate DSN data:
-	err = db.Ping()
+	//err = db.Ping()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(node.PingTimeout)*time.Millisecond)
+	defer cancel()
+
+	err = db.PingContext(ctx)
+
 	if err != nil {
 		log.Error(err.Error())
 		node.NodeTCPDown = true
@@ -2065,7 +2073,7 @@ func (node DataNodeImpl) getInfo(wg *global.MyWaitGroup, cluster *DataClusterImp
 		global.SetPerformanceObj(fmt.Sprintf("Get info for node %s", node.Dns), true, log.DebugLevel)
 	}
 	// Get the connection
-	if !node.GetConnection(){
+	if !node.GetConnection() {
 		node.NodeTCPDown = true
 	}
 	/*
@@ -2108,7 +2116,7 @@ func (node DataNodeImpl) getInfo(wg *global.MyWaitGroup, cluster *DataClusterImp
 
 	//We decrease the counter running go routines
 	wg.DecreaseCounter()
-	log.Debug(fmt.Sprintf("waitingGroup decreased by node %s: , now contains #%d",node.Dns,wg.ReportCounter() ))
+	log.Debug(fmt.Sprintf("waitingGroup decreased by node %s: , now contains #%d", node.Dns, wg.ReportCounter()))
 	return 0
 }
 

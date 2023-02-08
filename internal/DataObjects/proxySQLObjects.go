@@ -26,6 +26,7 @@ import (
 	global "pxc_scheduler_handler/internal/Global"
 	SQL "pxc_scheduler_handler/internal/Sql/Proxy"
 	"strconv"
+	"time"
 )
 
 /*
@@ -87,13 +88,14 @@ func (cluster ProxySQLClusterImpl) GetProxySQLnodes(myNode *ProxySQLNodeImpl) bo
 		newNode.Weight = weight
 		newNode.Port = port
 		newNode.Comment = comment
-		newNode.Dns = net.JoinHostPort(newNode.Ip , strconv.Itoa(newNode.Port))
+		newNode.Dns = net.JoinHostPort(newNode.Ip, strconv.Itoa(newNode.Port))
 		newNode.User = cluster.User
 		newNode.Password = cluster.Password
+		newNode.PingTimeout = myNode.Config.Proxysql.PingTimeout
 
 		// Given Proxysql is NOT removing a non healthy node from proxySQL_cluster I must add a step here to check and eventually remove failing ProxySQL nodes
 		if newNode.GetConnection() {
-				newNode.CloseConnection()
+			newNode.CloseConnection()
 
 			cluster.Nodes[newNode.Dns] = *newNode
 		} else {
@@ -128,7 +130,8 @@ type ProxySQLNodeImpl struct {
 	IsLockExpired   bool
 	LastLockTime    int64
 	Comment         string
-	Config 			*global.Configuration
+	Config          *global.Configuration
+	PingTimeout     int
 }
 
 type Hostgroup struct {
@@ -151,8 +154,9 @@ func (node *ProxySQLNodeImpl) Init(config *global.Configuration) bool {
 	}
 	node.User = config.Proxysql.User
 	node.Password = config.Proxysql.Password
-	node.Dns = net.JoinHostPort(config.Proxysql.Host ,strconv.Itoa(config.Proxysql.Port))
+	node.Dns = net.JoinHostPort(config.Proxysql.Host, strconv.Itoa(config.Proxysql.Port))
 	node.Port = config.Proxysql.Port
+	node.PingTimeout = config.Proxysql.PingTimeout
 
 	//Establish connection to the destination Proxysql node
 	if node.GetConnection() {
@@ -244,7 +248,12 @@ func (node *ProxySQLNodeImpl) GetConnection() bool {
 	}
 
 	// Open doesn't open a connection. Validate DSN data:
-	err = db.Ping()
+	//err = db.Ping()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(node.PingTimeout)*time.Millisecond)
+	defer cancel()
+
+	err = db.PingContext(ctx)
+
 	if err != nil {
 		err.Error()
 		log.Error(err)

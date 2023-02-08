@@ -225,6 +225,7 @@ OS = "na"
 - clustered : [false] If this is __NOT__ a single instance then we need to put a lock on the running scheduler (see [Working with ProxySQL cluster](#Working-with-ProxySQL-cluster) section)
 - initialized : not used (for the moment) 
 - respectManualOfflineSoft : [false] When true the checker will NOT modify an `OFFLINE_SOFT` state manually set. It will also DO NOT put back any OFFLINE_SOFT given it will be impossible to discriminate the ones set by hand from the ones set by the application. Given that this feature is to be consider, __UNSAFE__ and should never be used unless you know very well what you are doing.
+- pingTimeout : [1000] The connection timeout (milliseconds) used to test the connection towards the ProxySQL server
 
 ### Pxccluster
 - activeFailover : [1] Failover method
@@ -249,6 +250,7 @@ OS = "na"
 - clusterId : 10 the ID for the cluster 
 - persistPrimarySettings : [0]{0|1|2} This option allow the new elected Primary (in case of fail-over) to maintain the Primary node values for weight/connections/Max values and so on.
   (see Persist Primary section for explanation) - valid value 0|1 only Writer|2 Writer and Reader
+- pingTimeout : [1000] The connection timeout (milliseconds) used to test the connection towards the PXC server
  
 #### Persist Primary Values
 In pxc_scheduler_handler is possible to ask the application to keep the values assigned to the Primary Writer also when another node is elected, as in case of fail-over.<br>

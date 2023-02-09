@@ -324,7 +324,7 @@ func (cluster *DataClusterImpl) init(config global.Configuration, connectionProx
 
 		// Consolidate HGs is required to calculate the real status BY HG of the size of the group and other info
 		if !cluster.consolidateHGs() {
-			log.Fatal("Cannot load Hostgroups in cluster object. Exiting")
+			log.Error("Cannot load Hostgroups in cluster object. Exiting")
 			return false
 			//os.Exit(1)
 		}

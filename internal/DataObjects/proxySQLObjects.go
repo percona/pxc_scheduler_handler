@@ -274,7 +274,7 @@ func (node *ProxySQLNodeImpl) CloseConnection() bool {
 	if node.Connection != nil {
 		err := node.Connection.Close()
 		if err != nil {
-			panic(err.Error())
+			log.Error(err.Error())
 			return false
 		}
 		return true
@@ -418,7 +418,7 @@ func (node *ProxySQLNodeImpl) ProcessChanges() bool {
 	}
 
 	if !node.executeSQLChanges(SQLActionString) {
-		log.Fatal("Cannot apply changes error in SQL execution in ProxySQL, Exit with error")
+		log.Error("Cannot apply changes error in SQL execution in ProxySQL, Exit with error")
 		return false
 		//os.Exit(1)
 	}
@@ -557,33 +557,33 @@ func (node *ProxySQLNodeImpl) executeSQLChanges(SQLActionString []string) bool {
 	ctx := context.Background()
 	tx, err := node.Connection.BeginTx(ctx, nil)
 	if err != nil {
-		log.Fatal("Error in creating transaction to push changes ", err)
+		log.Error("Error in creating transaction to push changes: ", err)
+		return false
 	}
 	for i := 0; i < len(SQLActionString); i++ {
 		if SQLActionString[i] != "" {
 			_, err = tx.ExecContext(ctx, SQLActionString[i])
 			if err != nil {
 				tx.Rollback()
-				log.Fatal("Error executing SQL: ", SQLActionString[i], " Rollback and exit")
-				log.Error(err)
+				log.Error("Error executing SQL: ", SQLActionString[i], " : ", err, ", Rollback and exit")
 				return false
 			}
 		}
 	}
 	err = tx.Commit()
 	if err != nil {
-		log.Fatal("Error IN COMMIT exit")
+		log.Error("Error IN COMMIT exit: ", err)
 		return false
 
 	} else {
 		_, err = node.Connection.Exec("LOAD mysql servers to RUN ")
 		if err != nil {
-			log.Fatal("Cannot load new mysql configuration to RUN ")
+			log.Error("Cannot load new mysql configuration to RUN: ", err)
 			return false
 		} else {
 			_, err = node.Connection.Exec("SAVE mysql servers to DISK ")
 			if err != nil {
-				log.Fatal("Cannot save new mysql configuration to DISK ")
+				log.Error("Cannot save new mysql configuration to DISK: ", err)
 				return false
 			}
 		}

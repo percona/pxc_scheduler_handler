@@ -224,6 +224,7 @@ type (
 		isLooped               bool
 		LockFileTimeout        int64
 		LockClusterTimeout     int64
+		LockRefreshTime        int64
 		flLock                 FileLockImp
 	}
 )
@@ -243,6 +244,7 @@ func (locker *LockerImpl) Init(config *global.Configuration) bool {
 	locker.isLooped = config.Global.Daemonize
 	locker.LockFileTimeout = config.Global.LockFileTimeout
 	locker.LockClusterTimeout = config.Global.LockClusterTimeout
+	locker.LockRefreshTime = config.Global.LockRefreshTime
 
 	// Set lock file name based on the PXC cluster ID + HGs
 	locker.ClusterLockId = strconv.Itoa(config.Pxcluster.ClusterId) +
@@ -344,9 +346,9 @@ func (locker *LockerImpl) CheckClusterLock() *ProxySQLNodeImpl {
 Find lock method review all the nodes existing in the Proxysql for an active LOck
 it checks only nodes that are reachable.
 Checks for:
-	- existing lock locally
-	- lock on another node
-	- lock time comparing it with lockclustertimeout parameter
+  - existing lock locally
+  - lock on another node
+  - lock time comparing it with lockclustertimeout parameter
 */
 func (locker *LockerImpl) findLock(nodes map[string]ProxySQLNodeImpl) (map[string]ProxySQLNodeImpl, bool) {
 	lockText := ""
@@ -422,6 +424,13 @@ func (locker *LockerImpl) findLock(nodes map[string]ProxySQLNodeImpl) (map[strin
 			log.Debug(fmt.Sprintf("Lock acquired by node %s Current time %d", locker.MyServer.Dns, locker.ClusterCurrentLockTime))
 		} else {
 			log.Error(fmt.Sprintf("Cannot acquire Cluster lock given invalid DNS. \n Be sure to use the same IP:PORT combination in proxysql_server table and as Host parameter in config file  %s", locker.MyServer.Dns))
+			return nil, false
+		}
+
+		//we add a check on the time to be sure is time to refresh the epoch
+		lockTime := (locker.ClusterCurrentLockTime - node.LastLockTime) / 1000000000
+		if lockTime < locker.LockRefreshTime {
+			log.Error( fmt.Println("Cluster lock. I am the winner but is too soon for me to refresh the epoch. Still ",  (locker.LockRefreshTime - lockTime), " Seconds to go")
 			return nil, false
 		}
 

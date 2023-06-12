@@ -42,7 +42,7 @@ Configuration file has 3 main section:
     [globalScheduler]
 */
 
-//Main structure working as container for the configuration sections
+// Main structure working as container for the configuration sections
 // So far only 2 but this may increase like logs for instance
 type Configuration struct {
 	Proxysql  ProxySql        `toml:"proxysql"`
@@ -50,7 +50,7 @@ type Configuration struct {
 	Global    GlobalScheduler `toml:"Global"`
 }
 
-//Pxc configuration class
+// Pxc configuration class
 type PxcCluster struct {
 	ActiveFailover         int
 	FailBack               bool
@@ -94,7 +94,7 @@ func (conf *Configuration) fillDefaults() {
 	conf.Pxcluster.PersistPrimarySettings = 0
 }
 
-//ProxySQL configuration class
+// ProxySQL configuration class
 type ProxySql struct {
 	Host                     string
 	Password                 string
@@ -106,7 +106,7 @@ type ProxySql struct {
 	PingTimeout              int `default:"1000"`
 }
 
-//Global scheduler conf
+// Global scheduler conf
 type GlobalScheduler struct {
 	Debug              bool
 	LogLevel           string
@@ -117,9 +117,10 @@ type GlobalScheduler struct {
 	Performance        bool
 	LockFileTimeout    int64
 	LockClusterTimeout int64
+	LockRefreshTime    int64
 }
 
-//Methods to return the config as map
+// Methods to return the config as map
 func GetConfig(path string) Configuration {
 	var config Configuration
 	config.fillDefaults()
@@ -195,6 +196,21 @@ func (conf *Configuration) SanityCheck() bool {
 
 	}
 
+	//checks for Lock Refresh Time
+	//Rule is that LockRefreshTime should never be more than 3/4 of the LockClusterTimeout
+	{
+		lockCTO := int64(float64(conf.Global.LockClusterTimeout) * 0.75)
+		lockRFOrig := conf.Global.LockRefreshTime
+		if conf.Global.LockRefreshTime > lockCTO {
+			conf.Global.LockRefreshTime = lockCTO - 1
+			log.Warning(fmt.Sprintf("LockClusterTimeout (%d) exceeds the value of 3/4 LockClusterTimeout (%d). Value aggiusted to (%d) ",
+				lockRFOrig,
+				lockCTO,
+				conf.Global.LockRefreshTime))
+		}
+
+	}
+
 	//check SSL path and certificates
 	if conf.Pxcluster.SslcertificatePath != "" {
 		Separator := string(os.PathSeparator)
@@ -228,7 +244,7 @@ func (conf *Configuration) SanityCheck() bool {
 
 }
 
-//initialize the log
+// initialize the log
 func InitLog(config Configuration) bool {
 
 	//set a consistent output for the log no matter if file or stdout

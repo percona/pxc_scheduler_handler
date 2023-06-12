@@ -314,7 +314,7 @@ func (locker *LockerImpl) CheckClusterLock() *ProxySQLNodeImpl {
 		//log.Info(myMap)
 		proxySQLCluster.Nodes = make(map[string]ProxySQLNodeImpl)
 		if proxySQLCluster.GetProxySQLnodes(locker.MyServer) && len(proxySQLCluster.Nodes) > 0 {
-			if nodes, ok := locker.findLock(proxySQLCluster.Nodes); ok && nodes != nil {
+			if nodes, ok := locker.findLock(proxySQLCluster.Nodes); ok {
 				log.Debug(fmt.Sprintf("Going to write lock for DNS %s", locker.MyServer.Dns))
 				if locker.PushSchedulerLock(nodes) {
 					if global.Performance {
@@ -430,8 +430,8 @@ func (locker *LockerImpl) findLock(nodes map[string]ProxySQLNodeImpl) (map[strin
 		//we add a check on the time to be sure is time to refresh the epoch
 		lockTime := (locker.ClusterCurrentLockTime - node.LastLockTime) / 1000000000
 		if lockTime < locker.LockRefreshTime {
-			log.Error( fmt.Println("Cluster lock. I am the winner but is too soon for me to refresh the epoch. Still ",  (locker.LockRefreshTime - lockTime), " Seconds to go")
-			return nil, false
+			log.Debug(fmt.Sprintf("Cluster lock. I am the winner but is too soon for me to refresh the epoch. Still %s Seconds to go", strconv.FormatInt(locker.LockRefreshTime-lockTime, 10)))
+			return nil, true
 		}
 
 		log.Debug(fmt.Sprintf("Returning node %s my server DNS %s", node.Dns, locker.MyServer.Dns))
@@ -445,6 +445,7 @@ func (locker *LockerImpl) findLock(nodes map[string]ProxySQLNodeImpl) (map[strin
 // TODO SHOULD we remove the proxysql node that doesn't work ????
 func (locker *LockerImpl) PushSchedulerLock(nodes map[string]ProxySQLNodeImpl) bool {
 	if len(nodes) <= 0 {
+		log.Debug("No list of ProxySQL node is given, I assume we are skipping writes due the lockrefreshtime value.")
 		return true
 	}
 

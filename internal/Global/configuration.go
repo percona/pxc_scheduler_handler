@@ -201,7 +201,7 @@ func (conf *Configuration) SanityCheck() bool {
 	{
 		lockCTO := int64(float64(conf.Global.LockClusterTimeout) * 0.75)
 		lockRFOrig := conf.Global.LockRefreshTime
-		if conf.Global.LockRefreshTime > lockCTO {
+		if conf.Global.LockRefreshTime > lockCTO || conf.Global.LockRefreshTime == 0 {
 			conf.Global.LockRefreshTime = lockCTO - 1
 			log.Warning(fmt.Sprintf("LockClusterTimeout (%d) exceeds the value of 3/4 LockClusterTimeout (%d). Value aggiusted to (%d) ",
 				lockRFOrig,

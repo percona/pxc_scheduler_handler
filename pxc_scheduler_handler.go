@@ -30,7 +30,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var pxcSchedulerHandlerVersion = "1.4.3"
+var pxcSchedulerHandlerVersion = "1.5.3"
 
 /*
 Main function must contain only initial parameter, log system init and main object init

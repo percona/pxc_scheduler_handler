@@ -531,7 +531,10 @@ func (locker *LockerImpl) SetLockFile() bool {
 			_, _ = datawriter.WriteString(data + "\n")
 		}
 
-		datawriter.Flush()
+		err = datawriter.Flush()
+		if err != nil {
+			return false
+		}
 		file.Close()
 	}
 
@@ -541,7 +544,7 @@ func (locker *LockerImpl) SetLockFile() bool {
 func (locker *LockerImpl) RemoveLockFile() bool {
 	e := os.Remove(locker.FileLockPath + string(os.PathSeparator) + locker.FileLock)
 	if e != nil {
-		log.Fatalf("Cannot remove lock file %s", e)
+		log.Fatal("Cannot remove lock file %s", e)
 	}
 	return true
 }

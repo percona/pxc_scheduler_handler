@@ -196,6 +196,13 @@ func (conf *Configuration) SanityCheck() bool {
 
 	}
 
+	//we check for LockClusterTimeout and we set to a minimum value of 60 seconds
+	if conf.Global.LockClusterTimeout < 60 {
+		log.Warning(fmt.Sprintf("LockClusterTimeout (%d) is too low the minimum value os 60 seconds", conf.Global.LockClusterTimeout))
+		conf.Global.LockClusterTimeout = 60
+
+	}
+
 	//checks for Lock Refresh Time
 	//Rule is that LockRefreshTime should never be more than 3/4 of the LockClusterTimeout
 	{
@@ -214,6 +221,7 @@ func (conf *Configuration) SanityCheck() bool {
 	//check SSL path and certificates
 	if conf.Pxcluster.SslcertificatePath != "" {
 		Separator := string(os.PathSeparator)
+
 		//var failing = false
 		log.SetReportCaller(false)
 		if !CheckIfPathExists(conf.Pxcluster.SslcertificatePath) {

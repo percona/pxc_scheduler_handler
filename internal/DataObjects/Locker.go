@@ -521,7 +521,7 @@ func (locker *LockerImpl) SetLockFile() bool {
 		file, err := os.OpenFile(fullFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 
 		if err != nil {
-			log.Error(fmt.Sprintf("failed creating lock file: %s", err.Error()))
+			log.Errorf(fmt.Sprintf("failed creating lock file: %s", err.Error()))
 			return false
 		}
 
@@ -533,6 +533,7 @@ func (locker *LockerImpl) SetLockFile() bool {
 
 		err = datawriter.Flush()
 		if err != nil {
+			log.Errorf("Cannot flush data to a lock file named: %s.", fullFile)
 			return false
 		}
 		file.Close()
@@ -544,7 +545,7 @@ func (locker *LockerImpl) SetLockFile() bool {
 func (locker *LockerImpl) RemoveLockFile() bool {
 	e := os.Remove(locker.FileLockPath + string(os.PathSeparator) + locker.FileLock)
 	if e != nil {
-		log.Fatal("Cannot remove lock file %s", e)
+		log.Fatalf("Cannot remove lock file %s", e)
 	}
 	return true
 }

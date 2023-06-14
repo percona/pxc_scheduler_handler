@@ -822,27 +822,27 @@ func (cluster *DataClusterImpl) evaluateAllProcessedNodes() bool {
 		for key, node := range evalMap {
 			//for key, node := range cluster.NodesPxc.internal {
 			log.Debug("Evaluating node ", key)
-			//Only nodes that were successfully processed (got status from query) are evaluated
-			if node.Processed {
-				cluster.evaluateNode(node)
-
-			} else if node.ProxyStatus == "SHUNNED" &&
-				node.HostgroupId < cluster.ConfigHgRange {
-				//Any Shunned Node is moved to Special HG Maintenance
-				if cluster.RetryDown > 0 {
-					node.RetryDown++
-				}
-				node.ActionType = node.MOVE_DOWN_HG_CHANGE()
-				cluster.ActionNodes[strconv.Itoa(node.HostgroupId)+"_"+node.Dns] = node
-				//If is time for action and the node is part of the writers I will remove it from here so we can fail-over
-				//if  _, ok := cluster.WriterNodes[node.Dns]; ok &&
-				//	node.RetryDown >= cluster.RetryDown {
-				//	delete(cluster.WriterNodes,node.Dns)
-				//}
-				log.Warning("Node: ", node.Dns, " ", node.WsrepNodeName, " HG: ", cluster.Hostgroups[node.HostgroupId].Id, " Type ", cluster.Hostgroups[node.HostgroupId].Type, " is im PROXYSQL state ", node.ProxyStatus,
-					" moving it to HG ", node.HostgroupId+cluster.MaintenanceHgRange, " given SHUNNED")
-
-			}
+			//			//Only nodes that were successfully processed (got status from query) are evaluated
+			//			if node.Processed {
+			cluster.evaluateNode(node)
+			//}
+			//else if node.ProxyStatus == "SHUNNED" &&
+			//	node.HostgroupId < cluster.ConfigHgRange {
+			//	//Any Shunned Node is moved to Special HG Maintenance
+			//	if cluster.RetryDown > 0 {
+			//		node.RetryDown++
+			//	}
+			//	node.ActionType = node.MOVE_DOWN_HG_CHANGE()
+			//	cluster.ActionNodes[strconv.Itoa(node.HostgroupId)+"_"+node.Dns] = node
+			//	//If is time for action and the node is part of the writers I will remove it from here so we can fail-over
+			//	//if  _, ok := cluster.WriterNodes[node.Dns]; ok &&
+			//	//	node.RetryDown >= cluster.RetryDown {
+			//	//	delete(cluster.WriterNodes,node.Dns)
+			//	//}
+			//	log.Warning("Node: ", node.Dns, " ", node.WsrepNodeName, " HG: ", cluster.Hostgroups[node.HostgroupId].Id, " Type ", cluster.Hostgroups[node.HostgroupId].Type, " is im PROXYSQL state ", node.ProxyStatus,
+			//		" moving it to HG ", node.HostgroupId+cluster.MaintenanceHgRange, " given SHUNNED")
+			//
+			//}
 			// Align with config HGs
 			cluster.alignBackupNode(node)
 		}
@@ -966,6 +966,13 @@ func (cluster *DataClusterImpl) evaluateNode(node DataNodeImpl) DataNodeImpl {
 			cluster.checkUpSaveRetry(node, currentHg)
 
 		}
+	} else {
+		node.ActionType = node.NOTHING_TO_DO()
+		currentHg := cluster.Hostgroups[node.HostgroupId]
+		//9 if node is not reachable by connection we will remove it
+		if cluster.checkConnectionDown(node, currentHg) {
+			return node
+		}
 	}
 	return node
 }
@@ -1081,15 +1088,28 @@ func (cluster *DataClusterImpl) checkReadOnly(node DataNodeImpl, currentHg Hostg
 }
 
 func (cluster *DataClusterImpl) checkShunned(node DataNodeImpl, currentHg Hostgroup) bool {
-	if node.HostgroupId == cluster.HgWriterId &&
-		node.ProxyStatus == "SHUNNED" {
+	if node.ProxyStatus == "SHUNNED" {
 		if cluster.RetryDown > 0 {
 			node.RetryDown = cluster.RetryDown + 1
 		}
 		node.ActionType = node.DELETE_NODE()
 		cluster.ActionNodes[strconv.Itoa(node.HostgroupId)+"_"+node.Dns] = node
 		log.Warning("Node: ", node.Dns, " ", node.WsrepNodeName, " HG: ", currentHg.Id, " Type ", currentHg.Type, " is SHUNNED ",
-			"moving it to Reader HG ")
+			"Removing from Hostgroup")
+		return true
+	}
+	return false
+}
+
+func (cluster *DataClusterImpl) checkConnectionDown(node DataNodeImpl, currentHg Hostgroup) bool {
+	if !node.Processed {
+		if cluster.RetryDown > 0 {
+			node.RetryDown = cluster.RetryDown + 1
+		}
+		node.ActionType = node.DELETE_NODE()
+		cluster.ActionNodes[strconv.Itoa(node.HostgroupId)+"_"+node.Dns] = node
+		log.Warning("Node: ", node.Dns, " ", node.WsrepNodeName, " HG: ", currentHg.Id, " Type ", currentHg.Type, " is not reachable by connection ",
+			"Removing from Hostgroup")
 		return true
 	}
 	return false

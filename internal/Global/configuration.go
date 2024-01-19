@@ -136,14 +136,14 @@ func (conf *Configuration) SanityCheck() bool {
 	if conf.Pxcluster.MaxNumWriters > 1 &&
 		conf.Pxcluster.SinglePrimary {
 		log.SetReportCaller(true)
-		log.Fatal("Configuration error cannot have SinglePrimary true and MaxNumWriter >1")
+		log.Error("Configuration error cannot have SinglePrimary true and MaxNumWriter >1")
 		return false
 		//os.Exit(1)
 	}
 
 	if conf.Pxcluster.WriterIsAlsoReader != 1 && (conf.Pxcluster.MaxWriters > 1 || !conf.Pxcluster.SinglePrimary) {
 		log.SetReportCaller(true)
-		log.Fatal("Configuration error cannot have WriterIsAlsoReader NOT = 1 and use more than one Writer")
+		log.Error("Configuration error cannot have WriterIsAlsoReader NOT = 1 and use more than one Writer")
 		return false
 		//os.Exit(1)
 	}
@@ -189,7 +189,7 @@ func (conf *Configuration) SanityCheck() bool {
 		conf.Proxysql.LockFilePath = "/tmp"
 		if !CheckIfPathExists(conf.Proxysql.LockFilePath) {
 			log.SetReportCaller(true)
-			log.Fatal(fmt.Sprintf("LockFilePath is not accessible currently set to: |%s|", conf.Proxysql.LockFilePath))
+			log.Error(fmt.Sprintf("LockFilePath is not accessible currently set to: |%s|", conf.Proxysql.LockFilePath))
 			return false
 			//os.Exit(1)
 		}

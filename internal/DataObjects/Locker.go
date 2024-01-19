@@ -456,7 +456,7 @@ func (locker *LockerImpl) PushSchedulerLock(nodes map[string]ProxySQLNodeImpl) b
 	ctx := context.Background()
 	tx, err := locker.MyServer.Connection.BeginTx(ctx, nil)
 	if err != nil {
-		log.Fatal("Error in creating transaction to push changes ", err)
+		log.Error("Error in creating transaction to push changes ", err)
 	}
 	for key, node := range nodes {
 		if node.Dns != "" {
@@ -465,7 +465,7 @@ func (locker *LockerImpl) PushSchedulerLock(nodes map[string]ProxySQLNodeImpl) b
 			_, err = tx.ExecContext(ctx, sqlAction)
 			if err != nil {
 				tx.Rollback()
-				log.Fatal("Error executing SQL: ", sqlAction, " for node: ", key, " Rollback and exit")
+				log.Error("Error executing SQL: ", sqlAction, " for node: ", key, " Rollback and exit")
 				log.Error(err)
 				return false
 			}
@@ -473,18 +473,18 @@ func (locker *LockerImpl) PushSchedulerLock(nodes map[string]ProxySQLNodeImpl) b
 	}
 	err = tx.Commit()
 	if err != nil {
-		log.Fatal("Error IN COMMIT exit")
+		log.Error("Error IN COMMIT exit")
 		return false
 
 	} else {
 		_, err = locker.MyServer.Connection.Exec("LOAD proxysql servers to RUN ")
 		if err != nil {
-			log.Fatal("Cannot load new proxysql configuration to RUN ")
+			log.Error("Cannot load new proxysql configuration to RUN ")
 			return false
 		} else {
 			_, err = locker.MyServer.Connection.Exec("save proxysql servers to disk ")
 			if err != nil {
-				log.Fatal("Cannot save new proxysql configuration to DISK ")
+				log.Error("Cannot save new proxysql configuration to DISK ")
 				return false
 			}
 		}

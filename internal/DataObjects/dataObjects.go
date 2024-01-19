@@ -324,7 +324,7 @@ func (cluster *DataClusterImpl) init(config global.Configuration, connectionProx
 
 		// Consolidate HGs is required to calculate the real status BY HG of the size of the group and other info
 		if !cluster.consolidateHGs() {
-			log.Fatal("Cannot load Hostgroups in cluster object. Exiting")
+			log.Error("Cannot load Hostgroups in cluster object. Exiting")
 			return false
 			//os.Exit(1)
 		}
@@ -336,7 +336,7 @@ func (cluster *DataClusterImpl) init(config global.Configuration, connectionProx
 	return true
 }
 
-//this method is used to parallelize the information retrieval from the datanodes.
+// this method is used to parallelize the information retrieval from the datanodes.
 // We will use the Nodes list with all the IP:Port pair no matter what HG to check the nodes and then will assign the information to the relevant node collection
 // like Bkup(r/w) or Readers/Writers
 func (cluster *DataClusterImpl) getNodesInfo() bool {
@@ -393,7 +393,6 @@ This functions get the nodes list from the proxysql table mysql_servers for the 
 Ony one test for IP:port is executed and status shared across HGs
 In debug-dev mode information is retrieved sequentially.
 In prod is parallelized
-
 */
 func (cluster *DataClusterImpl) loadNodes(connectionProxy *sql.DB) bool {
 	// get list of nodes from ProxySQL
@@ -506,7 +505,7 @@ func (cluster *DataClusterImpl) loadNodes(connectionProxy *sql.DB) bool {
 	return true
 }
 
-//We identify and set the Primary node reference for Writer and reader in case of failover
+// We identify and set the Primary node reference for Writer and reader in case of failover
 func (cluster *DataClusterImpl) identifyPrimaryBackupNode(dns string) int {
 
 	if cluster.PersistPrimarySettings > 0 {
@@ -520,7 +519,7 @@ func (cluster *DataClusterImpl) identifyPrimaryBackupNode(dns string) int {
 	return 0
 }
 
-//load values from db disk in ProxySQL
+// load values from db disk in ProxySQL
 func (cluster *DataClusterImpl) getParametersFromProxySQL(config global.Configuration) bool {
 	if global.Performance {
 		global.SetPerformanceObj("Get_Parametes_from_ProxySQL", true, log.InfoLevel)
@@ -764,7 +763,7 @@ func (cluster *DataClusterImpl) cleanUpForLeftOver() bool {
 	return true
 }
 
-//just check if we have identify failover node if not notify with HUGE alert
+// just check if we have identify failover node if not notify with HUGE alert
 func (cluster *DataClusterImpl) checkFailoverIfFound() bool {
 	if cluster.RequireFailover &&
 		len(cluster.WriterNodes) < 1 &&
@@ -783,7 +782,7 @@ func (cluster *DataClusterImpl) checkFailoverIfFound() bool {
 
 }
 
-//align backup HGs
+// align backup HGs
 func (cluster *DataClusterImpl) alignBackupNode(node DataNodeImpl) {
 	if _, ok := cluster.BackupWriters[node.Dns]; ok {
 		cluster.BackupWriters[node.Dns] = cluster.alignNodeValues(cluster.BackupWriters[node.Dns], node)
@@ -852,7 +851,9 @@ func (cluster *DataClusterImpl) evaluateAllProcessedNodes() bool {
 	return false
 }
 
-/* process by nde we will check for several conditions:
+/*
+	process by nde we will check for several conditions:
+
 - pxc-maint
 - wsrep-sync
 - primary status
@@ -1220,7 +1221,7 @@ func (cluster *DataClusterImpl) cleanWriters() bool {
 	return cleanWriter
 }
 
-//Once we have done the identification of the node status in EvalNodes we can now process the nodes by ROLE. The main point here is First identify the Good possible writer(s)
+// Once we have done the identification of the node status in EvalNodes we can now process the nodes by ROLE. The main point here is First identify the Good possible writer(s)
 func (cluster *DataClusterImpl) evaluateWriters() bool {
 	backupWriters := cluster.BackupWriters
 
@@ -1319,7 +1320,7 @@ func (cluster *DataClusterImpl) processFailoverFailBack(backupWriters map[string
 	}
 }
 
-//We identify who of the node in the Writers pool need to go away because failback
+// We identify who of the node in the Writers pool need to go away because failback
 func (cluster *DataClusterImpl) identifyLowerNodeToRemoveBecauseFailback(node DataNodeImpl) bool {
 	//we need to loop the writers
 	for _, nodeB := range cluster.WriterNodes {
@@ -1350,7 +1351,7 @@ func (cluster *DataClusterImpl) identifyLowerNodeToRemoveBecauseFailback(node Da
 	return false
 }
 
-//We identify which Node is the one with the lowest weight that needs to be removed from active writers list
+// We identify which Node is the one with the lowest weight that needs to be removed from active writers list
 func (cluster *DataClusterImpl) identifyLowerNodeToRemove(node DataNodeImpl) bool {
 	lowerNode := node
 	for _, wNode := range cluster.WriterNodes {
@@ -1555,7 +1556,6 @@ func (cluster *DataClusterImpl) checkActiveFailover() bool {
 /*
 This method identify if we have an active reader and if not will force (no matter what) the writer to be a reader.
 It will also remove the writer as reader is we have WriterIsAlsoReader <> 1 and reader group with at least 1 element
-
 */
 func (cluster *DataClusterImpl) evaluateReaders() bool {
 	// TODO can we include in the unit test? I think this is too complex and not deterministic to do so
@@ -1675,7 +1675,7 @@ func (cluster *DataClusterImpl) processUpAndDownReaders(actionNodes map[string]D
 	return false
 }
 
-//add a new non existing Reader but force a delete first to avoid dirty writes. This only IF a Offline node with that key is NOT already present
+// add a new non existing Reader but force a delete first to avoid dirty writes. This only IF a Offline node with that key is NOT already present
 func (cluster *DataClusterImpl) pushNewNode(node DataNodeImpl) bool {
 	if ok := cluster.OffLineReaders[node.Dns]; ok.Dns != "" {
 		return false
@@ -1691,7 +1691,7 @@ func (cluster *DataClusterImpl) pushNewNode(node DataNodeImpl) bool {
 	return true
 }
 
-//In this method we modify the value of the failover to match the Promary
+// In this method we modify the value of the failover to match the Promary
 func (cluster *DataClusterImpl) copyPrimarySettingsToFailover() {
 	cluster.FailOverNode.Weight = cluster.PersistPrimary[0].Weight
 	cluster.FailOverNode.Compression = cluster.PersistPrimary[0].Compression
@@ -1718,7 +1718,7 @@ func (cluster *DataClusterImpl) copyPrimarySettingsToFailover() {
 
 }
 
-//This function reset the node values to their defaults defined in BackupHG
+// This function reset the node values to their defaults defined in BackupHG
 func (cluster *DataClusterImpl) resetNodeDefault(nodeIn DataNodeImpl, nodeDefault DataNodeImpl) DataNodeImpl {
 	nodeIn.Weight = nodeDefault.Weight
 	nodeIn.Compression = nodeDefault.Compression
@@ -1744,7 +1744,8 @@ func (cluster *DataClusterImpl) compareNodeDefault(nodeIn DataNodeImpl, nodeDefa
 
 // *** DATA NODE SECTION =============================================
 
-/*this method is used to assign a connection to a proxySQL node
+/*
+this method is used to assign a connection to a proxySQL node
 return true if successful in any other case false
 */
 func (node *DataNodeImpl) GetConnection() bool {
@@ -2049,7 +2050,7 @@ func (node *DataNodeImpl) ReturnActionCategory(code int) string {
 	return ""
 }
 
-//from pxc
+// from pxc
 func (node *DataNodeImpl) getPxcView(dml string) PxcClusterView {
 	recordset, err := node.Connection.Query(dml)
 	if err != nil {
@@ -2067,7 +2068,7 @@ func (node *DataNodeImpl) getPxcView(dml string) PxcClusterView {
 
 }
 
-//We parallelize the information retrieval using goroutine
+// We parallelize the information retrieval using goroutine
 func (node DataNodeImpl) getInfo(wg *global.MyWaitGroup, cluster *DataClusterImpl) int {
 	if global.Performance {
 		global.SetPerformanceObj(fmt.Sprintf("Get info for node %s", node.Dns), true, log.DebugLevel)
@@ -2120,7 +2121,7 @@ func (node DataNodeImpl) getInfo(wg *global.MyWaitGroup, cluster *DataClusterImp
 	return 0
 }
 
-//here we set and normalize the parameters coming from different sources for the PXC object
+// here we set and normalize the parameters coming from different sources for the PXC object
 func (node *DataNodeImpl) setParameters() {
 	node.WsrepLocalIndex = node.PxcView.LocalIndex
 	node.PxcMaintMode = node.Variables["pxc_maint_mode"]
@@ -2146,7 +2147,7 @@ func (node *DataNodeImpl) setParameters() {
 }
 
 // Sync Map
-//=====================================
+// =====================================
 func NewRegularIntMap() *SyncMap {
 	return &SyncMap{
 		internal: make(map[string]DataNodeImpl),
@@ -2179,8 +2180,8 @@ func (rm *SyncMap) ExposeMap() map[string]DataNodeImpl {
 	return rm.internal
 }
 
-//====================
-//Generic
+// ====================
+// Generic
 func MergeMaps(arrayOfMaps [4]map[string]DataNodeImpl) map[string]DataNodeImpl {
 	mergedMap := make(map[string]DataNodeImpl)
 

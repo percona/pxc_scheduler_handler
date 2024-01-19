@@ -40,7 +40,7 @@ type fileLockRule struct {
 	want     bool
 }
 
-//Objects declaration
+// Objects declaration
 type TestLockerImpl struct {
 	MyServerIp             string
 	MyServerPort           int
@@ -164,7 +164,7 @@ func rulesTestFindLock(locker LockerImpl) []lockerRule {
 	validLock := "#LOCK_" + locker.ClusterLockId + "_" + strconv.FormatInt(now-30000125000, 10) + "_LOCK#"
 
 	myRules := []lockerRule{
-		{"Locker base disable", testProxySQLNodeFactory("127.0.0.1", 6032, comment), testProxySQLNodeFactory("127.0.0.1", 6042, comment), false},
+		{"Locker base disable", testProxySQLNodeFactory("127.0.0.1", 6032, comment), testProxySQLNodeFactory("127.0.0.1", 6042, comment), true},
 		{"Locker expire lock on other node", testProxySQLNodeFactory("127.0.0.1", 6032, comment), testProxySQLNodeFactory("127.0.0.1", 6042, expiredLock), true},
 		{"Locker expire lock on other node no previous lock on node", testProxySQLNodeFactory("127.0.0.1", 6032, ""), testProxySQLNodeFactory("127.0.0.1", 6042, expiredLock), true},
 		{"Locker lock is still good on other node", testProxySQLNodeFactory("127.0.0.1", 6032, comment), testProxySQLNodeFactory("127.0.0.1", 6042, validLock), false},

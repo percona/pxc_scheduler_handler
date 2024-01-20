@@ -214,7 +214,8 @@ OS = "na"
 - logFile : In case file for logging define the target 
 - OS : for future use
 - lockfiletimeout : Time ins seconds after which the file lock is considered expired [local instance lock]
-- lockclustertimeout : Time in seconds after which the cluster lock is considered expired
+- lockclustertimeout : Time in seconds after which the cluster lock is considered expired (minimum 60 seconds)
+- lockrefreshtime: Time in second after which the scheduler will refresh the epoch inside the ProxySQL server table. This parameter was introduced to reduce the frequency of updates in ProxySQL.
 - performance : boolean which enable the statistic reporting. If you do not want any reporting just set to `false`. By default, is true which means when log is set as `error` or `warning` you still have: `[INFO]:2022-01-12 16:57:15 - Phase: main = 83,051,000 us 83 ms`
 
 ### ProxySQL

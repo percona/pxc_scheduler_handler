@@ -224,6 +224,7 @@ type (
 		isLooped               bool
 		LockFileTimeout        int64
 		LockClusterTimeout     int64
+		LockRefreshTime        int64
 		flLock                 FileLockImp
 	}
 )
@@ -243,6 +244,7 @@ func (locker *LockerImpl) Init(config *global.Configuration) bool {
 	locker.isLooped = config.Global.Daemonize
 	locker.LockFileTimeout = config.Global.LockFileTimeout
 	locker.LockClusterTimeout = config.Global.LockClusterTimeout
+	locker.LockRefreshTime = config.Global.LockRefreshTime
 
 	// Set lock file name based on the PXC cluster ID + HGs
 	locker.ClusterLockId = strconv.Itoa(config.Pxcluster.ClusterId) +
@@ -312,7 +314,7 @@ func (locker *LockerImpl) CheckClusterLock() *ProxySQLNodeImpl {
 		//log.Info(myMap)
 		proxySQLCluster.Nodes = make(map[string]ProxySQLNodeImpl)
 		if proxySQLCluster.GetProxySQLnodes(locker.MyServer) && len(proxySQLCluster.Nodes) > 0 {
-			if nodes, ok := locker.findLock(proxySQLCluster.Nodes); ok && nodes != nil {
+			if nodes, ok := locker.findLock(proxySQLCluster.Nodes); ok {
 				log.Debug(fmt.Sprintf("Going to write lock for DNS %s", locker.MyServer.Dns))
 				if locker.PushSchedulerLock(nodes) {
 					if global.Performance {
@@ -344,9 +346,9 @@ func (locker *LockerImpl) CheckClusterLock() *ProxySQLNodeImpl {
 Find lock method review all the nodes existing in the Proxysql for an active LOck
 it checks only nodes that are reachable.
 Checks for:
-	- existing lock locally
-	- lock on another node
-	- lock time comparing it with lockclustertimeout parameter
+  - existing lock locally
+  - lock on another node
+  - lock time comparing it with lockclustertimeout parameter
 */
 func (locker *LockerImpl) findLock(nodes map[string]ProxySQLNodeImpl) (map[string]ProxySQLNodeImpl, bool) {
 	lockText := ""
@@ -425,6 +427,13 @@ func (locker *LockerImpl) findLock(nodes map[string]ProxySQLNodeImpl) (map[strin
 			return nil, false
 		}
 
+		//we add a check on the time to be sure is time to refresh the epoch
+		lockTime := (locker.ClusterCurrentLockTime - node.LastLockTime) / 1000000000
+		if lockTime < locker.LockRefreshTime {
+			log.Debug(fmt.Sprintf("Cluster lock. I am the winner but is too soon for me to refresh the epoch. Still %s Seconds to go", strconv.FormatInt(locker.LockRefreshTime-lockTime, 10)))
+			return nil, true
+		}
+
 		log.Debug(fmt.Sprintf("Returning node %s my server DNS %s", node.Dns, locker.MyServer.Dns))
 		return nodes, true
 	}
@@ -436,6 +445,7 @@ func (locker *LockerImpl) findLock(nodes map[string]ProxySQLNodeImpl) (map[strin
 // TODO SHOULD we remove the proxysql node that doesn't work ????
 func (locker *LockerImpl) PushSchedulerLock(nodes map[string]ProxySQLNodeImpl) bool {
 	if len(nodes) <= 0 {
+		log.Debug("No list of ProxySQL node is given, I assume we are skipping writes due the lockrefreshtime value.")
 		return true
 	}
 
@@ -446,7 +456,7 @@ func (locker *LockerImpl) PushSchedulerLock(nodes map[string]ProxySQLNodeImpl) b
 	ctx := context.Background()
 	tx, err := locker.MyServer.Connection.BeginTx(ctx, nil)
 	if err != nil {
-		log.Fatal("Error in creating transaction to push changes ", err)
+		log.Error("Error in creating transaction to push changes ", err)
 	}
 	for key, node := range nodes {
 		if node.Dns != "" {
@@ -455,7 +465,7 @@ func (locker *LockerImpl) PushSchedulerLock(nodes map[string]ProxySQLNodeImpl) b
 			_, err = tx.ExecContext(ctx, sqlAction)
 			if err != nil {
 				tx.Rollback()
-				log.Fatal("Error executing SQL: ", sqlAction, " for node: ", key, " Rollback and exit")
+				log.Error("Error executing SQL: ", sqlAction, " for node: ", key, " Rollback and exit")
 				log.Error(err)
 				return false
 			}
@@ -463,18 +473,18 @@ func (locker *LockerImpl) PushSchedulerLock(nodes map[string]ProxySQLNodeImpl) b
 	}
 	err = tx.Commit()
 	if err != nil {
-		log.Fatal("Error IN COMMIT exit")
+		log.Error("Error IN COMMIT exit")
 		return false
 
 	} else {
 		_, err = locker.MyServer.Connection.Exec("LOAD proxysql servers to RUN ")
 		if err != nil {
-			log.Fatal("Cannot load new proxysql configuration to RUN ")
+			log.Error("Cannot load new proxysql configuration to RUN ")
 			return false
 		} else {
 			_, err = locker.MyServer.Connection.Exec("save proxysql servers to disk ")
 			if err != nil {
-				log.Fatal("Cannot save new proxysql configuration to DISK ")
+				log.Error("Cannot save new proxysql configuration to DISK ")
 				return false
 			}
 		}
@@ -511,7 +521,7 @@ func (locker *LockerImpl) SetLockFile() bool {
 		file, err := os.OpenFile(fullFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 
 		if err != nil {
-			log.Error(fmt.Sprintf("failed creating lock file: %s", err.Error()))
+			log.Errorf(fmt.Sprintf("failed creating lock file: %s", err.Error()))
 			return false
 		}
 
@@ -521,7 +531,11 @@ func (locker *LockerImpl) SetLockFile() bool {
 			_, _ = datawriter.WriteString(data + "\n")
 		}
 
-		datawriter.Flush()
+		err = datawriter.Flush()
+		if err != nil {
+			log.Errorf("Cannot flush data to a lock file named: %s.", fullFile)
+			return false
+		}
 		file.Close()
 	}
 

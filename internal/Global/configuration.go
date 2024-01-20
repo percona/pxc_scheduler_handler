@@ -42,7 +42,7 @@ Configuration file has 3 main section:
     [globalScheduler]
 */
 
-//Main structure working as container for the configuration sections
+// Main structure working as container for the configuration sections
 // So far only 2 but this may increase like logs for instance
 type Configuration struct {
 	Proxysql  ProxySql        `toml:"proxysql"`
@@ -50,7 +50,7 @@ type Configuration struct {
 	Global    GlobalScheduler `toml:"Global"`
 }
 
-//Pxc configuration class
+// Pxc configuration class
 type PxcCluster struct {
 	ActiveFailover         int
 	FailBack               bool
@@ -94,7 +94,7 @@ func (conf *Configuration) fillDefaults() {
 	conf.Pxcluster.PersistPrimarySettings = 0
 }
 
-//ProxySQL configuration class
+// ProxySQL configuration class
 type ProxySql struct {
 	Host                     string
 	Password                 string
@@ -106,7 +106,7 @@ type ProxySql struct {
 	PingTimeout              int `default:"1000"`
 }
 
-//Global scheduler conf
+// Global scheduler conf
 type GlobalScheduler struct {
 	Debug              bool
 	LogLevel           string
@@ -117,9 +117,10 @@ type GlobalScheduler struct {
 	Performance        bool
 	LockFileTimeout    int64
 	LockClusterTimeout int64
+	LockRefreshTime    int64
 }
 
-//Methods to return the config as map
+// Methods to return the config as map
 func GetConfig(path string) Configuration {
 	var config Configuration
 	config.fillDefaults()
@@ -135,14 +136,14 @@ func (conf *Configuration) SanityCheck() bool {
 	if conf.Pxcluster.MaxNumWriters > 1 &&
 		conf.Pxcluster.SinglePrimary {
 		log.SetReportCaller(true)
-		log.Fatal("Configuration error cannot have SinglePrimary true and MaxNumWriter >1")
+		log.Error("Configuration error cannot have SinglePrimary true and MaxNumWriter >1")
 		return false
 		//os.Exit(1)
 	}
 
 	if conf.Pxcluster.WriterIsAlsoReader != 1 && (conf.Pxcluster.MaxWriters > 1 || !conf.Pxcluster.SinglePrimary) {
 		log.SetReportCaller(true)
-		log.Fatal("Configuration error cannot have WriterIsAlsoReader NOT = 1 and use more than one Writer")
+		log.Error("Configuration error cannot have WriterIsAlsoReader NOT = 1 and use more than one Writer")
 		return false
 		//os.Exit(1)
 	}
@@ -188,9 +189,31 @@ func (conf *Configuration) SanityCheck() bool {
 		conf.Proxysql.LockFilePath = "/tmp"
 		if !CheckIfPathExists(conf.Proxysql.LockFilePath) {
 			log.SetReportCaller(true)
-			log.Fatal(fmt.Sprintf("LockFilePath is not accessible currently set to: |%s|", conf.Proxysql.LockFilePath))
+			log.Error(fmt.Sprintf("LockFilePath is not accessible currently set to: |%s|", conf.Proxysql.LockFilePath))
 			return false
 			//os.Exit(1)
+		}
+
+	}
+
+	//we check for LockClusterTimeout and we set to a minimum value of 60 seconds
+	if conf.Global.LockClusterTimeout < 60 {
+		log.Warning(fmt.Sprintf("LockClusterTimeout (%d) is too low the minimum value os 60 seconds", conf.Global.LockClusterTimeout))
+		conf.Global.LockClusterTimeout = 60
+
+	}
+
+	//checks for Lock Refresh Time
+	//Rule is that LockRefreshTime should never be more than 3/4 of the LockClusterTimeout
+	{
+		lockCTO := int64(float64(conf.Global.LockClusterTimeout) * 0.75)
+		lockRFOrig := conf.Global.LockRefreshTime
+		if conf.Global.LockRefreshTime > lockCTO || conf.Global.LockRefreshTime == 0 {
+			conf.Global.LockRefreshTime = lockCTO - 1
+			log.Warning(fmt.Sprintf("LockClusterTimeout (%d) exceeds the value of 3/4 LockClusterTimeout (%d). Value aggiusted to (%d) ",
+				lockRFOrig,
+				lockCTO,
+				conf.Global.LockRefreshTime))
 		}
 
 	}
@@ -198,6 +221,7 @@ func (conf *Configuration) SanityCheck() bool {
 	//check SSL path and certificates
 	if conf.Pxcluster.SslcertificatePath != "" {
 		Separator := string(os.PathSeparator)
+
 		//var failing = false
 		log.SetReportCaller(false)
 		if !CheckIfPathExists(conf.Pxcluster.SslcertificatePath) {
@@ -228,7 +252,7 @@ func (conf *Configuration) SanityCheck() bool {
 
 }
 
-//initialize the log
+// initialize the log
 func InitLog(config Configuration) bool {
 
 	//set a consistent output for the log no matter if file or stdout

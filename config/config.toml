@@ -43,3 +43,4 @@ performance = true
 OS = "na"
 lockfiletimeout = 60 #seconds
 lockclustertimeout = 600 #120 # seconds
+lockrefreshtime = 450 # set maximum to 3/4 of the lockclustertimeout

@@ -224,7 +224,8 @@ func (node *ProxySQLNodeImpl) getVariables() bool {
 	return true
 }
 
-/*this method is used to assign a connection to a proxySQL node
+/*
+this method is used to assign a connection to a proxySQL node
 return true if successful in any other case false
 
 Note ?timeout=1s is HARDCODED on purpose. This is a check that MUST execute in less than a second.
@@ -291,6 +292,7 @@ Retrieve active cluster
 check for pxc_cluster and cluster_id add to the object a DataClusterImpl object.
 DataClusterImpl returns already Initialized, which means it returns with all node populated with status
 ProxySQLNodeImpl
+
 	|
 	|-> DataClusterImpl
 			|
@@ -418,14 +420,14 @@ func (node *ProxySQLNodeImpl) ProcessChanges() bool {
 	}
 
 	if !node.executeSQLChanges(SQLActionString) {
-		log.Fatal("Cannot apply changes error in SQL execution in ProxySQL, Exit with error")
+		log.Error("Cannot apply changes error in SQL execution in ProxySQL, Exit with error")
 		return false
 		//os.Exit(1)
 	}
 	return true
 }
 
-//This function update the server with the defaults as for 8000 group
+// This function update the server with the defaults as for 8000 group
 func (node *ProxySQLNodeImpl) ResetNodeDefaults(dataNode DataNodeImpl, hg int, ip string, port int) string {
 	myString := fmt.Sprintf(",weight=%d,max_connections=%d,max_replication_lag=%d,max_latency_ms=%d",
 		dataNode.Weight, dataNode.MaxConnection, dataNode.MaxReplicationLag, dataNode.MaxReplicationLag)
@@ -557,14 +559,15 @@ func (node *ProxySQLNodeImpl) executeSQLChanges(SQLActionString []string) bool {
 	ctx := context.Background()
 	tx, err := node.Connection.BeginTx(ctx, nil)
 	if err != nil {
-		log.Fatal("Error in creating transaction to push changes ", err)
+		log.Error("Error in creating transaction to push changes ", err)
+		return false
 	}
 	for i := 0; i < len(SQLActionString); i++ {
 		if SQLActionString[i] != "" {
 			_, err = tx.ExecContext(ctx, SQLActionString[i])
 			if err != nil {
 				tx.Rollback()
-				log.Fatal("Error executing SQL: ", SQLActionString[i], " Rollback and exit")
+				log.Error("Error executing SQL: ", SQLActionString[i], " Rollback and exit")
 				log.Error(err)
 				return false
 			}
@@ -572,18 +575,18 @@ func (node *ProxySQLNodeImpl) executeSQLChanges(SQLActionString []string) bool {
 	}
 	err = tx.Commit()
 	if err != nil {
-		log.Fatal("Error IN COMMIT exit")
+		log.Error("Error IN COMMIT exit")
 		return false
 
 	} else {
 		_, err = node.Connection.Exec("LOAD mysql servers to RUN ")
 		if err != nil {
-			log.Fatal("Cannot load new mysql configuration to RUN ")
+			log.Error("Cannot load new mysql configuration to RUN ")
 			return false
 		} else {
 			_, err = node.Connection.Exec("SAVE mysql servers to DISK ")
 			if err != nil {
-				log.Fatal("Cannot save new mysql configuration to DISK ")
+				log.Error("Cannot save new mysql configuration to DISK ")
 				return false
 			}
 		}

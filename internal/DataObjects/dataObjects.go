@@ -32,11 +32,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-sql-driver/mysql"
-	log "github.com/sirupsen/logrus"
 	global "pxc_scheduler_handler/internal/Global"
 	SQLPxc "pxc_scheduler_handler/internal/Sql/Pcx"
 	SQLProxy "pxc_scheduler_handler/internal/Sql/Proxy"
+
+	"github.com/go-sql-driver/mysql"
+	log "github.com/sirupsen/logrus"
 )
 
 type DataCluster interface {
@@ -1204,6 +1205,8 @@ func (cluster *DataClusterImpl) cleanWriters() bool {
 		if node.ProxyStatus != "ONLINE" {
 			delete(cluster.WriterNodes, key)
 			log.Debug(fmt.Sprintf("Node %s is not in ONLINE state in writer HG %d removing while evaluating", key, node.HostgroupId))
+			// TODO FIX ...  we should only remove the node from offline soft not the backup
+
 			if cluster.config.Proxysql.RespectManualOfflineSoft {
 				delete(cluster.BackupWriters, key)
 				cluster.forceRespectManualOfflineSoft(key, node)

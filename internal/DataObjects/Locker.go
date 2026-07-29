@@ -27,11 +27,12 @@ import (
 	"strings"
 	"syscall"
 
-	//"github.com/go-sql-driver/mysql"
-	log "github.com/sirupsen/logrus"
 	"os"
 	"strconv"
 	"time"
+
+	//"github.com/go-sql-driver/mysql"
+	log "github.com/sirupsen/logrus"
 )
 
 type Locker interface {
@@ -73,6 +74,7 @@ func (flLocker *FileLockImp) CheckLockFIleExists() (bool, int, int64) {
 		f, err := os.Open(flLocker.flFullPath)
 		if err != nil {
 			log.Fatal(err)
+			//log.Error(fmt.Sprintf("Error opening file %s Error: %s", flLocker.flFullPath, err))
 		}
 		//close the file at the end of the program
 		defer f.Close()
@@ -99,6 +101,7 @@ func (flLocker *FileLockImp) CheckLockFIleExists() (bool, int, int64) {
 		}
 		if err := scanner.Err(); err != nil {
 			log.Fatal(err)
+			//log.Error(fmt.Sprintf("Generic error reading lock file Error: %s", err))
 		}
 
 		return true, localPID, localTime
@@ -546,6 +549,7 @@ func (locker *LockerImpl) RemoveLockFile() bool {
 	e := os.Remove(locker.FileLockPath + string(os.PathSeparator) + locker.FileLock)
 	if e != nil {
 		log.Fatalf("Cannot remove lock file %s", e)
+		//log.Error("Cannot remove lock file %s", e)
 	}
 	return true
 }

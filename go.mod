@@ -1,6 +1,6 @@
 module pxc_scheduler_handler
 
-go 1.26.5
+go 1.26.6
 
 require (
 	github.com/Tusamarco/toml v0.3.1

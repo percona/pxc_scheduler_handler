@@ -524,7 +524,7 @@ func (locker *LockerImpl) SetLockFile() bool {
 		file, err := os.OpenFile(fullFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 
 		if err != nil {
-			log.Errorf(fmt.Sprintf("failed creating lock file: %s", err.Error()))
+			log.Errorf("failed creating lock file: %s", err.Error())
 			return false
 		}
 

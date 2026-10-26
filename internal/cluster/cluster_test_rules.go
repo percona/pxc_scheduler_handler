@@ -68,6 +68,16 @@ func rulesTestCheckWsrepDesync(myArgs args, clusterNode testClusterNodeImpl) []r
 					"WsrepLocalRecvQueue",valueGeneric{Int64: 20}),
 				"MaxReplicationLag",valueGeneric{Int64: 100}),
 			changeHostgGroupStringAttribute(changeHostgGroupIntAttribute(testDataNode.Hostgroups[0], "Size", 2), "Type", "R")}, false},
+		{"Change in W ReadOnly=true should not act", clusterNode, args{
+			changeDataObjectAnyAttribute(
+				changeDataObjectAnyAttribute(testDataNode, "WsrepStatus", valueGeneric{Int64: 2}),
+				"ReadOnly", valueGeneric{Bool: true}),
+			changeHostgGroupIntAttribute(testDataNode.Hostgroups[0], "Size", 2)}, false},
+		{"Change in W already OFFLINE_SOFT should not act", clusterNode, args{
+			changeDataObjectAnyAttribute(
+				changeDataObjectAnyAttribute(testDataNode, "WsrepStatus", valueGeneric{Int64: 2}),
+				"ProxyStatus", valueGeneric{myString: "OFFLINE_SOFT"}),
+			changeHostgGroupIntAttribute(testDataNode.Hostgroups[0], "Size", 2)}, false},
 
 	}
 	return myRules
@@ -133,6 +143,11 @@ func rulesTestcheckRejectQueries(myArgs args, clusterNode testClusterNodeImpl) [
 		{"Change WsrepRejectqueries = ALL in W ", clusterNode, args{
 			changeDataObjectAnyAttribute(testDataNode, "WsrepRejectqueries", valueGeneric{Bool: true}),
 			changeHostgGroupStringAttribute(testDataNode.Hostgroups[0], "Type", "R")}, true},
+		{"WsrepRejectqueries true but node in maintenance HG should not act", clusterNode, args{
+			changeDataObjectAnyAttribute(
+				changeDataObjectAnyAttribute(testDataNode, "WsrepRejectqueries", valueGeneric{Bool: true}),
+				"HostgroupId", valueGeneric{Int64: 9100}),
+			testDataNode.Hostgroups[0]}, false},
 	}
 	return myRules
 }
@@ -156,6 +171,16 @@ func rulesTestcheckDonorReject(myArgs args, clusterNode testClusterNodeImpl) []r
 		{"Change WsrepDonorrejectqueries = true in R and 2 in HG", clusterNode, args{
 			changeDataObjectAnyAttribute(testDataNode, "WsrepDonorrejectqueries", valueGeneric{Bool: true}),
 			changeHostgGroupStringAttribute(changeHostgGroupIntAttribute(testDataNode.Hostgroups[0], "Size", 2), "Type", "R")}, true},
+		{"WsrepDonorrejectqueries true but WsrepStatus not 2 should not act", clusterNode, args{
+			changeDataObjectAnyAttribute(
+				changeDataObjectAnyAttribute(testDataNode, "WsrepDonorrejectqueries", valueGeneric{Bool: true}),
+				"WsrepStatus", valueGeneric{Int64: 4}),
+			changeHostgGroupIntAttribute(testDataNode.Hostgroups[0], "Size", 2)}, false},
+		{"WsrepDonorrejectqueries true but node in maintenance HG should not act", clusterNode, args{
+			changeDataObjectAnyAttribute(
+				changeDataObjectAnyAttribute(testDataNode, "WsrepDonorrejectqueries", valueGeneric{Bool: true}),
+				"HostgroupId", valueGeneric{Int64: 9100}),
+			changeHostgGroupIntAttribute(testDataNode.Hostgroups[0], "Size", 2)}, false},
 	}
 	return myRules
 }
@@ -192,6 +217,11 @@ func rulesTestCheckReadOnly(myArgs args, clusterNode testClusterNodeImpl) []rule
 		{"CChange ReadOnly = On 2 readers ", clusterNode, args{
 			changeDataObjectAnyAttribute(testDataNode, "ReadOnly", valueGeneric{Bool: true}),
 			changeHostgGroupStringAttribute(changeHostgGroupIntAttribute(testDataNode.Hostgroups[0], "Size", 2), "Type", "R")}, true},
+		{"ReadOnly = On but node in reader HG should not act", clusterNode, args{
+			changeDataObjectAnyAttribute(
+				changeDataObjectAnyAttribute(testDataNode, "ReadOnly", valueGeneric{Bool: true}),
+				"HostgroupId", valueGeneric{Int64: 101}),
+			changeHostgGroupIntAttribute(testDataNode.Hostgroups[0], "Size", 1)}, false},
 	}
 	return myRules
 }
@@ -217,6 +247,7 @@ func rulesTestCheckBackOffLine(myArgs args, clusterNode testClusterNodeImpl) []r
 		{"Back from OFFLINE_SOFT change WsrepClusterStatus", clusterNode, args{changeDataObjectAnyAttribute(testDataNode, "WsrepClusterStatus", valueGeneric{myString: "Not Primary"}), testDataNode.Hostgroups[0]}, false},
 		{"Back from OFFLINE_SOFT change PxcMaintMode", clusterNode, args{changeDataObjectAnyAttribute(testDataNode, "PxcMaintMode", valueGeneric{myString: "MAINTENANCE"}), testDataNode.Hostgroups[0]}, false},
 		{"Back from OFFLINE_SOFT change PxcMaintMode", clusterNode, args{changeDataObjectAnyAttribute(testDataNode, "WsrepRejectqueries", valueGeneric{Bool: true}), testDataNode.Hostgroups[0]}, false},
+		{"Back from OFFLINE_SOFT writer with ReadOnly=true returns true without action", clusterNode, args{changeDataObjectAnyAttribute(testDataNode, "ReadOnly", valueGeneric{Bool: true}), testDataNode.Hostgroups[0]}, true},
 	}
 	return myRules
 }
@@ -240,6 +271,18 @@ func rulesTestCheckBackDesyncButUnderReplicaLag(myArgs args, clusterNode testClu
 					"WsrepLocalRecvQueue",valueGeneric{Int64: 49}),
 				"MaxReplicationLag",valueGeneric{Int64: 100}),
 			changeHostgGroupStringAttribute(changeHostgGroupIntAttribute(testDataNode.Hostgroups[0], "Size", 2), "Type", "R")}, true},
+		{"Back from desync but queue exceeds half of MaxReplicationLag", clusterNode, args{
+			changeDataObjectAnyAttribute(
+				changeDataObjectAnyAttribute(
+					changeDataObjectAnyAttribute(testDataNode, "WsrepStatus", valueGeneric{Int64: 2}),
+					"WsrepLocalRecvQueue", valueGeneric{Int64: 51}),
+				"MaxReplicationLag", valueGeneric{Int64: 100}),
+			changeHostgGroupStringAttribute(changeHostgGroupIntAttribute(testDataNode.Hostgroups[0], "Size", 2), "Type", "R")}, false},
+		{"Back from desync but MaxReplicationLag not set", clusterNode, args{
+			changeDataObjectAnyAttribute(
+				changeDataObjectAnyAttribute(testDataNode, "WsrepStatus", valueGeneric{Int64: 2}),
+				"WsrepLocalRecvQueue", valueGeneric{Int64: 10}),
+			changeHostgGroupStringAttribute(changeHostgGroupIntAttribute(testDataNode.Hostgroups[0], "Size", 2), "Type", "R")}, false},
 	}
 	return myRules
 }
@@ -350,6 +393,10 @@ func rulesTestProcessUpAndDownReaders(myArgs args, clusterNode testClusterNodeIm
 		{"Check evaluateReaders - ProcessUpAndDownReaders MOVE_UP_HG_CHANGE", clusterNode, args{changeDataObjectAnyAttribute(testDataNode, "ActionType", valueGeneric{Int64: 1010}), testDataNode.Hostgroups[0]}, true},
 		{"Check evaluateReaders - ProcessUpAndDownReaders INSERT_READ", clusterNode, args{changeDataObjectAnyAttribute(testDataNode, "ActionType", valueGeneric{Int64: 4010}), testDataNode.Hostgroups[0]}, true},
 		{"Check evaluateReaders - ProcessUpAndDownReaders MOVE_SWAP_WRITER_TO_READER", clusterNode, args{changeDataObjectAnyAttribute(testDataNode, "ActionType", valueGeneric{Int64: 5101}), testDataNode.Hostgroups[0]}, true},
+		{"Check evaluateReaders - ProcessUpAndDownReaders INSERT_WRITE", clusterNode, args{changeDataObjectAnyAttribute(testDataNode, "ActionType", valueGeneric{Int64: 4020}), testDataNode.Hostgroups[0]}, true},
+		{"Check evaluateReaders - ProcessUpAndDownReaders MOVE_OUT_MAINTENANCE", clusterNode, args{changeDataObjectAnyAttribute(testDataNode, "ActionType", valueGeneric{Int64: 3030}), testDataNode.Hostgroups[0]}, true},
+		{"Check evaluateReaders - ProcessUpAndDownReaders DELETE_NODE", clusterNode, args{changeDataObjectAnyAttribute(testDataNode, "ActionType", valueGeneric{Int64: 5000}), testDataNode.Hostgroups[0]}, true},
+		{"Check evaluateReaders - ProcessUpAndDownReaders SAVE_RETRY no action", clusterNode, args{changeDataObjectAnyAttribute(testDataNode, "ActionType", valueGeneric{Int64: 9999}), testDataNode.Hostgroups[0]}, false},
 	}
 	return myRules
 }
@@ -368,6 +415,26 @@ func rulesTestProcessWriterIsAlsoReader(myArgs args, clusterNode testClusterNode
 /*
 Test Cluster method evaluateReaders [end]
 */
+
+func rulesTestCheckUpSaveRetry(myArgs args, clusterNode testClusterNodeImpl) []rule {
+	testDataNode := myArgs.node
+
+	myRules := []rule{
+		{"No retry counters nothing to do", clusterNode, args{testDataNode, testDataNode.Hostgroups[0]}, false},
+		{"RetryUp > 0 and action is NOTHING_TO_DO should save", clusterNode, args{
+			changeDataObjectAnyAttribute(testDataNode, "RetryUp", valueGeneric{Int64: 1}),
+			testDataNode.Hostgroups[0]}, true},
+		{"RetryDown > 0 and action is NOTHING_TO_DO should save", clusterNode, args{
+			changeDataObjectAnyAttribute(testDataNode, "RetryDown", valueGeneric{Int64: 1}),
+			testDataNode.Hostgroups[0]}, true},
+		{"RetryUp > 0 but action is not NOTHING_TO_DO should not save", clusterNode, args{
+			changeDataObjectAnyAttribute(
+				changeDataObjectAnyAttribute(testDataNode, "RetryUp", valueGeneric{Int64: 1}),
+				"ActionType", valueGeneric{Int64: 3001}),
+			testDataNode.Hostgroups[0]}, false},
+	}
+	return myRules
+}
 
 //TEMPLATE
 

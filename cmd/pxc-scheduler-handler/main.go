@@ -23,15 +23,15 @@ import (
 	"os"
 	"time"
 
+	global "pxc_scheduler_handler/internal/global"
 	"pxc_scheduler_handler/internal/locker"
 	"pxc_scheduler_handler/internal/proxysql"
-	global "pxc_scheduler_handler/internal/global"
 
 	_ "github.com/go-sql-driver/mysql"
 	log "github.com/sirupsen/logrus"
 )
 
-var pxcSchedulerHandlerVersion = "1.5.0"
+var pxcSchedulerHandlerVersion = "1.6.0"
 
 /*
 Main function must contain only initial parameter, log system init and main object init

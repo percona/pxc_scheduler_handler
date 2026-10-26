@@ -15,7 +15,7 @@
  *
  */
 
-package Proxy
+package proxysql
 
 /*
 Class dealing with ALL SQL commands.

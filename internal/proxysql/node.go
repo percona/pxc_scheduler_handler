@@ -15,7 +15,7 @@
  *
  */
 
-package DataObjects
+package proxysql
 
 import (
 	"context"
@@ -23,8 +23,9 @@ import (
 	"fmt"
 	log "github.com/sirupsen/logrus"
 	"net"
-	global "pxc_scheduler_handler/internal/Global"
-	SQL "pxc_scheduler_handler/internal/Sql/Proxy"
+	"pxc_scheduler_handler/internal/cluster"
+	global "pxc_scheduler_handler/internal/global"
+	SQL "pxc_scheduler_handler/internal/query/proxysql"
 	"strconv"
 	"time"
 )
@@ -43,14 +44,14 @@ type ProxySQLNode interface {
 	GetDataCluster(config global.Configuration) bool
 	ProcessChanges() bool
 
-	MoveNodeUpFromOfflineSoft(dataNode DataNodeImpl, hg int, ip string, port int) string
-	MoveNodeDownToOfflineSoft(dataNode DataNodeImpl, hg int, ip string, port int) string
-	MoveNodeUpFromHGCange(dataNode DataNodeImpl, hg int, ip string, port int) string
-	MoveNodeDownToHGCange(dataNode DataNodeImpl, hg int, ip string, port int) string
-	InsertRead(dataNode DataNodeImpl, hg int, ip string, port int) string
-	InsertWrite(dataNode DataNodeImpl, hg int, ip string, port int) string
-	DeleteDataNode(dataNode DataNodeImpl, hg int, ip string, port int) string
-	SaveRetry(dataNode DataNodeImpl, hg int, ip string, port int) string
+	MoveNodeUpFromOfflineSoft(dataNode cluster.DataNodeImpl, hg int, ip string, port int) string
+	MoveNodeDownToOfflineSoft(dataNode cluster.DataNodeImpl, hg int, ip string, port int) string
+	MoveNodeUpFromHGCange(dataNode cluster.DataNodeImpl, hg int, ip string, port int) string
+	MoveNodeDownToHGCange(dataNode cluster.DataNodeImpl, hg int, ip string, port int) string
+	InsertRead(dataNode cluster.DataNodeImpl, hg int, ip string, port int) string
+	InsertWrite(dataNode cluster.DataNodeImpl, hg int, ip string, port int) string
+	DeleteDataNode(dataNode cluster.DataNodeImpl, hg int, ip string, port int) string
+	SaveRetry(dataNode cluster.DataNodeImpl, hg int, ip string, port int) string
 	executeSQLChanges(SQLActionString []string) bool
 }
 
@@ -112,9 +113,9 @@ ProxySQL Node
 */
 
 type ProxySQLNodeImpl struct {
-	ActionNodeList  map[string]DataNodeImpl
+	ActionNodeList  map[string]cluster.DataNodeImpl
 	Dns             string
-	Hostgoups       map[int]Hostgroup
+	Hostgoups       map[int]cluster.Hostgroup
 	Ip              string
 	MonitorPassword string
 	MonitorUser     string
@@ -122,7 +123,7 @@ type ProxySQLNodeImpl struct {
 	Port            int
 	User            string
 	Connection      *sql.DB
-	MySQLCluster    *DataClusterImpl
+	MySQLCluster    *cluster.DataClusterImpl
 	Variables       map[string]string
 	IsInitialized   bool
 	Weight          int
@@ -132,13 +133,6 @@ type ProxySQLNodeImpl struct {
 	Comment         string
 	Config          *global.Configuration
 	PingTimeout     int
-}
-
-type Hostgroup struct {
-	Id    int
-	Size  int
-	Type  string
-	Nodes []DataNodeImpl
 }
 
 /*===============================================================
@@ -302,11 +296,11 @@ ProxySQLNodeImpl
 */
 func (node *ProxySQLNodeImpl) GetDataCluster(config global.Configuration) bool {
 	//Init the data cluster
-	dataClusterPxc := new(DataClusterImpl)
+	dataClusterPxc := new(cluster.DataClusterImpl)
 	dataClusterPxc.MonitorPassword = node.MonitorPassword
 	dataClusterPxc.MonitorUser = node.MonitorUser
 
-	if !dataClusterPxc.init(config, node.Connection) {
+	if !dataClusterPxc.Init(config, node.Connection) {
 		log.Error("Cannot initialize the data cluster id ", config.Pxcluster.ClusterId)
 		return false
 	}
@@ -428,7 +422,7 @@ func (node *ProxySQLNodeImpl) ProcessChanges() bool {
 }
 
 // This function update the server with the defaults as for 8000 group
-func (node *ProxySQLNodeImpl) ResetNodeDefaults(dataNode DataNodeImpl, hg int, ip string, port int) string {
+func (node *ProxySQLNodeImpl) ResetNodeDefaults(dataNode cluster.DataNodeImpl, hg int, ip string, port int) string {
 	myString := fmt.Sprintf(",weight=%d,max_connections=%d,max_replication_lag=%d,max_latency_ms=%d",
 		dataNode.Weight, dataNode.MaxConnection, dataNode.MaxReplicationLag, dataNode.MaxReplicationLag)
 	myString = fmt.Sprintf(" UPDATE mysql_servers SET status='ONLINE' %s WHERE hostgroup_id=%d AND hostname='%s' AND port=%d", myString, hg, ip, port)
@@ -437,23 +431,23 @@ func (node *ProxySQLNodeImpl) ResetNodeDefaults(dataNode DataNodeImpl, hg int, i
 
 }
 
-func (node *ProxySQLNodeImpl) MoveNodeUpFromOfflineSoft(dataNode DataNodeImpl, hg int, ip string, port int) string {
+func (node *ProxySQLNodeImpl) MoveNodeUpFromOfflineSoft(dataNode cluster.DataNodeImpl, hg int, ip string, port int) string {
 
 	myString := fmt.Sprintf(" UPDATE mysql_servers SET status='ONLINE' WHERE hostgroup_id=%d AND hostname='%s' AND port=%d", hg, ip, port)
 	log.Debug(fmt.Sprintf("Preparing for node  %s:%d HG:%d SQL: %s", ip, port, hg, myString))
 	return myString
 }
-func (node *ProxySQLNodeImpl) MoveNodeDownToOfflineSoft(dataNode DataNodeImpl, hg int, ip string, port int) string {
+func (node *ProxySQLNodeImpl) MoveNodeDownToOfflineSoft(dataNode cluster.DataNodeImpl, hg int, ip string, port int) string {
 	myString := fmt.Sprintf(" UPDATE mysql_servers SET status='OFFLINE_SOFT' WHERE hostgroup_id=%d AND hostname='%s' AND port=%d", hg, ip, port)
 	log.Debug(fmt.Sprintf("Preparing for node  %s:%d HG:%d SQL: %s", ip, port, hg, myString))
 	return myString
 }
-func (node *ProxySQLNodeImpl) MoveNodeUpFromHGCange(dataNode DataNodeImpl, hg int, ip string, port int) string {
+func (node *ProxySQLNodeImpl) MoveNodeUpFromHGCange(dataNode cluster.DataNodeImpl, hg int, ip string, port int) string {
 	myString := fmt.Sprintf(" UPDATE mysql_servers SET hostgroup_id=%d WHERE hostgroup_id=%d AND hostname='%s' AND port=%d", hg-node.Config.Pxcluster.MaintenanceHgRange, hg, ip, port)
 	log.Debug(fmt.Sprintf("Preparing for node  %s:%d HG:%d SQL: %s", ip, port, hg, myString))
 	return myString
 }
-func (node *ProxySQLNodeImpl) MoveNodeDownToHGCange(dataNode DataNodeImpl, hg int, ip string, port int) string {
+func (node *ProxySQLNodeImpl) MoveNodeDownToHGCange(dataNode cluster.DataNodeImpl, hg int, ip string, port int) string {
 	myString := fmt.Sprintf(" UPDATE mysql_servers SET hostgroup_id=%d WHERE hostgroup_id=%d AND hostname='%s' AND port=%d", hg+node.Config.Pxcluster.MaintenanceHgRange, hg, ip, port)
 	log.Debug(fmt.Sprintf("Preparing for node  %s:%d HG:%d SQL: %s", ip, port, hg, myString))
 	return myString
@@ -462,7 +456,7 @@ func (node *ProxySQLNodeImpl) MoveNodeDownToHGCange(dataNode DataNodeImpl, hg in
 /*
 When inserting a node we need to differentiate when is a NEW node coming from the Bakcup HG because in that case we will NOT push it directly to prod
 */
-func (node *ProxySQLNodeImpl) InsertRead(dataNode DataNodeImpl, hg int, ip string, port int) string {
+func (node *ProxySQLNodeImpl) InsertRead(dataNode cluster.DataNodeImpl, hg int, ip string, port int) string {
 	if dataNode.NodeIsNew {
 		hg = node.MySQLCluster.HgReaderId + node.Config.Pxcluster.MaintenanceHgRange
 	} else {
@@ -490,7 +484,7 @@ func (node *ProxySQLNodeImpl) InsertRead(dataNode DataNodeImpl, hg int, ip strin
 /*
 When inserting a node we need to differentiate when is a NEW node coming from the Bakcup HG because in that case we will NOT push it directly to prod
 */
-func (node *ProxySQLNodeImpl) InsertWrite(dataNode DataNodeImpl, hg int, ip string, port int) string {
+func (node *ProxySQLNodeImpl) InsertWrite(dataNode cluster.DataNodeImpl, hg int, ip string, port int) string {
 	if dataNode.NodeIsNew {
 		hg = node.MySQLCluster.HgWriterId + node.Config.Pxcluster.MaintenanceHgRange
 	} else {
@@ -518,7 +512,7 @@ func (node *ProxySQLNodeImpl) InsertWrite(dataNode DataNodeImpl, hg int, ip stri
 /*
 Delete the given node
 */
-func (node *ProxySQLNodeImpl) DeleteDataNode(dataNode DataNodeImpl, hg int, ip string, port int) string {
+func (node *ProxySQLNodeImpl) DeleteDataNode(dataNode cluster.DataNodeImpl, hg int, ip string, port int) string {
 
 	myString := fmt.Sprintf(" Delete from mysql_servers WHERE hostgroup_id=%d AND hostname='%s' AND port=%d", hg, ip, port)
 	log.Debug(fmt.Sprintf("Preparing for node  %s:%d HG:%d SQL: %s", ip, port, hg, myString))
@@ -530,7 +524,7 @@ This action is used to modify the RETRY options stored in the comment field
 It is important to know that after a final action (like move to OFFLINE_SOFT or move to another HG)
 the application will try to reset the RETRIES to 0
 */
-func (node *ProxySQLNodeImpl) SaveRetry(dataNode DataNodeImpl, hg int, ip string, port int) string {
+func (node *ProxySQLNodeImpl) SaveRetry(dataNode cluster.DataNodeImpl, hg int, ip string, port int) string {
 	retry := fmt.Sprintf("%d_W_%d_R_retry_up=%d;%d_W_%d_R_retry_down=%d;",
 		node.MySQLCluster.HgWriterId,
 		node.MySQLCluster.HgReaderId,
@@ -599,14 +593,4 @@ func (node *ProxySQLNodeImpl) executeSQLChanges(SQLActionString []string) bool {
 	return true
 }
 
-//============================================
-// HostGroup
 
-func (hgw *Hostgroup) init(id int, hgType string, size int) *Hostgroup {
-	hg := new(Hostgroup)
-	hg.Id = id
-	hg.Type = hgType
-	hg.Size = size
-
-	return hg
-}

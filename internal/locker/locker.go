@@ -15,14 +15,15 @@
  *
  */
 
-package DataObjects
+package locker
 
 import (
 	"bufio"
 	"context"
 	"fmt"
-	global "pxc_scheduler_handler/internal/Global"
-	SQL "pxc_scheduler_handler/internal/Sql/Proxy"
+	global "pxc_scheduler_handler/internal/global"
+	"pxc_scheduler_handler/internal/proxysql"
+	sqlproxy "pxc_scheduler_handler/internal/query/proxysql"
 	"regexp"
 	"strings"
 	"syscall"
@@ -38,9 +39,9 @@ import (
 type Locker interface {
 	Init(config *global.Configuration) bool
 	//CheckFileLock() *ProxySQLNodeImpl
-	CheckClusterLock() *ProxySQLNodeImpl
-	findLock(nodes map[string]ProxySQLNodeImpl) (map[string]ProxySQLNodeImpl, bool)
-	PushSchedulerLock(nodes map[string]ProxySQLNodeImpl) bool
+	CheckClusterLock() *proxysql.ProxySQLNodeImpl
+	findLock(nodes map[string]proxysql.ProxySQLNodeImpl) (map[string]proxysql.ProxySQLNodeImpl, bool)
+	PushSchedulerLock(nodes map[string]proxysql.ProxySQLNodeImpl) bool
 	SetLockFile() bool
 	RemoveLockFile() bool
 	StoreLock(fileLock FileLockImp)
@@ -211,7 +212,7 @@ type (
 	LockerImpl struct {
 		MyServerIp             string
 		MyServerPort           int
-		MyServer               *ProxySQLNodeImpl
+		MyServer               *proxysql.ProxySQLNodeImpl
 		myConfig               *global.Configuration
 		FileLock               string
 		FileLockPath           string
@@ -239,7 +240,7 @@ func (locker *LockerImpl) Init(config *global.Configuration) bool {
 	locker.myConfig = config
 	locker.MyServerIp = config.Proxysql.Host
 	locker.MyServerPort = config.Proxysql.Port
-	var MyServer = new(ProxySQLNodeImpl)
+	var MyServer = new(proxysql.ProxySQLNodeImpl)
 	MyServer.Config = config
 	locker.MyServer = MyServer
 	locker.MyServer.Ip = locker.MyServerIp
@@ -291,7 +292,7 @@ func (locker *LockerImpl) GetFileLock() FileLockImp {
 // Outside call To get and check the active list of ProxySQL server we call ProxySQLCLuster.GetProxySQLnodes
 // All the DB operations are done connecting locally to the ProxySQL node running the scheduler
 
-func (locker *LockerImpl) CheckClusterLock() *ProxySQLNodeImpl {
+func (locker *LockerImpl) CheckClusterLock() *proxysql.ProxySQLNodeImpl {
 	//TODO
 	// 1 get connection
 	// 2 get all we need from ProxySQL
@@ -300,7 +301,7 @@ func (locker *LockerImpl) CheckClusterLock() *ProxySQLNodeImpl {
 	if global.Performance {
 		global.SetPerformanceObj("Cluster lock", true, log.InfoLevel)
 	}
-	proxySQLCluster := new(ProxySQLClusterImpl)
+	proxySQLCluster := new(proxysql.ProxySQLClusterImpl)
 	if !locker.MyServer.IsInitialized {
 		if log.GetLevel() == log.DebugLevel {
 			log.Info("Initializing Cluster lock")
@@ -315,7 +316,7 @@ func (locker *LockerImpl) CheckClusterLock() *ProxySQLNodeImpl {
 		proxySQLCluster.Password = locker.myConfig.Proxysql.Password
 		//myMap := new(map[string]ProxySQLNodeImpl)
 		//log.Info(myMap)
-		proxySQLCluster.Nodes = make(map[string]ProxySQLNodeImpl)
+		proxySQLCluster.Nodes = make(map[string]proxysql.ProxySQLNodeImpl)
 		if proxySQLCluster.GetProxySQLnodes(locker.MyServer) && len(proxySQLCluster.Nodes) > 0 {
 			if nodes, ok := locker.findLock(proxySQLCluster.Nodes); ok {
 				log.Debug(fmt.Sprintf("Going to write lock for DNS %s", locker.MyServer.Dns))
@@ -353,7 +354,7 @@ Checks for:
   - lock on another node
   - lock time comparing it with lockclustertimeout parameter
 */
-func (locker *LockerImpl) findLock(nodes map[string]ProxySQLNodeImpl) (map[string]ProxySQLNodeImpl, bool) {
+func (locker *LockerImpl) findLock(nodes map[string]proxysql.ProxySQLNodeImpl) (map[string]proxysql.ProxySQLNodeImpl, bool) {
 	lockText := ""
 	winningNode := ""
 	lockHeader := "#LOCK_" + locker.ClusterLockId + "_"
@@ -446,7 +447,7 @@ func (locker *LockerImpl) findLock(nodes map[string]ProxySQLNodeImpl) (map[strin
 
 // We are ready to submit our changes. As always all is executed in a transaction
 // TODO SHOULD we remove the proxysql node that doesn't work ????
-func (locker *LockerImpl) PushSchedulerLock(nodes map[string]ProxySQLNodeImpl) bool {
+func (locker *LockerImpl) PushSchedulerLock(nodes map[string]proxysql.ProxySQLNodeImpl) bool {
 	if len(nodes) <= 0 {
 		log.Debug("No list of ProxySQL node is given, I assume we are skipping writes due the lockrefreshtime value.")
 		return true
@@ -463,7 +464,7 @@ func (locker *LockerImpl) PushSchedulerLock(nodes map[string]ProxySQLNodeImpl) b
 	}
 	for key, node := range nodes {
 		if node.Dns != "" {
-			sqlAction := strings.ReplaceAll(SQL.Dml_update_comment_proxy_servers, "?", node.Comment) + " where hostname='" + node.Ip + "' and port= " + strconv.Itoa(node.Port)
+			sqlAction := strings.ReplaceAll(sqlproxy.Dml_update_comment_proxy_servers, "?", node.Comment) + " where hostname='" + node.Ip + "' and port= " + strconv.Itoa(node.Port)
 			log.Debug(fmt.Sprintf("Cluster lock SQL action: %s", sqlAction))
 			_, err = tx.ExecContext(ctx, sqlAction)
 			if err != nil {

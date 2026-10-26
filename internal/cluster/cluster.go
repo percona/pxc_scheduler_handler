@@ -15,7 +15,7 @@
  *
  */
 
-package DataObjects
+package cluster
 
 import (
 	"context"
@@ -32,16 +32,16 @@ import (
 	"sync"
 	"time"
 
-	global "pxc_scheduler_handler/internal/Global"
-	SQLPxc "pxc_scheduler_handler/internal/Sql/Pcx"
-	SQLProxy "pxc_scheduler_handler/internal/Sql/Proxy"
+	global "pxc_scheduler_handler/internal/global"
+	SQLPxc "pxc_scheduler_handler/internal/query/pxc"
+	SQLProxy "pxc_scheduler_handler/internal/query/proxysql"
 
 	"github.com/go-sql-driver/mysql"
 	log "github.com/sirupsen/logrus"
 )
 
 type DataCluster interface {
-	init(config global.Configuration, connectionProxy *sql.DB) bool
+	Init(config global.Configuration, connectionProxy *sql.DB) bool
 	getNodesInfo() bool
 	loadNodes(connectionProxy *sql.DB) bool
 	getParametersFromProxySQL(config global.Configuration) bool
@@ -254,7 +254,7 @@ Methods
 /*
 Data cluster initialization method
 */
-func (cluster *DataClusterImpl) init(config global.Configuration, connectionProxy *sql.DB) bool {
+func (cluster *DataClusterImpl) Init(config global.Configuration, connectionProxy *sql.DB) bool {
 
 	if global.Performance {
 		global.SetPerformanceObj("data_cluster_init", true, log.InfoLevel)
@@ -2207,4 +2207,20 @@ func CopyMap(mapDest map[string]DataNodeImpl, mapSource map[string]DataNodeImpl)
 
 	return mapDest
 
+}
+
+type Hostgroup struct {
+	Id    int
+	Size  int
+	Type  string
+	Nodes []DataNodeImpl
+}
+
+func (hgw *Hostgroup) init(id int, hgType string, size int) *Hostgroup {
+	hg := new(Hostgroup)
+	hg.Id = id
+	hg.Type = hgType
+	hg.Size = size
+
+	return hg
 }

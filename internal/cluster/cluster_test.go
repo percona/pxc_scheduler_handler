@@ -15,7 +15,7 @@
  *
  */
 
-package DataObjects
+package cluster
 
 import (
 	"testing"

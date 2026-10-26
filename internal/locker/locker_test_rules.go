@@ -15,20 +15,22 @@
  *
  */
 
-package DataObjects
+package locker
 
 import (
 	//"golang.org/x/text/message/pipeline"
 	"net"
-	global "pxc_scheduler_handler/internal/Global"
+	"pxc_scheduler_handler/internal/cluster"
+	global "pxc_scheduler_handler/internal/global"
+	"pxc_scheduler_handler/internal/proxysql"
 	"strconv"
 	"time"
 )
 
 type lockerRule struct {
 	name          string
-	proxysqlNode1 ProxySQLNodeImpl
-	proxysqlNode2 ProxySQLNodeImpl
+	proxysqlNode1 proxysql.ProxySQLNodeImpl
+	proxysqlNode2 proxysql.ProxySQLNodeImpl
 	want          bool
 }
 
@@ -44,7 +46,7 @@ type fileLockRule struct {
 type TestLockerImpl struct {
 	MyServerIp             string
 	MyServerPort           int
-	MyServer               *ProxySQLNodeImpl
+	MyServer               *proxysql.ProxySQLNodeImpl
 	myConfig               *global.Configuration
 	FileLock               string
 	FileLockPath           string
@@ -66,7 +68,7 @@ func testLockerFactory() LockerImpl {
 	locker := LockerImpl{
 		MyServerIp:             "127.0.0.1",
 		MyServerPort:           6032,
-		MyServer:               new(ProxySQLNodeImpl),
+		MyServer:               new(proxysql.ProxySQLNodeImpl),
 		myConfig:               new(global.Configuration),
 		FileLock:               "locktest.lock",
 		FileLockPath:           "/tmp",
@@ -84,10 +86,9 @@ func testLockerFactory() LockerImpl {
 		LockClusterTimeout:     60,
 	}
 
-	pxcCluster := testClusterFactory()
 	locker.ClusterLockId = strconv.Itoa(10) +
-		"_HG_" + strconv.Itoa(pxcCluster.HgWriterId) +
-		"_W_HG_" + strconv.Itoa(pxcCluster.HgReaderId) +
+		"_HG_" + strconv.Itoa(100) +
+		"_W_HG_" + strconv.Itoa(101) +
 		"_R"
 	locker.FileLock = locker.ClusterLockId
 	locker.MyServer.Dns = "127.0.0.1:6032"
@@ -123,11 +124,11 @@ func testFileLockFactory(active bool, looped bool) FileLockImp {
 	return flLock
 }
 
-func testProxySQLNodeFactory(ip string, port int, comment string) ProxySQLNodeImpl {
-	node := ProxySQLNodeImpl{
-		ActionNodeList:  make(map[string]DataNodeImpl),
+func testProxySQLNodeFactory(ip string, port int, comment string) proxysql.ProxySQLNodeImpl {
+	node := proxysql.ProxySQLNodeImpl{
+		ActionNodeList:  make(map[string]cluster.DataNodeImpl),
 		Dns:             "",
-		Hostgoups:       make(map[int]Hostgroup),
+		Hostgoups:       make(map[int]cluster.Hostgroup),
 		Ip:              ip,
 		MonitorPassword: "password",
 		MonitorUser:     "user",

@@ -15,10 +15,10 @@
  *
  */
 
-package DataObjects
+package cluster
 
 import (
-	"pxc_scheduler_handler/internal/Global"
+	Global "pxc_scheduler_handler/internal/global"
 	"reflect"
 )
 

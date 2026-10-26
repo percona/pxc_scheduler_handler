@@ -41,47 +41,66 @@ Parameters for the executable --configfile <file name> --configpath <full path> 
 Parameters in the config file:
 Global:
 	logLevel = "info"
-	logTarget = "stdout" #stdout | file
-	logFile = "/Users/marcotusa/work/temp/pscheduler.log"
+	logTarget = "stdout"        #stdout | file
+	logFile = "/var/log/pscheduler.log"
 	daemonize = false
 	daemonInterval = 2000
 	performance = true
-	OS = "na"
-	daemonize : [false] Will allow the script to run in a loop without the need to be call by ProxySQL scheduler
-	daemonInterval : Define in ms the time for looping when in development mode
-	loglevel : [info] Define the log level to be used
-	logTarget : [stdout] Can be either a file or stdout
-	logFile : In case file for loging define the target
-	OS : for future use
+	lockFileTimeout = 60
+	lockClusterTimeout = 600
+	lockRefreshTime = 400
+
+	daemonize         : [false] Run in a loop without needing to be called repeatedly by the ProxySQL scheduler
+	daemonInterval    : [2000] Loop interval in milliseconds when daemonize=true
+	logLevel          : [info] Log verbosity: error | warning | info | debug
+	logTarget         : [stdout] Log destination: stdout | file
+	logFile           : Full path to the log file when logTarget=file
+	lockFileTimeout   : [60] Seconds after which the local file lock is considered expired
+	lockClusterTimeout: [600] Seconds after which the ProxySQL cluster lock is considered expired (minimum 60)
+	lockRefreshTime   : Time in seconds to refresh the lock epoch in ProxySQL; auto-set to 3/4 of lockClusterTimeout if not specified or too large
+	performance       : [true] Enable execution phase timing; printed at INFO level even when logLevel=error/warning
+
 ProxySQL
-	port : [6032] Port used to connect
-	host : [127.0.0.1] IP address used to connect to ProxySQL
-	user : [] User able to connect to ProxySQL
-	password : [] Password
-	clustered : [false] If this is NOT a single instance then we need to put a lock on the running scheduler (see Working with Cluster section)
-	initialized : not used (for the moment)
+	port                    : [6032] Port used to connect to ProxySQL admin interface
+	host                    : [127.0.0.1] IP address of the ProxySQL instance; must match proxysql_servers table when clustered=true
+	user                    : User with access to the ProxySQL admin interface
+	password                : Password for the ProxySQL admin user
+	clustered               : [false] Enable distributed locking for ProxySQL cluster deployments
+	lockFilePath            : [/tmp] Directory where the local file lock is created; defaults to /tmp with a warning if unset
+	respectManualOfflineSoft: [false] When true, nodes in OFFLINE_SOFT are never modified by the scheduler (unsafe — see documentation)
+	pingTimeout             : [1000] Connection timeout in milliseconds for the ProxySQL admin connection; auto-adjusted to checkTimeOut/2 if >= checkTimeOut
+
 Pxccluster
-	activeFailover : [1] Failover method
-	failBack : [false] If we should fail-back automatically or wait for manual intervention
-	checkTimeOut : [4000] This is one of the most important settings. When checking the Backend node (MySQL), it is possible that the node will not be able to answer in a consistent amount of time, due the different level of load. If this exceeds the Timeout, a warning will be printed in the log, and the node will not be processed. Parsing the log it is possible to identify which is the best value for checkTimeOut to satisfy the need of speed and at the same time to give the nodes the time they need to answer.
-	debug : [0] Some additional debug specific for the pxc cluster
-	mainSegment : [1] This is another very important value to set, it defines which is the MAIN segment for failover
-	sslClient : "client-cert.pem" In case of use of SSL for backend we need to be able to use the right credential
-	sslKey : "client-key.pem" In case of use of SSL for backend we need to be able to use the right credential
-	sslCa : "ca.pem" In case of use of SSL for backend we need to be able to use the right credential
-	sslCertificatePath : ["/full-path/ssl_test"] Full path for the SSL certificates
-	hgW : Writer HG
-	hgR : Reader HG
-    configHgRange =8000      : The starting value of the configuration groups (hgW + configHgRange) and (hgR + configHgRange) 
-	maintenanceHgRange =9000 : The starting value of the maintenance groups (hgW + maintenanceHgRange) and (hgR + maintenanceHgRange)
-	(Deprecated) bckHgW : Backup HG in the 8XXX range (hgW + 8000)
-	(Deprecated) bckHgR : Backup HG in the 8XXX range (hgR + 8000)
-	singlePrimary : [true] This is the recommended way, always use Galera in Single Primary to avoid write conflicts
-	maxNumWriters : [1] If SinglePrimary is false you can define how many nodes to have as Writers at the same time
-	writerIsAlsoReader : [1] Possible values 0 - 1. The default is 1, if you really want to exclude the writer from read set it to 0. When the cluster will lose its last reader, the writer will be elected as Reader, no matter what.
-	retryUp : [0] Number of retries the application should do before restoring a failed node
-	retryDown : [0] Number of retries the application should do to put DOWN a failing node
-	clusterId : 10 the ID for the cluster
+	user               : MySQL monitor user for connecting to PXC nodes and querying performance_schema (required)
+	password           : Password for the MySQL monitor user (required)
+	activeFailover     : [1] Failover behaviour:
+	                       0 = disabled (warning logged on writer loss)
+	                       1 = failover within the same Galera segment (recommended)
+	                       2 = failover across segments (multi-datacenter)
+	failBack           : [false] Automatically re-elect the original Primary when it returns (off by default — see documentation)
+	checkTimeOut       : [4000] Max milliseconds to wait for a PXC node response; node is skipped if exceeded
+	mainSegment        : [1] Galera segment treated as PRIMARY for failover decisions
+	sslClient          : Client certificate filename (e.g. client-cert.pem)
+	sslKey             : Client private key filename (e.g. client-key.pem)
+	sslCa              : CA certificate filename (e.g. ca.pem)
+	sslCertificatePath : Full directory path containing the SSL certificate files
+	hgW                : Hostgroup ID for Writes
+	hgR                : Hostgroup ID for Reads
+	configHgRange      : [8000] Base for Configuration Hostgroups: configHgRange+hgW and configHgRange+hgR
+	maintenanceHgRange : [9000] Base for Maintenance Hostgroups: maintenanceHgRange+hgW and maintenanceHgRange+hgR
+	(Deprecated) bckHgW: replaced by configHgRange; a warning is logged if set
+	(Deprecated) bckHgR: replaced by configHgRange; a warning is logged if set
+	singlePrimary      : [true] Enforce single-writer mode (strongly recommended)
+	maxNumWriters      : [1] Maximum simultaneous writers when singlePrimary=false
+	writerIsAlsoReader : [1] 0=writer excluded from reader HG; 1=writer also serves reads. Cannot be 0 when maxNumWriters>1
+	retryUp            : [0] Consecutive healthy checks required before a node is restored to ONLINE
+	retryDown          : [0] Consecutive failing checks required before a node is moved to OFFLINE_SOFT
+	clusterId          : [10] Numeric cluster identifier; used to scope the distributed lock
+	persistPrimarySettings: [0] Copy Primary node values to the new Primary on failover:
+	                       0 = disabled
+	                       1 = copy writer HG values only
+	                       2 = copy both writer and reader HG values
+	pingTimeout        : [1000] Connection timeout in milliseconds for PXC node connections; auto-adjusted to checkTimeOut/2 if >= checkTimeOut
 
 	Examples of configurations in ProxySQL
 	Simply pass max 2 arguments

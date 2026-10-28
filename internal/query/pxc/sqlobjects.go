@@ -15,7 +15,7 @@
  *
  */
 
-package Pcx
+package pxc
 
 const (
 	/*

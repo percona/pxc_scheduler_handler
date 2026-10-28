@@ -15,18 +15,20 @@
  *
  */
 
-package DataObjects
+package locker
 
 import (
 	"reflect"
 	"testing"
+
+	"pxc_scheduler_handler/internal/proxysql"
 )
 
 func TestLockerImpl_findLock(t *testing.T) {
 	//log.SetLevel(log.DebugLevel)
 
 	var tests = []lockerRule{}
-	nodes := make(map[string]ProxySQLNodeImpl)
+	nodes := make(map[string]proxysql.ProxySQLNodeImpl)
 	locker := testLockerFactory()
 
 	tests = rulesTestFindLock(locker)

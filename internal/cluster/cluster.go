@@ -15,7 +15,7 @@
  *
  */
 
-package DataObjects
+package cluster
 
 import (
 	"context"
@@ -32,16 +32,16 @@ import (
 	"sync"
 	"time"
 
-	global "pxc_scheduler_handler/internal/Global"
-	SQLPxc "pxc_scheduler_handler/internal/Sql/Pcx"
-	SQLProxy "pxc_scheduler_handler/internal/Sql/Proxy"
+	global "pxc_scheduler_handler/internal/global"
+	SQLProxy "pxc_scheduler_handler/internal/query/proxysql"
+	SQLPxc "pxc_scheduler_handler/internal/query/pxc"
 
 	"github.com/go-sql-driver/mysql"
 	log "github.com/sirupsen/logrus"
 )
 
 type DataCluster interface {
-	init(config global.Configuration, connectionProxy *sql.DB) bool
+	Init(config global.Configuration, connectionProxy *sql.DB) bool
 	getNodesInfo() bool
 	loadNodes(connectionProxy *sql.DB) bool
 	getParametersFromProxySQL(config global.Configuration) bool
@@ -254,7 +254,7 @@ Methods
 /*
 Data cluster initialization method
 */
-func (cluster *DataClusterImpl) init(config global.Configuration, connectionProxy *sql.DB) bool {
+func (cluster *DataClusterImpl) Init(config global.Configuration, connectionProxy *sql.DB) bool {
 
 	if global.Performance {
 		global.SetPerformanceObj("data_cluster_init", true, log.InfoLevel)
@@ -971,7 +971,7 @@ func (cluster *DataClusterImpl) checkBackOffline(node DataNodeImpl, currentHg Ho
 		node.ProxyStatus == "OFFLINE_SOFT" &&
 		!node.WsrepRejectqueries &&
 		node.WsrepClusterStatus == "Primary" &&
-		node.PxcMaintMode == "DISABLED" {
+		(node.PxcMaintMode == "DISABLED" || node.PxcMaintMode == "") {
 		if node.HostgroupId == cluster.HgWriterId && node.ReadOnly {
 			return node, true
 		}
@@ -1016,7 +1016,7 @@ func (cluster *DataClusterImpl) checkBackPrimary(node DataNodeImpl, currentHg Ho
 	if node.HostgroupId >= cluster.MaintenanceHgRange &&
 		node.WsrepStatus == 4 &&
 		!node.WsrepRejectqueries &&
-		node.PxcMaintMode == "DISABLED" &&
+		(node.PxcMaintMode == "DISABLED" || node.PxcMaintMode == "") &&
 		node.WsrepClusterStatus == "Primary" {
 		if cluster.RetryUp > 0 {
 			node.RetryUp++
@@ -1035,7 +1035,7 @@ func (cluster *DataClusterImpl) checkBackDesyncButUnderReplicaLag(node DataNodeI
 	if node.HostgroupId < cluster.MaintenanceHgRange &&
 		node.WsrepStatus == 2 &&
 		!node.WsrepRejectqueries &&
-		node.PxcMaintMode == "DISABLED" &&
+		(node.PxcMaintMode == "DISABLED" || node.PxcMaintMode == "") &&
 		node.ProxyStatus == "OFFLINE_SOFT" &&
 		node.WsrepClusterStatus == "Primary" {
 		if node.MaxReplicationLag > 0 &&
@@ -1076,7 +1076,7 @@ func (cluster *DataClusterImpl) checkReadOnly(node DataNodeImpl, currentHg Hostg
 }
 
 func (cluster *DataClusterImpl) checkPxcMaint(node DataNodeImpl, currentHg Hostgroup) bool {
-	if node.PxcMaintMode != "DISABLED" &&
+	if (node.PxcMaintMode != "DISABLED" && node.PxcMaintMode != "") &&
 		node.ProxyStatus != "OFFLINE_SOFT" &&
 		node.HostgroupId < cluster.ConfigHgRange {
 		node.ActionType = node.MOVE_DOWN_OFFLINE()
@@ -2055,11 +2055,15 @@ func (node *DataNodeImpl) ReturnActionCategory(code int) string {
 
 // from pxc
 func (node *DataNodeImpl) getPxcView(dml string) PxcClusterView {
+	var pxcView PxcClusterView
 	recordset, err := node.Connection.Query(dml)
 	if err != nil {
+		if mysqlErr, ok := err.(*mysql.MySQLError); ok && mysqlErr.Number == 1146 {
+			log.Warning("PXC view table does not exist (error 1146); skipping")
+			return pxcView
+		}
 		log.Error(err.Error())
 	}
-	var pxcView PxcClusterView
 	for recordset.Next() {
 		recordset.Scan(&pxcView.HostName,
 			&pxcView.Uuid,
@@ -2207,4 +2211,20 @@ func CopyMap(mapDest map[string]DataNodeImpl, mapSource map[string]DataNodeImpl)
 
 	return mapDest
 
+}
+
+type Hostgroup struct {
+	Id    int
+	Size  int
+	Type  string
+	Nodes []DataNodeImpl
+}
+
+func (hgw *Hostgroup) init(id int, hgType string, size int) *Hostgroup {
+	hg := new(Hostgroup)
+	hg.Id = id
+	hg.Type = hgType
+	hg.Size = size
+
+	return hg
 }

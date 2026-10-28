@@ -23,14 +23,15 @@ import (
 	"os"
 	"time"
 
-	DO "pxc_scheduler_handler/internal/DataObjects"
-	global "pxc_scheduler_handler/internal/Global"
+	global "pxc_scheduler_handler/internal/global"
+	"pxc_scheduler_handler/internal/locker"
+	"pxc_scheduler_handler/internal/proxysql"
 
 	_ "github.com/go-sql-driver/mysql"
 	log "github.com/sirupsen/logrus"
 )
 
-var pxcSchedulerHandlerVersion = "1.5.0"
+var pxcSchedulerHandlerVersion = "1.6.0"
 
 /*
 Main function must contain only initial parameter, log system init and main object init
@@ -52,7 +53,7 @@ func main() {
 
 	var configFile string
 	var configPath string
-	locker := new(DO.LockerImpl)
+	myLocker := new(locker.LockerImpl)
 
 	//initialize help
 	help := new(global.HelpText)
@@ -126,7 +127,7 @@ func main() {
 			exitWithCode(1)
 		}
 		//Initialize the locker
-		if !locker.Init(&config) {
+		if !myLocker.Init(&config) {
 			log.Error("Cannot initialize LockerImpl")
 			exitWithCode(1)
 		}
@@ -142,7 +143,7 @@ func main() {
 			global.SetPerformanceObj("File Lock", true, log.InfoLevel)
 		}
 		//new way
-		lock := locker.GetFileLock()
+		lock := myLocker.GetFileLock()
 		if !lock.SetLock() {
 			fmt.Println("Cannot create a lock, exit")
 			exitWithCode(1)
@@ -157,7 +158,7 @@ func main() {
 		}
 
 		// create the two main containers the ProxySQL cluster and at least ONE ProxySQL node
-		proxysqlNode := locker.MyServer
+		proxysqlNode := myLocker.MyServer
 
 		/*
 			TODO the check against a cluster require a PRE-phase to align the nodes and an AFTER to be sure nodes settings are distributed.
@@ -167,25 +168,25 @@ func main() {
 			if log.GetLevel() == log.DebugLevel {
 				log.Info("ProxySQL Cluster function enabled")
 			}
-			if locker.CheckClusterLock() != nil {
+			if myLocker.CheckClusterLock() != nil {
 				//our node has the lock
-				locker.MyServer.CloseConnection()
+				myLocker.MyServer.CloseConnection()
 				if log.GetLevel() == log.DebugLevel {
 					log.Info("ProxySQL Cluster Connection close")
 				}
 
 				if !initProxySQLNode(proxysqlNode, config) {
-					locker.RemoveLockFile()
+					myLocker.RemoveLockFile()
 					exitWithCode(1)
 				}
 			} else {
 				//	Another node has the lock we must exit
-				locker.RemoveLockFile()
+				myLocker.RemoveLockFile()
 				exitWithCode(1)
 			}
 		} else {
 			if !initProxySQLNode(proxysqlNode, config) {
-				locker.RemoveLockFile()
+				myLocker.RemoveLockFile()
 				exitWithCode(1)
 			}
 		}
@@ -194,7 +195,7 @@ func main() {
 			log.Debug("PXC cluster data nodes initialized ")
 		} else {
 			log.Error("Initialization failed")
-			locker.RemoveLockFile()
+			myLocker.RemoveLockFile()
 			exitWithCode(1)
 		}
 
@@ -217,7 +218,7 @@ func main() {
 
 		// Once we have the Map we translate it into SQL commands to process
 		if !proxysqlNode.ProcessChanges() {
-			locker.RemoveLockFile()
+			myLocker.RemoveLockFile()
 			exitWithCode(1)
 		}
 
@@ -238,7 +239,7 @@ func main() {
 		}
 
 		//remove lock and wait
-		locker.RemoveLockFile()
+		myLocker.RemoveLockFile()
 
 		if config.Global.Daemonize {
 			time.Sleep(time.Duration(daemonLoopWait) * time.Millisecond)
@@ -251,12 +252,12 @@ func main() {
 
 	exitWithCode(0)
 	//if !config.global.Development {
-	//	locker.RemoveLockFile()
+	//	myLocker.RemoveLockFile()
 	//}
 
 }
 
-func initProxySQLNode(proxysqlNode *DO.ProxySQLNodeImpl, config global.Configuration) bool {
+func initProxySQLNode(proxysqlNode *proxysql.ProxySQLNodeImpl, config global.Configuration) bool {
 	//ProxySQL Node work start here
 	if proxysqlNode.Init(&config) {
 		if log.GetLevel() == log.DebugLevel {

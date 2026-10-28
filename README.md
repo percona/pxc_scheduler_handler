@@ -31,7 +31,7 @@ PXC Scheduler Handler is also ProxySQL cluster aware and can deal with multiple 
 At the moment galera_check analyze and manage the following:
 
 Node states:
- * pxc_main_mode
+ * pxc_maint_mode
  * read_only
  * wsrep_status
  * wsrep_rejectqueries
@@ -200,58 +200,68 @@ First let us see what we have:
 ```[global]
 logLevel = "debug"
 logTarget = "stdout" #stdout | file
-logFile = "/Users/marcotusa/work/temp/pscheduler.log"
+logFile = "/var/log/pscheduler.log"
 daemonize = true
 daemonInterval = 2000
 performance = true
-OS = "na"
+lockFileTimeout = 60
+lockClusterTimeout = 600
+lockRefreshTime = 400
 ```
 
-- daemonize : [false] Will allow the script to run in a loop without the need to be call by ProxySQL scheduler 
-- daemonInterval : Define in ms the time for looping when in daemon mode
-- loglevel : [info] options are: `[error,warning,info,debug]` Define the log level to be used. When using `debug` it will print additional information on the execution, and it can be very verbose.  
-- logTarget : [stdout] Can be either a file or stdout 
-- logFile : In case file for logging define the target 
-- OS : for future use
-- lockfiletimeout : Time ins seconds after which the file lock is considered expired [local instance lock]
-- lockclustertimeout : Time in seconds after which the cluster lock is considered expired (minimum 60 seconds)
-- lockrefreshtime: Time in second after which the scheduler will refresh the epoch inside the ProxySQL server table. This parameter was introduced to reduce the frequency of updates in ProxySQL.
-- performance : boolean which enable the statistic reporting. If you do not want any reporting just set to `false`. By default, is true which means when log is set as `error` or `warning` you still have: `[INFO]:2022-01-12 16:57:15 - Phase: main = 83,051,000 us 83 ms`
+- `daemonize` : [false] Will allow the script to run in a loop without the need to be called by ProxySQL scheduler
+- `daemonInterval` : Define in ms the time for looping when in daemon mode
+- `logLevel` : [info] options are: `[error,warning,info,debug]` Define the log level to be used. When using `debug` it will print additional information on the execution, and it can be very verbose.
+- `logTarget` : [stdout] Can be either `stdout` or `file`
+- `logFile` : Full path to the log file when `logTarget = "file"`
+- `lockFileTimeout` : Time in seconds after which the local file lock is considered expired
+- `lockClusterTimeout` : Time in seconds after which the cluster lock is considered expired (minimum 60 seconds)
+- `lockRefreshTime` : Time in seconds after which the scheduler refreshes the epoch inside the ProxySQL server table, to reduce the frequency of updates. Must be less than 3/4 of `lockClusterTimeout`; auto-adjusted if not.
+- `performance` : [true] Boolean which enables statistic reporting. When enabled, execution phase durations are printed at log level `info` even when `logLevel` is set to `error` or `warning`.
 
 ### ProxySQL
-- port : [6032] Port used to connect 
-- host : [127.0.0.1] IP address used to connect to ProxySQL __IF using cluster you must match this with the IP in the proxysql_servers table__
-- user : [] User able to connect to ProxySQL
-- password : [] Password 
-- clustered : [false] If this is __NOT__ a single instance then we need to put a lock on the running scheduler (see [Working with ProxySQL cluster](#Working-with-ProxySQL-cluster) section)
-- initialized : not used (for the moment) 
-- respectManualOfflineSoft : [false] When true the checker will NOT modify an `OFFLINE_SOFT` state manually set. It will also DO NOT put back any OFFLINE_SOFT given it will be impossible to discriminate the ones set by hand from the ones set by the application. Given that this feature is to be consider, __UNSAFE__ and should never be used unless you know very well what you are doing.
-- pingTimeout : [1000] The connection timeout (milliseconds) used to test the connection towards the ProxySQL server
+- `port` : [6032] Port used to connect
+- `host` : [127.0.0.1] IP address used to connect to ProxySQL. __If using a ProxySQL cluster this MUST match the IP listed in the `proxysql_servers` table.__
+- `user` : User able to connect to ProxySQL admin interface
+- `password` : Password for the ProxySQL admin user
+- `clustered` : [false] Set to `true` when running multiple ProxySQL instances as a cluster; enables distributed locking (see [Working with ProxySQL cluster](#working-with-proxysql-cluster))
+- `lockFilePath` : [/tmp] Directory where the local file lock is created. Defaults to `/tmp` with a warning if not set. Ensure the path is writable by the process.
+- `respectManualOfflineSoft` : [false] When `true` the scheduler will NOT modify an `OFFLINE_SOFT` state that was set manually. It also will not restore such nodes automatically, since it cannot distinguish manual from application-set `OFFLINE_SOFT`. This feature is __UNSAFE__ and should only be used if you fully understand the implications.
+- `pingTimeout` : [1000] Connection timeout in milliseconds used when testing connectivity to the ProxySQL server. Auto-adjusted to half of `checkTimeOut` if it equals or exceeds it.
 
 ### Pxccluster
-- activeFailover : [1] Failover method
-- failBack : [false] If we should fail-back automatically or wait for manual intervention 
-- checkTimeOut : [4000] This is one of the most important settings. When checking the Backend node (MySQL), it is possible that the node will not be able to answer in a consistent amount of time, due the different level of load. If this exceeds the Timeout, a warning will be print in the log, and the node will not be processed. Parsing the log it is possible to identify which is the best value for checkTimeOut to satisfy the need of speed and at the same time to give the nodes the time they need to answer.
-- mainSegment : [1] This is another very important value to set, it defines which is the MAIN segment for failover
-- sslClient : "client-cert.pem" In case of use of SSL for backend we need to be able to use the right credential
-- sslKey : "client-key.pem" In case of use of SSL for backend we need to be able to use the right credential
-- sslCa : "ca.pem" In case of use of SSL for backend we need to be able to use the right credential
-- sslCertificatePath : ["/full-path/ssl_test"] Full path for the SSL certificates
-- hgW : Writer HG
-- hgR : Reader HG
-- [ConfigHgRange](#specify-custom-configuration-and-maintenance-hostgroups) : The value that should be used to calculate the Configuration Host Groups. This was 8000 hard-coded,  and now configurable `default:8000`
-- [MaintenanceHgRange](#specify-custom-configuration-and-maintenance-hostgroups) : The value that should be used to calculate the Maintenance Host Groups. This was 9000 hard-coded,  and now configurable `default:9000`
-- ~~bckHgW : Backup HG in the 8XXX range (hgW + 8000)~~ DEPRECATED A warning is raised in the log
-- ~~bckHgR :  Backup HG in the 8XXX range (hgR + 8000)~~ DEPRECATED A warning is raised in the log
-- singlePrimary : [true] This is the recommended way, always use Galera in Single Primary to avoid write conflicts
-- maxNumWriters : [1] If SinglePrimary is false you can define how many nodes to have as Writers at the same time
-- writerIsAlsoReader : [1] Possible values 0 - 1. The default is 1, if you really want to exclude the writer from read set it to 0. When the cluster will lose its last reader, the writer will be elected as Reader, no matter what. 
-- retryUp : [0] Number of retries the application should do before restoring a failed node
-- retryDown : [0] Number of retries the application should do to put DOWN a failing node
-- clusterId : 10 the ID for the cluster 
-- persistPrimarySettings : [0]{0|1|2} This option allow the new elected Primary (in case of fail-over) to maintain the Primary node values for weight/connections/Max values and so on.
-  (see Persist Primary section for explanation) - valid value 0|1 only Writer|2 Writer and Reader
-- pingTimeout : [1000] The connection timeout (milliseconds) used to test the connection towards the PXC server
+- `user` : MySQL monitor user used to connect to PXC nodes and query `performance_schema`. Must have `SELECT` on `performance_schema.*` (see [Security settings](#security-settings)).
+- `password` : Password for the MySQL monitor user
+- `activeFailover` : [1] Controls automatic failover behaviour:
+  - `0` — failover disabled; a warning is logged if the writer goes down
+  - `1` — failover within the same Galera segment (deterministic, recommended)
+  - `2` — failover across segments; used together with `mainSegment` for multi-datacenter setups
+- `failBack` : [false] If `true` the scheduler will automatically re-elect the original Primary when it returns. See [Failback](#failback) for why this is off by default.
+- `checkTimeOut` : [4000] Maximum time in milliseconds to wait for a PXC node to respond. If exceeded the node is skipped for that cycle and a warning is logged. Tune this to the highest acceptable latency under load.
+- `mainSegment` : [1] Defines which Galera segment is considered PRIMARY for failover decisions. Critical in multi-segment (geo-distributed) deployments.
+- `sslClient` : Filename of the client certificate (e.g. `client-cert.pem`). Required when backend connections use SSL.
+- `sslKey` : Filename of the client private key (e.g. `client-key.pem`)
+- `sslCa` : Filename of the CA certificate (e.g. `ca.pem`)
+- `sslCertificatePath` : Full directory path containing the SSL certificate files (e.g. `/etc/ssl/mysql`)
+- `hgW` : Hostgroup ID for Writes (the active writer HG)
+- `hgR` : Hostgroup ID for Reads (the active reader HG)
+- [`configHgRange`](#specify-custom-configuration-and-maintenance-hostgroups) : Base value for Configuration Hostgroups (`configHgRange + hgW` / `configHgRange + hgR`). Default: `8000`
+- [`maintenanceHgRange`](#specify-custom-configuration-and-maintenance-hostgroups) : Base value for Maintenance Hostgroups (`maintenanceHgRange + hgW` / `maintenanceHgRange + hgR`). Default: `9000`
+- ~~`bckHgW`~~ DEPRECATED — use `configHgRange` instead. A warning is logged if set.
+- ~~`bckHgR`~~ DEPRECATED — use `configHgRange` instead. A warning is logged if set.
+- `singlePrimary` : [true] Enforce single-writer mode. Strongly recommended to avoid write conflicts in Galera.
+- `maxNumWriters` : [1] When `singlePrimary = false`, the maximum number of simultaneous writer nodes allowed.
+- `writerIsAlsoReader` : [1] Controls whether the active writer also serves reads:
+  - `0` — writer is excluded from the reader HG. If the last reader disappears the writer is temporarily promoted regardless.
+  - `1` — writer is always included in the reader HG. Cannot be set to `0` when `maxNumWriters > 1`.
+- `retryUp` : [0] How many consecutive healthy checks are required before a node is restored to ONLINE. Useful to avoid flapping.
+- `retryDown` : [0] How many consecutive failing checks are required before a node is moved OFFLINE_SOFT. Useful to tolerate transient issues.
+- `clusterId` : [10] Numeric identifier for this PXC cluster. Used to scope the lock in ProxySQL cluster mode.
+- `persistPrimarySettings` : [0] Whether the new Primary inherits the previous Primary's weight/connection/max values on failover (see [Persist Primary Values](#persist-primary-values)):
+  - `0` — disabled; new Primary keeps its own values
+  - `1` — writer HG values are copied to the new Primary
+  - `2` — both writer and reader HG values are copied
+- `pingTimeout` : [1000] Connection timeout in milliseconds for PXC node connections. Auto-adjusted to half of `checkTimeOut` if it equals or exceeds it.
  
 #### Persist Primary Values
 In pxc_scheduler_handler is possible to ask the application to keep the values assigned to the Primary Writer also when another node is elected, as in case of fail-over.<br>
@@ -394,29 +404,50 @@ LOAD SCHEDULER TO RUNTIME;
 ```
 
 ## Logic Rules used in the check
-Set to offline_soft :
 
-- any non 4 or 2 state, read only =ON donor node reject queries - 0 size of cluster > 2 of nodes in the same segments more then one writer, node is NOT read_only
+### wsrep_status values
 
-Change HG for maintenance HG:
+| Value | Meaning | Action |
+|-------|---------|--------|
+| 4 | Synced | Node eligible for ONLINE |
+| 2 | Donor / Desynced | Node moved to OFFLINE_SOFT unless it is the only node in the segment, or `max_replication_lag` is set and `wsrep_local_recv_queue` is within the threshold |
+| 1 | Joining | Node moved to OFFLINE_SOFT regardless of HG size |
+| 3 | Joined | Node moved to OFFLINE_SOFT regardless of HG size |
 
-- Node/cluster in non primary wsrep_reject_queries different from NONE Donor, node reject queries =1 size of cluster
+### Node goes to OFFLINE_SOFT when any of:
+- `wsrep_status` is 1 or 3 (joining/joined — not yet fully synced)
+- `wsrep_status` is 2 (donor/desynced) and there is another node in the same HG
+- `read_only = ON` and node is in the writer HG
+- `wsrep_rejectqueries` is set and there is another node available
+- `wsrep_donorrejectqueries = 1` and `wsrep_status = 2` and HG has more than one node
+- `pxc_maint_mode` is anything other than `DISABLED` or empty (fully supported — any maintenance mode value immediately moves the node to OFFLINE_SOFT for all HGs)
+- Node is not in `PRIMARY` component state (`wsrep_cluster_status != "Primary"`)
 
-Node comes back from offline_soft when (all of them):
-- Node state is 4
-- wsrep_reject_queries = none
--Primary state
+### Node moves to Maintenance HG (9XXX) when:
+- `wsrep_cluster_status != "Primary"` (non-primary component)
+- `wsrep_rejectqueries` is set
+- Donor node with reject queries enabled
 
-Node comes back from maintenance HG when (all of them):
-- node state is 4
-- wsrep_reject_queries = none
-- Primary state
-- PXC (pxc_maint_mode).
+### Node comes back from OFFLINE_SOFT when all of:
+- `wsrep_status = 4`
+- `wsrep_rejectqueries = NONE`
+- `wsrep_cluster_status = "Primary"`
+- `pxc_maint_mode = DISABLED`
 
-PXC_MAIN_MODE is fully supported. Any node in a state different from pxc_maint_mode=disabled will be set in OFFLINE_SOFT for all the HostGroup.
+### Node comes back from Maintenance HG when all of:
+- `wsrep_status = 4`
+- `wsrep_rejectqueries = NONE`
+- `wsrep_cluster_status = "Primary"`
+- `pxc_maint_mode = DISABLED`
 
-__Single Writer__
-You can define IF you want to have multiple writers. Default is 1 writer only (I strongly recommend you to do not use multiple writers unless you know very well what are you doing), but you can now have multiple writers at the same time.
+### Retry counters
+When `retryUp` or `retryDown` are set, the scheduler accumulates a counter in the node's ProxySQL `comment` field across invocations. The node is only moved UP or DOWN once the counter reaches the configured threshold. When a node stabilises (no action needed but counters are non-zero) the counters are reset and saved (`SAVE_RETRY`).
+
+### respectManualOfflineSoft
+When `respectManualOfflineSoft = true`, any node already in `OFFLINE_SOFT` is left untouched — the scheduler cannot distinguish a manually set state from one it set itself. Nodes will not be promoted back automatically either. This is intentionally conservative and considered **unsafe** for unattended operation.
+
+### Single Writer
+Default is 1 writer only (strongly recommended — multiple writers increase the risk of write conflicts in Galera). You can allow multiple writers by setting `singlePrimary = false` and `maxNumWriters > 1`, but only use this if you fully understand Galera's conflict resolution.
 
 ## Security settings
 PXC_Scheduler_Handler use the same `monitor` user ProxySQL use, BUT it needs access also performance_schema. As such it requires:
@@ -427,29 +458,31 @@ GRANT SELECT ON `performance_schema`.* TO `monitor`@`%
 To access and evaluate correctly the nodes.
 
 ## Download and compile from source
-This project follows the GO layout standards as for https://github.com/golang-standards/project-layout
+This project follows the Go standard layout as per https://github.com/golang-standards/project-layout
 
-Once you have GO installed and running (version 1.16 is recommended. Version 1.15.8 is still supported)
+Go 1.21 or later is required.
 
-Clone from github: `git clone https://github.com/Tusamarco/pxc_scheduler_handler.git`
-
-Install the needed library within go:
+Clone from GitHub:
 ```bash
-go get github.com/Tusamarco/toml
-go get github.com/go-sql-driver/mysql
-go get github.com/sirupsen/logrus
-go get golang.org/x/text/language
-go get golang.org/x/text/message
-
-go build -o pxc_scheduler_handler.  
-
+git clone https://github.com/percona/pxc_scheduler_handler
+cd pxc_scheduler_handler
 ```
-First thing to do then is to run `./pxc_scheduler_handler --help`
-to navigate the parameters.
 
-Then adjust the config file in `./config/config.toml` better to do a copy and modify for what u need
-Then to test it OUTSIDE the ProxySQL scheduler script, in the config file `[Global]` section change `daemonize=false` to `true`. 
-The script will auto-loop as if call by the scheduler. 
+Download dependencies and build:
+```bash
+go mod download
+go build -o pxc_scheduler_handler ./cmd/pxc-scheduler-handler/
+```
+
+Run `./pxc_scheduler_handler --help` to see the available parameters.
+
+Copy and adjust the sample config file:
+```bash
+cp config/config.toml config/my_config.toml
+# edit my_config.toml for your environment
+```
+
+To test outside the ProxySQL scheduler, set `daemonize = true` in the `[Global]` section — the binary will loop on its own interval without needing to be invoked repeatedly.
 
  
 ## Release Notes

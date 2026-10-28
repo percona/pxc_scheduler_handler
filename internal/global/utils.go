@@ -15,7 +15,7 @@
  *
  */
 
-package Global
+package global
 
 import (
 	"fmt"

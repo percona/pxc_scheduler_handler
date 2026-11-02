@@ -1277,7 +1277,15 @@ func (cluster *DataClusterImpl) processFailoverFailBack(backupWriters map[string
 		// First of all we need to be sure node was tested
 		if _, ok := cluster.NodesPxc.internal[node.Dns]; ok {
 
-			//the backup node is not present we will try to add it
+			// We need to check if the backupNode is present in the cluster Action list.
+			// if it is, then we must exclude it from the list of nodes that can be promoted
+			_, readerMatch := cluster.ActionNodes[strconv.Itoa(cluster.HgReaderId)+"_"+key]
+			_, writerMatch := cluster.ActionNodes[strconv.Itoa(cluster.HgWriterId)+"_"+key]
+			if readerMatch || writerMatch {
+				continue
+			}
+
+			// The backup node is not present we will try to add it
 			if cluster.NodesPxc.internal[node.Dns].ProxyStatus == "ONLINE" &&
 				!cluster.NodesPxc.internal[node.Dns].ReadOnly &&
 				cluster.NodesPxc.internal[node.Dns].Processed {
@@ -1328,7 +1336,8 @@ func (cluster *DataClusterImpl) identifyLowerNodeToRemoveBecauseFailback(node Da
 	//we need to loop the writers
 	for _, nodeB := range cluster.WriterNodes {
 		if node.Weight > nodeB.Weight &&
-			(node.WsrepSegment == cluster.MainSegment || cluster.ActiveFailover > 1) {
+			(node.WsrepSegment == cluster.MainSegment || cluster.ActiveFailover > 1) &&
+			len(cluster.WriterNodes) > cluster.MaxNumWriters {
 			node.ActionType = node.INSERT_WRITE()
 			node.HostgroupId = cluster.HgWriterId
 
@@ -1904,7 +1913,7 @@ func (node *DataNodeImpl) getNodeInformations(what string) map[string]string {
 func (node *DataNodeImpl) getRetry(writeHG int, readHG int) {
 	//var valueUp string
 	comment := node.Comment
-	hgRetry := strconv.Itoa(writeHG) + "_W_" + strconv.Itoa(readHG) + "_R_retry_"
+	hgRetry := `\b` + strconv.Itoa(writeHG) + "_W_" + strconv.Itoa(readHG) + "_R_retry_"
 	regEUp := regexp.MustCompile(hgRetry + "up=\\d;")
 	regEDw := regexp.MustCompile(hgRetry + "down=\\d;")
 	up := regEUp.FindAllString(comment, -1)
@@ -1935,7 +1944,7 @@ func (node *DataNodeImpl) getRetry(writeHG int, readHG int) {
 			}
 		}
 	}
-	node.Comment = comment
+	node.Comment = global.NormalizeString(comment)
 }
 
 /*

@@ -20,6 +20,7 @@ package locker
 import (
 	//"golang.org/x/text/message/pipeline"
 	"net"
+	"os"
 	"pxc_scheduler_handler/internal/cluster"
 	global "pxc_scheduler_handler/internal/global"
 	"pxc_scheduler_handler/internal/proxysql"
@@ -184,12 +185,21 @@ func rulesTestFileLock() []fileLockRule {
 	*/
 
 	myRules := []fileLockRule{
-		{"File Locker not to process", 10, 1619616760432224000, false, false},
-		{"File Locker same pid", 10, 1619616760432224000, true, false},
-		{"File Locker pid exist and is running", 1, 1619616740432099000, true, false},
-		{"File Locker pid exists is defunct NO Timeout ", 1, 1619616740432099000, true, false},
+		{"File Locker pid exist and is not running/Defunct no timeout", 1, 1619616740432099000, true, true},
 		{"File Locker pid exists is defunct WITH Timeout ", 1, 1619616600032099000, true, true},
 		//{"File Locker pid does not exists", 0, 1619616761434224000, true, true},
+
+		// evaluate=false: nothing to check, never remove
+		{"File Locker not to process", 10, 1619616760432224000, false, false},
+
+		// localPID matches flPid (10): our own lock, never remove
+		{"File Locker same pid", 10, 1619616760432224000, true, true},
+
+		// Signal(0) on current process returns nil: process is alive, keep lock
+		{"File Locker pid is running — lock is valid", os.Getpid(), 1619616740432099000, true, false},
+
+		// Very high PID extremely unlikely to exist: Signal(0) returns ESRCH, remove lock
+		{"File Locker pid does not exist — lock is stale", 2147483647, 1619616740432099000, true, true},
 	}
 	return myRules
 }

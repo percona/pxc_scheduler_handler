@@ -84,22 +84,33 @@ func (flLocker *FileLockImp) CheckLockFIleExists() (bool, int, int64) {
 		scanner := bufio.NewScanner(f)
 
 		loop := 1
+
 		for scanner.Scan() {
+			line := scanner.Text()
 			if loop == 1 {
-				s := scanner.Text()[4:len(scanner.Text())]
-				localPID, err = strconv.Atoi(s)
-				if err != nil {
-					log.Warningf("Conversion error in PID %s", err.Error())
+				s, found := strings.CutPrefix(line, "PID:")
+				if !found {
+					log.Warningf("Unexpected PID line format: %q", line)
+				} else {
+					localPID, err = strconv.Atoi(s)
+					if err != nil {
+						log.Warningf("Conversion error in PID %s", err.Error())
+					}
 				}
 				loop++
 			} else {
-				s := scanner.Text()[5:len(scanner.Text())]
-				localTime, err = strconv.ParseInt(s, 10, 64)
-				if err != nil {
-					log.Warningf("Conversion error in Time %s", err.Error())
+				s, found := strings.CutPrefix(line, "Time:")
+				if !found {
+					log.Warningf("Unexpected Time line format: %q", line)
+				} else {
+					localTime, err = strconv.ParseInt(s, 10, 64)
+					if err != nil {
+						log.Warningf("Conversion error in Time %s", err.Error())
+					}
 				}
 			}
 		}
+
 		if err := scanner.Err(); err != nil {
 			log.Fatal(err)
 			//log.Error(fmt.Sprintf("Generic error reading lock file Error: %s", err))
@@ -124,7 +135,7 @@ func (flLocker *FileLockImp) EvaluateFileLockForRemoval(evaluate bool, localPID 
 	// IF the PID we retrieve is the same of the current application then
 	// we should not check further and return false and overwrite
 	if flLocker.flPid == localPID {
-		return false
+		return true
 	}
 
 	//get the process and check the status
@@ -137,7 +148,7 @@ func (flLocker *FileLockImp) EvaluateFileLockForRemoval(evaluate bool, localPID 
 
 	//no error means no process is running or defunct
 	err2 := process.Signal(syscall.Signal(0))
-	if err2 == nil {
+	if err2 != nil {
 		log.Warningf(" Process %d seems defunct. We assume lock is expired and process is long gone.", process.Pid)
 		return true
 	}
@@ -388,9 +399,9 @@ func (locker *LockerImpl) findLock(nodes map[string]proxysql.ProxySQLNodeImpl) (
 			//Also if the time is not expired I will remove the lock text from comment for my node, given if the lock on another node is active I will not do a thing.
 			//But if is not I will have the comment in the node ready
 			//trim some double spaces to be sure we have a clean string
-			node.Comment = node.Comment[:startIdx] + node.Comment[endIdx+6:]
+			node.Comment = global.NormalizeString(node.Comment[:startIdx] + node.Comment[endIdx+6:])
 			space := regexp.MustCompile(`\s+`)
-			node.Comment = space.ReplaceAllString(node.Comment, " ")
+			node.Comment = global.NormalizeString(space.ReplaceAllString(node.Comment, " "))
 
 			//check if we had exceed the lock time
 			//convert nanoseconds to seconds
@@ -423,7 +434,7 @@ func (locker *LockerImpl) findLock(nodes map[string]proxysql.ProxySQLNodeImpl) (
 	if winningNode == "" || winningNode == locker.MyServer.Dns {
 		node := nodes[locker.MyServer.Dns]
 		if node.Dns != "" {
-			node.Comment = strings.TrimSpace(node.Comment) + " " + lockHeader + strconv.FormatInt(locker.ClusterCurrentLockTime, 10) + lockTail
+			node.Comment = global.NormalizeString(strings.TrimSpace(node.Comment)) + " " + lockHeader + strconv.FormatInt(locker.ClusterCurrentLockTime, 10) + lockTail
 			nodes[locker.MyServer.Dns] = node
 			log.Debug(fmt.Sprintf("Lock acquired by node %s Current time %d", locker.MyServer.Dns, locker.ClusterCurrentLockTime))
 		} else {

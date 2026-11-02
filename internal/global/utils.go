@@ -19,9 +19,15 @@ package global
 
 import (
 	"fmt"
+	"unicode"
+
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
+	"golang.org/x/text/runes"
+	"golang.org/x/text/transform"
+	"golang.org/x/text/unicode/norm"
+
 	"os"
 	"reflect"
 	"runtime"
@@ -82,10 +88,10 @@ const (
 func FromStringToMAp(mystring string, separator string) map[string]string {
 	myMap := make(map[string]string)
 	if mystring != "" && separator != "" {
-		keyValuePairArray := strings.Split(mystring, separator)
+		keyValuePairArray := strings.SplitN(mystring, separator, 2)
 		for _, keyValuePair := range keyValuePairArray {
 			//keyValuePair = strings.Trim(keyValuePair," ")
-			keyValueSplit := strings.Split(keyValuePair, "=")
+			keyValueSplit := strings.SplitN(keyValuePair, "=", 2)
 			if len(keyValueSplit) > 1 {
 				var key = strings.TrimSpace(keyValueSplit[0])
 				var value = strings.TrimSpace(keyValueSplit[1])
@@ -304,14 +310,14 @@ func caseInsenstiveFieldByName(v reflect.Value, name string) reflect.Value {
 
 //====================================
 
-//stats structure
+// stats structure
 type PerfObject struct {
 	Name     string
 	Time     [2]int64
 	LogLevel log.Level
 }
 
-//perfomance settings and structure
+// perfomance settings and structure
 var Performance bool
 var PerformanceMapOrdered *OrderedPerfMap
 
@@ -376,4 +382,19 @@ func ReportPerformance() {
 			break
 		}
 	}
+}
+
+func NormalizeString(s string) string {
+	// Decompose accented characters into base + combining mark, then strip the marks
+	t := transform.Chain(norm.NFD, runes.Remove(runes.In(unicode.Mn)), norm.NFC)
+	result, _, _ := transform.String(t, s)
+	// Remove quotes and backticks
+	result = strings.Map(func(r rune) rune {
+		switch r {
+		case '\'', '"', '`', '\u2018', '\u2019', '\u201C', '\u201D':
+			return -1
+		}
+		return r
+	}, result)
+	return result
 }

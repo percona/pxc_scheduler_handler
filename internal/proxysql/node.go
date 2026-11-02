@@ -21,13 +21,15 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	log "github.com/sirupsen/logrus"
 	"net"
 	"pxc_scheduler_handler/internal/cluster"
 	global "pxc_scheduler_handler/internal/global"
 	SQL "pxc_scheduler_handler/internal/query/proxysql"
 	"strconv"
+	"strings"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
 /*
@@ -88,7 +90,7 @@ func (cluster ProxySQLClusterImpl) GetProxySQLnodes(myNode *ProxySQLNodeImpl) bo
 		newNode.Ip = hostname
 		newNode.Weight = weight
 		newNode.Port = port
-		newNode.Comment = comment
+		newNode.Comment = global.NormalizeString(comment)
 		newNode.Dns = net.JoinHostPort(newNode.Ip, strconv.Itoa(newNode.Port))
 		newNode.User = cluster.User
 		newNode.Password = cluster.Password
@@ -424,7 +426,7 @@ func (node *ProxySQLNodeImpl) ProcessChanges() bool {
 // This function update the server with the defaults as for 8000 group
 func (node *ProxySQLNodeImpl) ResetNodeDefaults(dataNode cluster.DataNodeImpl, hg int, ip string, port int) string {
 	myString := fmt.Sprintf(",weight=%d,max_connections=%d,max_replication_lag=%d,max_latency_ms=%d",
-		dataNode.Weight, dataNode.MaxConnection, dataNode.MaxReplicationLag, dataNode.MaxReplicationLag)
+		dataNode.Weight, dataNode.MaxConnection, dataNode.MaxReplicationLag, dataNode.MaxLatency)
 	myString = fmt.Sprintf(" UPDATE mysql_servers SET status='ONLINE' %s WHERE hostgroup_id=%d AND hostname='%s' AND port=%d", myString, hg, ip, port)
 	log.Debug(fmt.Sprintf("Preparing for node  %s:%d HG:%d SQL: %s", ip, port, hg, myString))
 	return myString
@@ -532,7 +534,7 @@ func (node *ProxySQLNodeImpl) SaveRetry(dataNode cluster.DataNodeImpl, hg int, i
 		node.MySQLCluster.HgWriterId,
 		node.MySQLCluster.HgReaderId,
 		dataNode.RetryDown)
-	myString := fmt.Sprintf(" UPDATE mysql_servers SET comment='%s %s' WHERE hostgroup_id=%d AND hostname='%s' AND port=%d", dataNode.Comment, retry, hg, ip, port)
+	myString := fmt.Sprintf(" UPDATE mysql_servers SET comment='%s %s' WHERE hostgroup_id=%d AND hostname='%s' AND port=%d", strings.TrimRight(dataNode.Comment, " "), retry, hg, ip, port)
 	log.Debug(fmt.Sprintf("Adding for node  %s:%d HG:%d SQL: %s", ip, port, hg, myString))
 	return myString
 }
@@ -592,5 +594,3 @@ func (node *ProxySQLNodeImpl) executeSQLChanges(SQLActionString []string) bool {
 
 	return true
 }
-
-

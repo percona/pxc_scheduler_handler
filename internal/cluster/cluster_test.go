@@ -18,6 +18,7 @@
 package cluster
 
 import (
+	"pxc_scheduler_handler/internal/global"
 	"testing"
 )
 
@@ -226,14 +227,13 @@ func TestDataClusterImpl_checkBackDesyncButUnderReplicaLag(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			cluster := clusterNode.clusterNodeImplFactory()
 			//t.Error( "aa ",tt.args.node.WsrepDonorrejectqueries, " ", tt.args.currentHg.Size)
-			if  got := cluster.checkBackDesyncButUnderReplicaLag(tt.args.node, tt.args.currentHg); got != tt.want {
+			if got := cluster.checkBackDesyncButUnderReplicaLag(tt.args.node, tt.args.currentHg); got != tt.want {
 
 				t.Errorf(" %s checkBackDesyncButUnderReplicaLag() = %v, want %v", tt.name, got, tt.want)
 			}
 		})
 	}
 }
-
 
 func TestDataClusterImpl_checkBackNew(t *testing.T) {
 	var tests = []rule{}
@@ -321,7 +321,7 @@ func TestDataClusterImpl_cleanWriters(t *testing.T) {
 	}
 }
 
-//testing Primary Election
+// testing Primary Election
 func TestDataClusterImpl_identifyPrimaryBackupNode(t *testing.T) {
 	var tests = []ruleInt{}
 
@@ -459,7 +459,6 @@ func TestDataClusterImpl_processWriterIsAlsoReader(t *testing.T) {
 	}
 }
 
-
 func TestDataClusterImpl_identifyLowerNodeToRemove(t *testing.T) {
 	var tests = []rule{}
 
@@ -477,7 +476,7 @@ func TestDataClusterImpl_identifyLowerNodeToRemove(t *testing.T) {
 		clusterNode.WriterNodes[myDns] = testDataNode
 	}
 	myBackupWriterNode := clusterNode.testDataNodeFactoryDns("127.0.0.5:3306")
-	myBackupWriterNode.HostgroupId=8100
+	myBackupWriterNode.HostgroupId = 8100
 	myBackupWriterNode.Hostgroups = []Hostgroup{getHgOpt(8100, 3, "W")}
 	myBackupWriterNode.Weight = 1000
 
@@ -500,8 +499,6 @@ func TestDataClusterImpl_identifyLowerNodeToRemove(t *testing.T) {
 	}
 }
 
-
-
 func TestDataClusterImpl_identifyLowerNodeToRemoveBecauseFailback(t *testing.T) {
 	var tests = []rule{}
 
@@ -519,10 +516,10 @@ func TestDataClusterImpl_identifyLowerNodeToRemoveBecauseFailback(t *testing.T) 
 		clusterNode.WriterNodes[myDns] = testDataNode
 	}
 	myFailBackWriterNode := clusterNode.testDataNodeFactoryDns("127.0.0.1:3306")
-	myFailBackWriterNode.HostgroupId=100
+	myFailBackWriterNode.HostgroupId = 100
 	myFailBackWriterNode.Hostgroups = []Hostgroup{getHgOpt(100, 3, "W")}
 	myFailBackWriterNode.Weight = 1000
-	myFailBackWriterNode.WsrepSegment=1
+	myFailBackWriterNode.WsrepSegment = 1
 
 	myArgs := args{myFailBackWriterNode, myFailBackWriterNode.Hostgroups[0]}
 
@@ -534,7 +531,7 @@ func TestDataClusterImpl_identifyLowerNodeToRemoveBecauseFailback(t *testing.T) 
 			testNode := tt.args.node
 			cluster.WriterNodes = clusterNode.WriterNodes
 			cluster.Hostgroups[tt.args.node.Hostgroups[0].Id] = tt.args.node.Hostgroups[0]
-			cluster.MainSegment =1
+			cluster.MainSegment = 1
 			cluster.ActiveFailover = 2
 			if got := cluster.identifyLowerNodeToRemoveBecauseFailback(testNode); got != tt.want {
 
@@ -543,6 +540,7 @@ func TestDataClusterImpl_identifyLowerNodeToRemoveBecauseFailback(t *testing.T) 
 		})
 	}
 }
+
 /*
 Test Cluster method evaluateReaders [end]
 */
@@ -637,7 +635,7 @@ func TestDataNodeImpl_getRetry(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			node := DataNodeImpl{Comment: tt.comment}
+			node := DataNodeImpl{Comment: global.NormalizeString(tt.comment)}
 			node.getRetry(tt.writeHG, tt.readHG)
 			if node.RetryUp != tt.wantUp {
 				t.Errorf("getRetry() RetryUp = %v, want %v", node.RetryUp, tt.wantUp)

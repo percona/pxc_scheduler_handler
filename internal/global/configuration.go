@@ -168,7 +168,23 @@ func (conf *Configuration) SanityCheck() bool {
 		conf.Pxcluster.BckHgR = conf.Pxcluster.ConfigHgRange + conf.Pxcluster.HgR
 	}
 
+	if conf.Pxcluster.RetryDown > 9 || conf.Pxcluster.RetryUp > 9 {
+		log.SetReportCaller(false)
+		log.Warning(fmt.Sprintf("Configuration RetryDown/RetryUp value is invalid, value range is [1 - 9]. Currently set to: Down |%d| Up |%d| I will set the exceeding to one 9", conf.Pxcluster.RetryDown, conf.Pxcluster.RetryUp))
+		if conf.Pxcluster.RetryUp > 9 {
+			conf.Pxcluster.RetryUp = 9
+		}
+		if conf.Pxcluster.RetryDown > 9 {
+		}
+
+	}
+
 	//Checks for Ping Timeout values and set them to less than checkTimeOut if they are larger
+	if conf.Pxcluster.CheckTimeOut == 0 {
+		conf.Pxcluster.CheckTimeOut = 5000
+		log.Warn(fmt.Sprintf("CheckTimeOut is invalid. Currently set to: |%d|  I will set to 5000 ", conf.Pxcluster.CheckTimeOut))
+	}
+
 	if conf.Proxysql.PingTimeout == 0 {
 		conf.Proxysql.PingTimeout = 1000
 	}
@@ -208,7 +224,7 @@ func (conf *Configuration) SanityCheck() bool {
 	{
 		lockCTO := int64(float64(conf.Global.LockClusterTimeout) * 0.75)
 		lockRFOrig := conf.Global.LockRefreshTime
-		if conf.Global.LockRefreshTime > lockCTO || conf.Global.LockRefreshTime == 0 {
+		if conf.Global.LockRefreshTime > lockCTO || conf.Global.LockRefreshTime == 0 || conf.Global.LockRefreshTime < 0 {
 			conf.Global.LockRefreshTime = lockCTO - 1
 			log.Warning(fmt.Sprintf("LockClusterTimeout (%d) exceeds the value of 3/4 LockClusterTimeout (%d). Value aggiusted to (%d) ",
 				lockRFOrig,

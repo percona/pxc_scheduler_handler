@@ -9,4 +9,8 @@ require (
 	golang.org/x/text v0.41.0
 )
 
-require golang.org/x/sys v0.0.0-20220722155257-8c9f86f7a55f // indirect
+require (
+	github.com/ebitengine/purego v0.12.0-alpha.1.0.20261015130536-d456b1bb95e8 // indirect
+	golang.org/x/sys v0.48.0 // indirect
+	hegel.dev/go/hegel v0.9.28 // indirect
+)

@@ -186,7 +186,7 @@ func (flLocker *FileLockImp) SetLock() bool {
 			"Time:" + strconv.FormatInt(flLocker.flAppCreationTime, 10),
 		}
 
-		file, err := os.OpenFile(flLocker.flFullPath, os.O_CREATE|os.O_WRONLY, 0644)
+		file, err := os.OpenFile(flLocker.flFullPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
 
 		if err != nil {
 			log.Error(fmt.Sprintf("failed creating lock file: %s", err.Error()))
@@ -389,39 +389,47 @@ func (locker *LockerImpl) findLock(nodes map[string]proxysql.ProxySQLNodeImpl) (
 
 			startIdx := strings.Index(node.Comment, lockHeader)
 			endIdx := strings.Index(node.Comment, lockTail)
-			lockText := node.Comment[startIdx+lockHeaderLen : endIdx]
+			if endIdx < 0 {
+				// Malformed lock: header present but closing tail missing.
+				// Strip everything from the header onwards and treat the node as unlocked.
+				node.Comment = global.NormalizeString(node.Comment[:startIdx])
+				node.HoldLock = false
+				log.Warning(fmt.Sprintf("Cluster Lock node %s has malformed lock comment (no closing tail) — lock removed", node.Dns))
+			} else {
+				lockText := node.Comment[startIdx+lockHeaderLen : endIdx]
 
-			log.Debug(fmt.Sprintf("Cluster Node %s has a scheduler lock ", node.Dns))
+				log.Debug(fmt.Sprintf("Cluster Node %s has a scheduler lock ", node.Dns))
 
-			//get LOCK time and assign as winning node the node that has be the more recent one
-			node.LastLockTime = int64(global.ToInt(lockText))
+				//get LOCK time and assign as winning node the node that has be the more recent one
+				node.LastLockTime = int64(global.ToInt(lockText))
 
-			//Also if the time is not expired I will remove the lock text from comment for my node, given if the lock on another node is active I will not do a thing.
-			//But if is not I will have the comment in the node ready
-			//trim some double spaces to be sure we have a clean string
-			node.Comment = global.NormalizeString(node.Comment[:startIdx] + node.Comment[endIdx+6:])
-			space := regexp.MustCompile(`\s+`)
-			node.Comment = global.NormalizeString(space.ReplaceAllString(node.Comment, " "))
+				//Also if the time is not expired I will remove the lock text from comment for my node, given if the lock on another node is active I will not do a thing.
+				//But if is not I will have the comment in the node ready
+				//trim some double spaces to be sure we have a clean string
+				node.Comment = global.NormalizeString(node.Comment[:startIdx] + node.Comment[endIdx+6:])
+				space := regexp.MustCompile(`\s+`)
+				node.Comment = global.NormalizeString(space.ReplaceAllString(node.Comment, " "))
 
-			//check if we had exceed the lock time
-			//convert nanoseconds to seconds
-			lockTime := (locker.ClusterCurrentLockTime - node.LastLockTime) / 1000000000
+				//check if we had exceed the lock time
+				//convert nanoseconds to seconds
+				lockTime := (locker.ClusterCurrentLockTime - node.LastLockTime) / 1000000000
 
-			log.Debug(fmt.Sprintf("processing node %s with locktime %d cluster lock time %d ", node.Dns, node.LastLockTime, locker.ClusterLastLockTime))
-			if lockTime > locker.LockClusterTimeout {
-				log.Debug(fmt.Sprintf("The lock on node %s has expired from %d seconds", node.Dns, lockTime))
-				node.IsLockExpired = true
-			}
+				log.Debug(fmt.Sprintf("processing node %s with locktime %d cluster lock time %d ", node.Dns, node.LastLockTime, locker.ClusterLastLockTime))
+				if lockTime > locker.LockClusterTimeout {
+					log.Debug(fmt.Sprintf("The lock on node %s has expired from %d seconds", node.Dns, lockTime))
+					node.IsLockExpired = true
+				}
 
-			// in case of multiple locks, the node with the most recent lock time wins
-			if node.LastLockTime <= locker.ClusterLastLockTime && !node.IsLockExpired {
-				locker.ClusterLastLockTime = node.LastLockTime
-				winningNode = node.Dns
-				log.Debug(fmt.Sprintf("Cluster Lock Winning node %s", winningNode))
-			} else if locker.ClusterLastLockTime == 0 && !node.IsLockExpired {
-				locker.ClusterLastLockTime = node.LastLockTime
-				winningNode = node.Dns
-				log.Debug(fmt.Sprintf("Cluster Lock Winning node %s", winningNode))
+				// in case of multiple locks, the node with the most recent lock time wins
+				if node.LastLockTime <= locker.ClusterLastLockTime && !node.IsLockExpired {
+					locker.ClusterLastLockTime = node.LastLockTime
+					winningNode = node.Dns
+					log.Debug(fmt.Sprintf("Cluster Lock Winning node %s", winningNode))
+				} else if locker.ClusterLastLockTime == 0 && !node.IsLockExpired {
+					locker.ClusterLastLockTime = node.LastLockTime
+					winningNode = node.Dns
+					log.Debug(fmt.Sprintf("Cluster Lock Winning node %s", winningNode))
+				}
 			}
 		} else {
 			log.Debug(fmt.Sprintf("Cluster Lock node %s do not have a lock", node.Dns))

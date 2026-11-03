@@ -478,7 +478,7 @@ func (node *ProxySQLNodeImpl) InsertRead(dataNode cluster.DataNodeImpl, hg int, 
 		dataNode.MaxReplicationLag,
 		global.Bool2int(dataNode.UseSsl),
 		dataNode.MaxLatency,
-		dataNode.Comment)
+		strings.ReplaceAll(dataNode.Comment, "'", ""))
 	log.Debug(fmt.Sprintf("Preparing for node  %s:%d HG:%d SQL: %s", ip, port, hg, myString))
 	return myString
 }
@@ -506,7 +506,7 @@ func (node *ProxySQLNodeImpl) InsertWrite(dataNode cluster.DataNodeImpl, hg int,
 		dataNode.MaxReplicationLag,
 		global.Bool2int(dataNode.UseSsl),
 		dataNode.MaxLatency,
-		dataNode.Comment)
+		strings.ReplaceAll(dataNode.Comment, "'", ""))
 	log.Debug(fmt.Sprintf("Preparing for node  %s:%d HG:%d SQL: %s", ip, port, hg, myString))
 	return myString
 }
@@ -534,7 +534,13 @@ func (node *ProxySQLNodeImpl) SaveRetry(dataNode cluster.DataNodeImpl, hg int, i
 		node.MySQLCluster.HgWriterId,
 		node.MySQLCluster.HgReaderId,
 		dataNode.RetryDown)
-	myString := fmt.Sprintf(" UPDATE mysql_servers SET comment='%s %s' WHERE hostgroup_id=%d AND hostname='%s' AND port=%d", strings.TrimRight(dataNode.Comment, " "), retry, hg, ip, port)
+	markerPrefix := fmt.Sprintf("%d_W_%d_R_retry_", node.MySQLCluster.HgWriterId, node.MySQLCluster.HgReaderId)
+	comment := strings.ReplaceAll(dataNode.Comment, "'", "")
+	if idx := strings.Index(comment, markerPrefix); idx >= 0 {
+		comment = strings.TrimSpace(comment[:idx])
+	}
+
+	myString := fmt.Sprintf(" UPDATE mysql_servers SET comment='%s %s' WHERE hostgroup_id=%d AND hostname='%s' AND port=%d", strings.TrimRight(comment, " "), retry, hg, ip, port)
 	log.Debug(fmt.Sprintf("Adding for node  %s:%d HG:%d SQL: %s", ip, port, hg, myString))
 	return myString
 }

@@ -27,6 +27,7 @@ import (
 	"net"
 	"os"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -1273,7 +1274,21 @@ func (cluster *DataClusterImpl) evaluateWriters() bool {
 
 func (cluster *DataClusterImpl) processFailoverFailBack(backupWriters map[string]DataNodeImpl) {
 	// TODO can we include in the unit test? I think this is too complex and not deterministic to do so
-	for key, node := range backupWriters {
+
+	keys := make([]string, 0, len(backupWriters))
+	for k := range backupWriters {
+		keys = append(keys, k)
+	}
+	sort.Slice(keys, func(i, j int) bool {
+		ni, nj := backupWriters[keys[i]], backupWriters[keys[j]]
+		if ni.Weight != nj.Weight {
+			return ni.Weight > nj.Weight // highest weight first
+		}
+		return keys[i] < keys[j] // stable tiebreak on DNS
+	})
+
+	for _, key := range keys {
+		node := backupWriters[key]
 		// First of all we need to be sure node was tested
 		if _, ok := cluster.NodesPxc.internal[node.Dns]; ok {
 
@@ -1334,40 +1349,40 @@ func (cluster *DataClusterImpl) processFailoverFailBack(backupWriters map[string
 // We identify who of the node in the Writers pool need to go away because failback
 func (cluster *DataClusterImpl) identifyLowerNodeToRemoveBecauseFailback(node DataNodeImpl) bool {
 	//we need to loop the writers
+	var victim *DataNodeImpl
 	for _, nodeB := range cluster.WriterNodes {
-		if node.Weight > nodeB.Weight &&
+		nb := nodeB
+		if (node.Weight > nb.Weight || (node.Weight == nb.Weight && node.Dns > nb.Dns)) &&
 			(node.WsrepSegment == cluster.MainSegment || cluster.ActiveFailover > 1) &&
 			len(cluster.WriterNodes) > cluster.MaxNumWriters {
-			node.ActionType = node.INSERT_WRITE()
-			node.HostgroupId = cluster.HgWriterId
-
-			// the node with lower weight is removed
-			nodeB.RetryDown = cluster.RetryDown + 1
-			nodeB.ActionType = nodeB.MOVE_DOWN_OFFLINE()
-			cluster.ActionNodes[strconv.Itoa(cluster.HgWriterId)+"_"+node.Dns] = node
-			cluster.ActionNodes[strconv.Itoa(cluster.HgWriterId)+"_"+nodeB.Dns] = nodeB
-
-			//let also add it to the Writers to prevent double insertion
-			cluster.WriterNodes[node.Dns] = node
-			//remove failover flag from cluster
-			cluster.RequireFailover = false
-
-			log.Warn(fmt.Sprintf("Failback! Node %s is going down while Node %s is coming up as Writer ",
-				strconv.Itoa(nodeB.HostgroupId)+"_"+nodeB.Dns,
-				strconv.Itoa(node.HostgroupId)+"_"+node.Dns))
-			//if found we just exit no need to loop more
-			return true
-			//break
+			if victim == nil || nb.Weight < victim.Weight ||
+				(nb.Weight == victim.Weight && nb.Dns > victim.Dns) {
+				victim = &nb
+			}
 		}
 	}
-	return false
+	if victim == nil {
+		return false
+	}
+	node.ActionType = node.INSERT_WRITE()
+	node.HostgroupId = cluster.HgWriterId
+	victim.RetryDown = cluster.RetryDown + 1
+	victim.ActionType = victim.MOVE_DOWN_OFFLINE()
+	cluster.ActionNodes[strconv.Itoa(cluster.HgWriterId)+"_"+node.Dns] = node
+	cluster.ActionNodes[strconv.Itoa(cluster.HgWriterId)+"_"+victim.Dns] = *victim
+	cluster.WriterNodes[node.Dns] = node
+	cluster.RequireFailover = false
+	log.Warn(fmt.Sprintf("Failback! Node %s is going down while Node %s is coming up as Writer ",
+		strconv.Itoa(victim.HostgroupId)+"_"+victim.Dns,
+		strconv.Itoa(node.HostgroupId)+"_"+node.Dns))
+	return true
 }
 
 // We identify which Node is the one with the lowest weight that needs to be removed from active writers list
 func (cluster *DataClusterImpl) identifyLowerNodeToRemove(node DataNodeImpl) bool {
 	lowerNode := node
 	for _, wNode := range cluster.WriterNodes {
-		if wNode.Weight < lowerNode.Weight &&
+		if (wNode.Weight < lowerNode.Weight || (wNode.Weight == lowerNode.Weight && wNode.Dns > lowerNode.Dns)) &&
 			wNode.Weight < node.Weight {
 			log.Debug("Lower node found ", wNode.Dns, " weight new ", wNode.Weight, " current lower ", lowerNode.Dns, " Lower node weight ", lowerNode.Weight)
 			lowerNode = wNode
@@ -1419,7 +1434,8 @@ func (cluster *DataClusterImpl) processUpActionMap() {
 							!cluster.HasFailoverNode &&
 							!cluster.HasPrimary {
 							// we also check if the weight is higher to be sure we put the nodes in order
-							if node.Weight > cluster.FailOverNode.Weight &&
+							if (node.Weight > cluster.FailOverNode.Weight ||
+								(node.Weight == cluster.FailOverNode.Weight && node.Dns > cluster.FailOverNode.Dns)) &&
 								(node.WsrepSegment == cluster.MainSegment || cluster.ActiveFailover > 1) {
 								if cluster.SinglePrimary {
 									delete(cluster.ActionNodes, strconv.Itoa(cluster.FailOverNode.HostgroupId)+"_"+cluster.FailOverNode.Dns)
@@ -1445,7 +1461,8 @@ func (cluster *DataClusterImpl) processUpActionMap() {
 						//tempWriters := make(map[string]DataNodeImpl)
 						lowerNode := node
 						for _, wNode := range cluster.WriterNodes {
-							if wNode.Weight < lowerNode.Weight &&
+							if (wNode.Weight < lowerNode.Weight ||
+								(wNode.Weight == lowerNode.Weight && wNode.Dns > lowerNode.Dns)) &&
 								wNode.Weight < node.Weight {
 								lowerNode = wNode
 							}

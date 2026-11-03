@@ -88,7 +88,7 @@ const (
 func FromStringToMAp(mystring string, separator string) map[string]string {
 	myMap := make(map[string]string)
 	if mystring != "" && separator != "" {
-		keyValuePairArray := strings.SplitN(mystring, separator, 2)
+		keyValuePairArray := strings.Split(mystring, separator)
 		for _, keyValuePair := range keyValuePairArray {
 			//keyValuePair = strings.Trim(keyValuePair," ")
 			keyValueSplit := strings.SplitN(keyValuePair, "=", 2)

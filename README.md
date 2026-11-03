@@ -19,6 +19,7 @@
 - [Logic Rules used in the check](#logic-rules-used-in-the-check)
 - [Security settings](#security-settings)
 - [Download and compile from source](#download-and-compile-from-source)
+- [Running tests](#running-tests)
 - [Release Notes](#release-notes)
 - [Details](#details)
 
@@ -485,6 +486,30 @@ cp config/config.toml config/my_config.toml
 To test outside the ProxySQL scheduler, set `daemonize = true` in the `[Global]` section — the binary will loop on its own interval without needing to be invoked repeatedly.
 
  
+## Running tests
+
+### Unit tests
+
+```bash
+go test ./...
+```
+
+### Property-based tests (Hegel)
+
+Property tests require the `hegel` build tag:
+
+```bash
+go test -tags hegel -count=100 ./internal/test/hegel/...
+```
+
+Generate a full Markdown report grouped by component with priority badges:
+
+```bash
+./scripts/hegel_report.sh
+```
+
+See [`internal/test/README.md`](internal/test/README.md) for the complete testing guide, including fuzz tests, single-test runs, and report options.
+
 ## Release Notes
 see [release notes](releases.md)
 

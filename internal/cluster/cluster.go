@@ -1646,27 +1646,32 @@ func (cluster *DataClusterImpl) evaluateReaders() bool {
 func (cluster *DataClusterImpl) processWriterIsAlsoReader(readerNodes map[string]DataNodeImpl) bool {
 	// WriterIsAlsoReader != 1 so we need to check if writer is in reader group and remove it in the case we have more readers
 	if cluster.WriterIsReader != 1 {
-
 		if len(readerNodes) > 1 {
+			// Collect all reader nodes that are also writers, then pick
+			// deterministically (highest DNS as tiebreak) so map iteration
+			// order does not affect which one gets removed.
+			var candidate *DataNodeImpl
+			var candidateIsBackup bool
 			for key, node := range readerNodes {
-				//if the reader node is in the writer group and we have more than 1 reader good left, then we can remove the reader node
-				if _, ok := cluster.WriterNodes[key]; ok &&
-					node.HostgroupId == cluster.HgReaderId {
-					delete(readerNodes, key)
-					node.HostgroupId = cluster.HgReaderId
-					node.ActionType = node.DELETE_NODE()
-					cluster.ActionNodes[strconv.Itoa(cluster.HgReaderId)+"_"+node.Dns] = node
-					return true
-					//But if the reader node is from backup group this means we are just checkin if we should re-insert it so we do not need to delete, but just remove it from the list
-				} else if _, ok := cluster.WriterNodes[key]; ok &&
-					node.HostgroupId == cluster.BackupHgReaderId {
-					delete(readerNodes, key)
-					return true
+				if _, ok := cluster.WriterNodes[key]; ok {
+					n := node
+					if candidate == nil || n.Dns > candidate.Dns {
+						candidate = &n
+						candidateIsBackup = n.HostgroupId == cluster.BackupHgReaderId
+					}
 				}
-
+			}
+			if candidate != nil {
+				delete(readerNodes, candidate.Dns)
+				if !candidateIsBackup {
+					candidate.HostgroupId = cluster.HgReaderId
+					candidate.ActionType = candidate.DELETE_NODE()
+					cluster.ActionNodes[strconv.Itoa(cluster.HgReaderId)+"_"+candidate.Dns] = *candidate
+				}
+				return true
 			}
 		} else if len(readerNodes) == 1 {
-			//if we see that we have 1 item left in readers and this one is also the writer and is already present, we will NOT process it otherwise we will insert back
+			// unchanged
 			for key, node := range readerNodes {
 				if _, ok := cluster.WriterNodes[key]; ok && node.HostgroupId == cluster.HgReaderId {
 					node.Processed = false
@@ -1676,7 +1681,6 @@ func (cluster *DataClusterImpl) processWriterIsAlsoReader(readerNodes map[string
 			return false
 		}
 	}
-
 	return false
 }
 

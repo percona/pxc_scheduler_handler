@@ -20,7 +20,11 @@
 package hegel
 
 import (
+	"fmt"
+	"strconv"
 	"testing"
+
+	"pxc_scheduler_handler/internal/cluster"
 
 	"hegel.dev/go/hegel"
 )
@@ -69,6 +73,92 @@ func TestProp_GetActionList_EmptyClusterProducesNoActions(t *testing.T) {
 				len(actions), actions,
 			)
 		}
+	})
+}
+
+// [HIGH] When WriterIsAlsoReader=0 and multiple readers are also writers,
+// processWriterIsAlsoReader must always remove the same node regardless of
+// Go's map iteration order.  Previously it returned on the first match found,
+// making the choice non-deterministic in multi-writer/multi-reader setups.
+//
+// The test runs the function N times on identical state (fresh copies of the
+// maps each time) and asserts that the same ActionNodes key appears in every
+// run.
+func TestProp_ProcessWriterIsAlsoReader_DeterministicRemoval(t *testing.T) {
+	hegel.Test(t, func(ht *hegel.T) {
+		const runs = 50
+		const hgReaderId = 101
+		const hgWriterId = 100
+
+		// Two nodes that are simultaneously in WriterNodes and in readerNodes
+		// with HgReaderId, which is exactly the condition that triggers the
+		// removal path in processWriterIsAlsoReader.
+		dnsA := "10.0.0.1:3306"
+		dnsB := "10.0.0.2:3306"
+
+		makeReader := func(dns string) cluster.DataNodeImpl {
+			n := cluster.HegelNewDefaultNode(dns)
+			n.HostgroupId = hgReaderId
+			n.ProxyStatus = "ONLINE"
+			n.Processed = true
+			return n
+		}
+
+		var firstRemovedKey string
+
+		for i := 0; i < runs; i++ {
+			c := newTestCluster()
+			c.WriterIsReader = 0
+
+			nodeA := makeReader(dnsA)
+			nodeB := makeReader(dnsB)
+
+			// Both nodes are writers AND readers.
+			c.WriterNodes[dnsA] = nodeA
+			c.WriterNodes[dnsB] = nodeB
+
+			readerNodes := map[string]cluster.DataNodeImpl{
+				dnsA: nodeA,
+				dnsB: nodeB,
+			}
+
+			c.HegelProcessWriterIsAlsoReader(readerNodes)
+
+			// Find which node received a DELETE action.
+			removedKey := ""
+			for key := range c.ActionNodes {
+				removedKey = key
+				break
+			}
+			if removedKey == "" {
+				ht.Fatalf("run %d: processWriterIsAlsoReader produced no ActionNodes entry (expected one DELETE)", i)
+			}
+
+			if firstRemovedKey == "" {
+				firstRemovedKey = removedKey
+			} else if removedKey != firstRemovedKey {
+				ht.Fatalf(
+					"processWriterIsAlsoReader is non-deterministic:\n"+
+						"  run 1 removed: %q\n"+
+						"  run %d removed: %q\n"+
+						"Fix: collect all candidates first, pick by deterministic tiebreak (highest DNS).",
+					firstRemovedKey, i+1, removedKey,
+				)
+			}
+		}
+
+		// Confirm the removed node is the one with the higher DNS string —
+		// that is the expected tiebreak once the fix is applied.
+		expectedKey := strconv.Itoa(hgReaderId) + "_" + dnsB // dnsB > dnsA lexicographically
+		if firstRemovedKey != expectedKey {
+			ht.Fatalf(
+				"processWriterIsAlsoReader removed %q but expected %q (highest DNS %q).\n"+
+					"Fix: use DNS as tiebreak when selecting which writer-reader to remove.",
+				firstRemovedKey, expectedKey, dnsB,
+			)
+		}
+
+		_ = fmt.Sprintf // keep import used
 	})
 }
 

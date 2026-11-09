@@ -1685,27 +1685,26 @@ func (cluster *DataClusterImpl) processWriterIsAlsoReader(readerNodes map[string
 }
 
 func (cluster *DataClusterImpl) processUpAndDownReaders(actionNodes map[string]DataNodeImpl, readerNodes map[string]DataNodeImpl) bool {
-
+	changed := false
 	for _, actionNode := range actionNodes {
 		currentHg := cluster.Hostgroups[actionNode.HostgroupId]
 		if currentHg.Type == "R" || currentHg.Type == "RREC" {
 			if actionNode.ReturnActionCategory(actionNode.ActionType) == "DOWN" ||
 				actionNode.ReturnActionCategory(actionNode.ActionType) == "SWAP_W" {
 				delete(readerNodes, actionNode.Dns)
-				return true
-				// If node is coming up we add it to the list of readers
+				changed = true
 			} else if actionNode.ReturnActionCategory(actionNode.ActionType) == "UP" ||
 				actionNode.ReturnActionCategory(actionNode.ActionType) == "SWAP_R" {
 				if actionNode.Processed && actionNode.ProxyStatus == "ONLINE" {
 					actionNode.HostgroupId = cluster.HgReaderId
 					actionNode.Processed = false
 					readerNodes[actionNode.Dns] = actionNode
-					return true
+					changed = true
 				}
 			}
 		}
 	}
-	return false
+	return changed
 }
 
 // add a new non existing Reader but force a delete first to avoid dirty writes. This only IF a Offline node with that key is NOT already present

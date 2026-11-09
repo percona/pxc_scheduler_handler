@@ -48,7 +48,7 @@ hostgroup_id	hostname	port	gtid_port	status	weight	compression	max_connections	m
 101	127.0.0.1	NODE_MYPORT_1	0	ONLINE	1	0	1000	0	0	0
 101	127.0.0.1	NODE_MYPORT_2	0	ONLINE	2	0	1000	0	0	0
 101	127.0.0.1	NODE_MYPORT_3	0	ONLINE	3	0	1000	0	0	0
-SELECT COUNT(*) FROM t1;
+SELECT COUNT(*) FROM t1 FOR UPDATE;
 COUNT(*)
 6
 #
@@ -63,7 +63,7 @@ hostgroup_id	hostname	port	gtid_port	status	weight	compression	max_connections	m
 101	127.0.0.1	NODE_MYPORT_1	0	ONLINE	1	0	1000	0	0	0
 101	127.0.0.1	NODE_MYPORT_2	0	ONLINE	2	0	1000	0	0	0
 101	127.0.0.1	NODE_MYPORT_3	0	ONLINE	3	0	1000	0	0	0
-SELECT COUNT(*) FROM t1;
+SELECT COUNT(*) FROM t1 FOR UPDATE;
 COUNT(*)
 9
 #

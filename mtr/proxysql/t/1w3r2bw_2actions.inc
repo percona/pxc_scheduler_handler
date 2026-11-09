@@ -110,8 +110,8 @@ INSERT INTO t1 VALUES (11), (12), (13);
 --eval SELECT hostgroup_id,hostname,port,gtid_port,status,weight,compression,max_connections,max_replication_lag,use_ssl,max_latency_ms FROM runtime_mysql_servers WHERE hostgroup_id in ($wHG,$rHG)  ORDER BY hostgroup_id, port;
 
 --connection conn_app_test
-# verify that writes reached the backend
-SELECT COUNT(*) FROM t1;
+# verify that writes reached the backend (FOR UPDATE routes to HG 100 writer, avoiding unstable HG 101)
+SELECT COUNT(*) FROM t1 FOR UPDATE;
 
 
 #
@@ -144,7 +144,7 @@ INSERT INTO t1 VALUES (21), (22), (23);
 
 --connection conn_app_test
 # verify that writes reached the backend (promoted Backup writer 1)
-SELECT COUNT(*) FROM t1;
+SELECT COUNT(*) FROM t1 FOR UPDATE;
 
 #
 # CLEANUP

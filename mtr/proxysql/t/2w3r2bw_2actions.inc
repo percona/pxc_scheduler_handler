@@ -93,8 +93,10 @@ INSERT INTO t1 VALUES (1), (2), (3);
 --connection $action_1_node
 --eval $action_1
 
-# now let ProxySQL scheduler detect this change and do its job
---sleep 30
+# Wait for ProxySQL scheduler to converge after action 1
+--connection proxysql_admin
+--let $wait_condition = $act1_wait_condition
+--source ../include/wait_scheduler.inc
 
 # Reconnect allowing ProxySQL to route to the new backend
 --disconnect conn_app_test
@@ -126,8 +128,10 @@ SELECT COUNT(*) FROM t1 FOR UPDATE;
 --connection $action_2_node
 --eval $action_2
 
-# now let ProxySQL scheduler detect this change and do its job
---sleep 30
+# Wait for ProxySQL scheduler to converge after action 2
+--connection proxysql_admin
+--let $wait_condition = $act2_wait_condition
+--source ../include/wait_scheduler.inc
 
 # Reconnect allowing ProxySQL to route to the new backend
 --disconnect conn_app_test

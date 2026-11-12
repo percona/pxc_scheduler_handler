@@ -107,15 +107,18 @@ INSERT INTO t1 VALUES (1), (2), (3);
 --connection $node_to_kill
 --source include/kill_mysqld.inc
 
-# now let ProxySQL scheduler detect this change and do its job
---sleep 70
+# Wait for ProxySQL scheduler to converge after kill
+--connection proxysql_admin
+--let $wait_condition = $act1_wait_condition
+--let $wait_timeout = 120
+--source ../include/wait_scheduler.inc
 
 # Reconnect allowing ProxySQL to route to the new backend
 --disconnect conn_app_test
 --connect(conn_app_test, 127.0.0.1, app_test, test, , 6033)
 --connection conn_app_test
 INSERT INTO t1 VALUES (11), (12), (13);
---sleep 20
+--sleep 2
 
 
 #
@@ -142,15 +145,18 @@ SELECT COUNT(*) FROM t1 FOR UPDATE;
 --source include/start_mysqld.inc
 --source include/wait_wsrep_ready.inc
 
-# now let ProxySQL scheduler detect this change and do its job
---sleep 80
+# Wait for ProxySQL scheduler to converge after restart
+--connection proxysql_admin
+--let $wait_condition = $act2_wait_condition
+--let $wait_timeout = 120
+--source ../include/wait_scheduler.inc
 
 # Reconnect allowing ProxySQL to route to the new backend
 --disconnect conn_app_test
 --connect(conn_app_test, 127.0.0.1, app_test, test, , 6033)
 --connection conn_app_test
 INSERT INTO t1 VALUES (21), (22), (23);
---sleep 30
+--sleep 2
 
 #
 # ASSERT 2

@@ -1,0 +1,4 @@
+# Config: writer_is_reader.toml
+# Remove all readers from HG 101, scheduler should repopulate from backup readers
+--let $pxc_scheduler_handler_config = writer_is_reader.toml
+--source reader_add.inc

@@ -93,8 +93,10 @@ INSERT INTO t1 VALUES (1), (2), (3);
 --connection $action_1_node
 --eval $action_1
 
-# now let ProxySQL scheduler detect this change and do its job
---sleep 30
+# Wait for ProxySQL scheduler to converge after action 1
+--connection proxysql_admin
+--let $wait_condition = $act1_wait_condition
+--source ../include/wait_scheduler.inc
 
 # Reconnect allowing ProxySQL to route to the new backend
 --disconnect conn_app_test
@@ -112,8 +114,8 @@ INSERT INTO t1 VALUES (11), (12), (13);
 --eval SELECT hostgroup_id,hostname,port,gtid_port,status,weight,compression,max_connections,max_replication_lag,use_ssl,max_latency_ms FROM runtime_mysql_servers WHERE hostgroup_id in ($wHG,$rHG)  ORDER BY hostgroup_id, port;
 
 --connection conn_app_test
-# verify that writes reached the backend
-SELECT COUNT(*) FROM t1;
+# verify that writes reached the backend (FOR UPDATE routes to HG 100 writer, avoiding unstable HG 101)
+SELECT COUNT(*) FROM t1 FOR UPDATE;
 
 
 #
@@ -126,8 +128,10 @@ SELECT COUNT(*) FROM t1;
 --connection $action_2_node
 --eval $action_2
 
-# now let ProxySQL scheduler detect this change and do its job
---sleep 30
+# Wait for ProxySQL scheduler to converge after action 2
+--connection proxysql_admin
+--let $wait_condition = $act2_wait_condition
+--source ../include/wait_scheduler.inc
 
 # Reconnect allowing ProxySQL to route to the new backend
 --disconnect conn_app_test
@@ -146,7 +150,7 @@ INSERT INTO t1 VALUES (21), (22), (23);
 
 --connection conn_app_test
 # verify that writes reached the backend (promoted Backup writer 1)
-SELECT COUNT(*) FROM t1;
+SELECT COUNT(*) FROM t1 FOR UPDATE;
 
 #
 # CLEANUP

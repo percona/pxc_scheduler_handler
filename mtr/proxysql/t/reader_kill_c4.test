@@ -1,0 +1,13 @@
+# Config: writer_is_reader_failback.toml
+# Kill and restart node_2
+--let $pxc_scheduler_handler_config = writer_is_reader_failback.toml
+--let $node_to_kill = node_2
+--let $node_1_bwr_priority = 1
+--let $node_2_bwr_priority = 2
+--let $node_3_bwr_priority = 3
+--let $node_1_brd_priority = 1
+--let $node_2_brd_priority = 2
+--let $node_3_brd_priority = 3
+--let $act1_wait_condition = SELECT COUNT(*)=0 FROM runtime_mysql_servers WHERE hostgroup_id=101 AND port=$NODE_MYPORT_2 AND status='ONLINE'
+--let $act2_wait_condition = SELECT 1 FROM runtime_mysql_servers WHERE hostgroup_id=101 AND port=$NODE_MYPORT_2 AND status='ONLINE'
+--source pxc_node_kill.inc

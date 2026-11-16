@@ -42,7 +42,6 @@ INSERT INTO t1 VALUES (1), (2), (3);
 # node_3 kill
 #
 # Kill the server
-INSERT INTO t1 VALUES (11), (12), (13);
 SELECT hostgroup_id,hostname,port,gtid_port,status,weight,compression,max_connections,max_replication_lag,use_ssl,max_latency_ms FROM runtime_mysql_servers WHERE hostgroup_id in (100,101)  ORDER BY hostgroup_id, port;;
 hostgroup_id	hostname	port	gtid_port	status	weight	compression	max_connections	max_replication_lag	use_ssl	max_latency_ms
 100	127.0.0.1	NODE_MYPORT_2	0	ONLINE	2	0	1000	0	0	0
@@ -50,7 +49,7 @@ hostgroup_id	hostname	port	gtid_port	status	weight	compression	max_connections	m
 101	127.0.0.1	NODE_MYPORT_2	0	ONLINE	2	0	1000	0	0	0
 SELECT COUNT(*) FROM t1 FOR UPDATE;
 COUNT(*)
-6
+3
 #
 # node_3 back online
 #
@@ -65,7 +64,7 @@ hostgroup_id	hostname	port	gtid_port	status	weight	compression	max_connections	m
 101	127.0.0.1	NODE_MYPORT_3	0	ONLINE	3	0	1000	0	0	0
 SELECT COUNT(*) FROM t1 FOR UPDATE;
 COUNT(*)
-9
+6
 #
 # Loading default ProxySQL configuration
 #

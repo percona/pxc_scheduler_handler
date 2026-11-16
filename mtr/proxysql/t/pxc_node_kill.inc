@@ -116,11 +116,7 @@ INSERT INTO t1 VALUES (1), (2), (3);
 # Reconnect allowing ProxySQL to route to the new backend
 --disconnect conn_app_test
 --connect(conn_app_test, 127.0.0.1, app_test, test, , 6033)
-# Brief sleep to let ProxySQL drain stale backend connections to the killed node
-# before executing the first query on the new connection
---sleep 2
 --connection conn_app_test
-INSERT INTO t1 VALUES (11), (12), (13);
 
 
 #

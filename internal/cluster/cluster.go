@@ -1406,8 +1406,22 @@ func (cluster *DataClusterImpl) identifyLowerNodeToRemove(node DataNodeImpl) boo
 }
 
 func (cluster *DataClusterImpl) processUpActionMap() {
-	// TODO can we include in the unit test? I think this is too complex and not deterministic to do so
-	for key, node := range cluster.ActionNodes {
+	// Sort keys so highest-weight nodes are processed first; DNS is a stable tiebreak.
+	// This ensures writer election is deterministic when multiple backup writers are eligible.
+	keys := make([]string, 0, len(cluster.ActionNodes))
+	for k := range cluster.ActionNodes {
+		keys = append(keys, k)
+	}
+	sort.Slice(keys, func(i, j int) bool {
+		ni := cluster.ActionNodes[keys[i]]
+		nj := cluster.ActionNodes[keys[j]]
+		if ni.Weight != nj.Weight {
+			return ni.Weight > nj.Weight
+		}
+		return keys[i] < keys[j]
+	})
+	for _, key := range keys {
+		node := cluster.ActionNodes[key]
 		//While evaluating the nodes that are coming up we also check if it is a Failover Node
 		var hgI int
 		var portI = 0

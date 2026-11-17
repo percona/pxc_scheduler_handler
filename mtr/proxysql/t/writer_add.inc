@@ -91,8 +91,11 @@ INSERT INTO t1 VALUES (1), (2), (3);
 --eval DELETE FROM mysql_servers where hostgroup_id=$wHG
 --source ../include/apply_proxysql_config.inc
 
-# now let ProxySQL scheduler detect this change and do its job
---sleep 60
+# Wait for scheduler to repopulate HG 100 from backup writers
+--connection proxysql_admin
+--let $wait_condition = SELECT COUNT(*) > 0 FROM runtime_mysql_servers WHERE hostgroup_id=100 AND status='ONLINE'
+--let $wait_timeout = 90
+--source ../include/wait_scheduler.inc
 
 #
 # ASSERT 1

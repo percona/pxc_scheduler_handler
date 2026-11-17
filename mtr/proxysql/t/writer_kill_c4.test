@@ -8,6 +8,6 @@
 --let $node_1_brd_priority = 1
 --let $node_2_brd_priority = 2
 --let $node_3_brd_priority = 3
---let $act1_wait_condition = SELECT COUNT(*)=1 FROM runtime_mysql_servers WHERE hostgroup_id=100 AND status='ONLINE'
---let $act2_wait_condition = SELECT 1 FROM runtime_mysql_servers WHERE hostgroup_id=100 AND port=$NODE_MYPORT_3 AND status='ONLINE'
+--let $act1_wait_condition = SELECT COUNT(*)=0 FROM runtime_mysql_servers WHERE hostgroup_id=101 AND port=$NODE_MYPORT_3
+--let $act2_wait_condition = SELECT COUNT(*)=2 FROM runtime_mysql_servers WHERE port=$NODE_MYPORT_3 AND status='ONLINE' AND hostgroup_id IN (100,101)
 --source pxc_node_kill.inc

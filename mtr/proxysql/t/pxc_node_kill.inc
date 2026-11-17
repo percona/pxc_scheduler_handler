@@ -154,7 +154,6 @@ SELECT COUNT(*) FROM t1 FOR UPDATE;
 --connect(conn_app_test, 127.0.0.1, app_test, test, , 6033)
 --connection conn_app_test
 INSERT INTO t1 VALUES (21), (22), (23);
---sleep 2
 
 #
 # ASSERT 2

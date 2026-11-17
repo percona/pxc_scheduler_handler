@@ -91,7 +91,7 @@ INSERT INTO t1 VALUES (1), (2), (3);
 
 # Wait for scheduler to repopulate HG 101 from backup readers
 --connection proxysql_admin
---let $wait_condition = SELECT COUNT(*) > 0 FROM runtime_mysql_servers WHERE hostgroup_id=101 AND status='ONLINE'
+--let $wait_condition = SELECT COUNT(*)=3 FROM runtime_mysql_servers WHERE hostgroup_id=101 AND status='ONLINE'
 --let $wait_timeout = 90
 --source ../include/wait_scheduler.inc
 

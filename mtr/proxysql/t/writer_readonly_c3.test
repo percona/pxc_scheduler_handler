@@ -6,6 +6,6 @@
 --let $action_1 = SET GLOBAL read_only=1;
 --let $action_2_node = node_1
 --let $action_2 = SET GLOBAL read_only=0;
---let $act1_wait_condition = SELECT COUNT(*)=0 FROM runtime_mysql_servers WHERE hostgroup_id=100 AND port=$NODE_MYPORT_1
+--let $act1_wait_condition = SELECT COUNT(*)=2 FROM runtime_mysql_servers WHERE hostgroup_id=100 AND status='ONLINE'
 --let $act2_wait_condition = SELECT 1 FROM runtime_mysql_servers WHERE hostgroup_id=101 AND port=$NODE_MYPORT_1 AND status='ONLINE'
 --source 2w3r2bw_2actions.inc
